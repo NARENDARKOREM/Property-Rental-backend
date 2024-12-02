@@ -5,6 +5,7 @@ const TblCountry = sequelize.define('TblCountry', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true
   },
   title: {

@@ -5,6 +5,7 @@ const TblNotification = sequelize.define('TblNotification', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true
   },
   uid: {

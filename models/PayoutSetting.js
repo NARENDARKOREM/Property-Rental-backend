@@ -5,6 +5,7 @@ const PayoutSetting = sequelize.define('PayoutSetting', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true
   },
   owner_id: {

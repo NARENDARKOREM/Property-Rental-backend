@@ -5,6 +5,7 @@ const Admin = sequelize.define("Admin",{
     id:{
         type:DataTypes.INTEGER,
         allowNull:false,
+        autoIncrement:true,
         primaryKey:true
     },
     username:{

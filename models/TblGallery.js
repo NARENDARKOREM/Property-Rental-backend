@@ -5,6 +5,7 @@ const TblGallery = sequelize.define('TblGallery', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true
   },
   pid: {

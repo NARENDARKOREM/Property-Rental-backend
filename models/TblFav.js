@@ -5,6 +5,7 @@ const TblFav = sequelize.define('TblFav', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true
   },
   uid: {

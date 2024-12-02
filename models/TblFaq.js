@@ -5,6 +5,7 @@ const TblFaq = sequelize.define('TblFaq', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true
   },
   question: {

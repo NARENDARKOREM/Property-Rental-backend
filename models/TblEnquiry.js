@@ -5,6 +5,7 @@ const TblEnquiry = sequelize.define('TblEnquiry', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true
   },
   prop_id: {

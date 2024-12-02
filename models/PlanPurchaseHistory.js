@@ -5,6 +5,7 @@ const PlanPurchaseHistory = sequelize.define("PlanPurchaseHistory", {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true,
   },
   uid: {
