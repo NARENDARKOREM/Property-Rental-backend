@@ -1,10 +1,16 @@
 const express = require("express");
 const app = express();
 const dotEnv = require("dotenv");
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
 const sequelize = require("./db")
 const PORT = process.env.PORT || 5000;
-dotEnv.config();
 
+// Routes
+const adminRoutes = require('./routes/adminRoutes');
+
+// Models
 const Admin = require("./models/Admin");
 const PayoutSetting = require("./models/PayoutSetting");
 const PlanPurchaseHistory = require("./models/PlanPurchaseHistory");
@@ -30,6 +36,23 @@ const Setting = require('./models/Setting');
 const User = require('./models/User');
 const Staff = require('./models/Staff');
 const WalletReport = require("./models/WalletReport");
+
+// Middlewares
+dotEnv.config();
+app.use(cors());
+app.use(express.json());
+app.use(cookieParser());
+app.use(session({
+    secret:process.env.SESSION_SECRET,
+    resave:false,
+    saveUninitialized:false,
+    cookie:{secure:false}
+}));
+
+
+
+
+app.use("/admin", adminRoutes);
 
 
 app.get('/',(req,res)=>{
