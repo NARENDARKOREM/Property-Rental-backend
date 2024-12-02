@@ -7,9 +7,6 @@ const session = require('express-session');
 const sequelize = require("./db")
 const PORT = process.env.PORT || 5000;
 
-// Routes
-const adminRoutes = require('./routes/adminRoutes');
-
 // Models
 const Admin = require("./models/Admin");
 const PayoutSetting = require("./models/PayoutSetting");
@@ -37,6 +34,10 @@ const User = require('./models/User');
 const Staff = require('./models/Staff');
 const WalletReport = require("./models/WalletReport");
 
+// Routes
+const adminRoutes = require('./routes/adminRoutes');
+const countryRoutes = require('./routes/countriesRoutes');
+
 // Middlewares
 dotEnv.config();
 app.use(cors());
@@ -50,9 +51,8 @@ app.use(session({
 }));
 
 
-
-
 app.use("/admin", adminRoutes);
+app.use("/countries", countryRoutes);
 
 
 app.get('/',(req,res)=>{

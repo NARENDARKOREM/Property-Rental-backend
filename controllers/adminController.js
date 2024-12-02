@@ -4,14 +4,18 @@ const Admin = require("../models/Admin");
 
 // Generate JWT
 const generateToken = (admin) => {
-  return jwt.sign({ id: admin.id, username: admin.username }, process.env.JWT_SECRET, {
+  return jwt.sign({ id: admin.id, username: admin.username, userType:admin.userType }, process.env.JWT_SECRET, {
     expiresIn: "1h",
   });
 };
 
 // Signup Controller
 const registerAdmin = async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, userType } = req.body;
+
+  if (!userType) {
+    return res.status(400).json({ error: "User type is required" });
+  }
 
   try {
     const existingAdmin = await Admin.findOne({ where: { username } });
@@ -23,7 +27,8 @@ const registerAdmin = async (req, res) => {
 
     const admin = await Admin.create({
       username,
-      password: hashedPassword
+      password: hashedPassword,
+      userType
     });
 
     const token = generateToken(admin);
