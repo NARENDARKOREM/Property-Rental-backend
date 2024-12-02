@@ -5,6 +5,7 @@ const TblFacility = sequelize.define('TblFacility', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true
   },
   title: {

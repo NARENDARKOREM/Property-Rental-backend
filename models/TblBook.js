@@ -8,6 +8,7 @@ const TblBook = sequelize.define(
     id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      autoIncrement:true,
       primaryKey: true,
     },
     prop_id: {

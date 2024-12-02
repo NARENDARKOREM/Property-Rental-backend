@@ -100,8 +100,8 @@ const Property = sequelize.define('Property', {
 }, {
     tableName: 'tbl_property', 
     charset: 'latin1', 
-    collate: 'utf8mb4_general_ci', 
-    timestamps: false, 
+    timestamps: true,
+    paranoid:true 
 });
 
 module.exports = Property;

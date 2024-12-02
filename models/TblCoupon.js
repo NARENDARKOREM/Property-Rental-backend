@@ -5,6 +5,7 @@ const TblCoupon = sequelize.define('TblCoupon', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true
   },
   c_img: {

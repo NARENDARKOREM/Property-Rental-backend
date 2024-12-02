@@ -92,8 +92,8 @@ const Setting = sequelize.define('Setting', {
 }, {
     tableName: 'tbl_setting', 
     charset: 'latin1', 
-    collate: 'utf8mb3_general_ci', 
-    timestamps: false, 
+    timestamps: true,
+    paranoid:true 
 });
 
 module.exports = Setting;

@@ -31,7 +31,8 @@ const WalletReport = sequelize.define('WalletReport', {
 }, {
     tableName: 'wallet_report', // Matches the SQL table name
     charset: 'latin1', // Matches DEFAULT CHARSET=latin1
-    timestamps: false, // Disables automatic createdAt and updatedAt fields
+    timestamps: true, // Disables automatic createdAt and updatedAt fields
+    paranoid:true
 });
 
 module.exports = WalletReport;

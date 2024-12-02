@@ -5,6 +5,7 @@ const TblExtra = sequelize.define('TblExtra', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    autoIncrement:true,
     primaryKey: true
   },
   pid: {

@@ -42,9 +42,9 @@ const PersonRecord = sequelize.define('PersonRecord', {
     }
 }, {
     tableName: 'tbl_person_record', 
-    charset: 'latin1', 
-    collate: 'utf8mb4_general_ci', 
-    timestamps: false, 
+    charset: 'latin1',  
+    timestamps: true,
+    paranoid:true 
 });
 
 module.exports = PersonRecord;

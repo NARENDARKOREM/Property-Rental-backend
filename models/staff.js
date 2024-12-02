@@ -5,7 +5,7 @@ const Staff = sequelize.define('Staff', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true, // Ensures `id` auto-increments
+        autoIncrement: true,
         allowNull: false
     },
     country: {
@@ -88,7 +88,8 @@ const Staff = sequelize.define('Staff', {
     tableName: 'tbl_staff', // Matches the SQL table name
     charset: 'utf8mb4', // Matches DEFAULT CHARSET=utf8mb4
     collate: 'utf8mb4_general_ci', // Matches COLLATE=utf8mb4_general_ci
-    timestamps: false, // Disables automatic createdAt and updatedAt fields
+    timestamps: true, // Disables automatic createdAt and updatedAt fields
+    paranoid:true
 });
 
 module.exports = Staff;

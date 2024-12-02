@@ -23,8 +23,8 @@ const Page = sequelize.define('Page', {
 }, {
     tableName: 'tbl_page', 
     charset: 'latin1', 
-    collate: 'utf8mb3_general_ci', 
-    timestamps: false, 
+    timestamps: true,
+    paranoid:true 
 });
 
 module.exports = Page;

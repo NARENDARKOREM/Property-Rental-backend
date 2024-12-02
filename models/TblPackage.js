@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../db'); // Assuming 'db.js' is where the connection is established
 
-const PaymentList = sequelize.define('PaymentList', {
+const TblPackage = sequelize.define('TblPackage', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -10,41 +10,33 @@ const PaymentList = sequelize.define('PaymentList', {
   },
   title: {
     type: DataTypes.TEXT,
-    allowNull: false,
-    charset: 'utf8mb3',
+    allowNull: false
   },
-  img: {
+  image: {
     type: DataTypes.TEXT,
     allowNull: false
   },
-  attributes: {
+  description: {
     type: DataTypes.TEXT,
     allowNull: false
   },
   status: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1
+    allowNull: false
   },
-  subtitle: {
-    type: DataTypes.TEXT,
-    charset: 'utf8mb3',
-
-  },
-  p_show: {
+  day: {
     type: DataTypes.INTEGER,
     allowNull: false
   },
-  s_show: {
+  price: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0
+    allowNull: false
   }
 }, {
-  tableName: 'tbl_payment_list', 
-  charset: 'latin1',  
+  tableName: 'tbl_package', 
+  charset: 'latin1', 
   timestamps: true, // Enable timestamps
   paranoid: true // Enable paranoid mode for soft deletion
 });
 
-module.exports = PaymentList;
+module.exports = TblPackage;

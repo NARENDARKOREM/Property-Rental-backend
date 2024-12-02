@@ -76,8 +76,8 @@ const User = sequelize.define('User', {
 }, {
     tableName: 'tbl_user', // Matches the SQL table name
     charset: 'latin1', // Matches DEFAULT CHARSET=latin1
-    collate: 'utf8mb4_general_ci', // Applies COLLATE for `name`, `email`, and `password`
-    timestamps: false, // Disables automatic createdAt and updatedAt fields
+    timestamps: true, // Disables automatic createdAt and updatedAt fields
+    paranoid:true
 });
 
 module.exports = User;

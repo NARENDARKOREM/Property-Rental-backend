@@ -20,6 +20,17 @@ const TblFav = require('./models/TblFav');
 const TblGallery = require('./models/TblGallery');
 const TblGalCat = require('./models/TblGalCat');
 const TblNotification =require('./models/TblNotification');
+const Package = require("./models/TblPackage");
+const Page = require('./models/Page');
+const PaymentList = require('./models/PaymentList');
+const PersonRecord = require('./models/PersonRecord');
+const Property = require('./models/Property');
+const TblProp = require('./models/TblProp');
+const Setting = require('./models/Setting');
+const User = require('./models/User');
+const Staff = require('./models/Staff');
+const WalletReport = require("./models/WalletReport");
+
 
 app.get('/',(req,res)=>{
     res.send("Server is Running");
