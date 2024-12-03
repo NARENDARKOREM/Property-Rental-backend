@@ -5,17 +5,17 @@ const TblCategory = sequelize.define('TblCategory', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    autoIncrement:true,
+    autoIncrement: true,
     primaryKey: true
   },
   title: {
-    type: DataTypes.TEXT,
+    type: DataTypes.STRING,
     allowNull: false,
     charset: 'utf8mb4',
     collate: 'utf8mb4_general_ci'
   },
   img: {
-    type: DataTypes.TEXT,
+    type: DataTypes.STRING,
     allowNull: false,
     charset: 'utf8mb4',
     collate: 'utf8mb4_general_ci'
@@ -27,7 +27,7 @@ const TblCategory = sequelize.define('TblCategory', {
 }, {
   tableName: 'tbl_category',
   timestamps: true,
-  paranoid:true,
+  paranoid: true,
   charset: 'latin1'
 });
 
