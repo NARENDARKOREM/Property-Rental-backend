@@ -47,6 +47,7 @@ const pagesRoutes = require("./routes/pagesRoutes");
 const couponRoutes = require("./routes/couponRoutes");
 const packagesRoutes = require('./routes/packagesRoutes');
 const facilitiesRoutes = require('./routes/facilitiesRoutes');
+const staffRoutes = require('./routes/staffRoutes');
 
 // Middlewares
 dotEnv.config();
@@ -72,6 +73,7 @@ app.use("/pages", pagesRoutes);
 app.use("/coupons", couponRoutes);
 app.use("/packages", packagesRoutes);
 app.use("/facilities", facilitiesRoutes);
+app.use("/staff", staffRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is Running");
