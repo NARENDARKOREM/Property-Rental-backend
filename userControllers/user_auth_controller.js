@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const User = require('../models/user'); 
+const User = require('../models/User'); 
 const Setting = require('../models/Setting');
-const WalletReport = require('../models/walletReport');
+const WalletReport = require('../models/WalletReport');
 
 
 

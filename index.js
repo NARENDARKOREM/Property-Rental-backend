@@ -10,13 +10,7 @@ const sequelize = require("./db");
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const PORT = process.env.PORT || 5000;
 
-<<<<<<< HEAD
-=======
 
-// Routes
-const adminRoutes = require('./routes/adminRoutes');
-
->>>>>>> origin/suresh
 // Models
 const Admin = require("./models/Admin");
 const PayoutSetting = require("./models/PayoutSetting");
@@ -34,8 +28,6 @@ const TblGallery = require("./models/TblGallery");
 const TblGalCat = require("./models/TblGalCat");
 const TblNotification = require("./models/TblNotification");
 const Package = require("./models/TblPackage");
-<<<<<<< HEAD
-const Page = require("./models/Page");
 const PaymentList = require("./models/PaymentList");
 const PersonRecord = require("./models/PersonRecord");
 const Property = require("./models/Property");
@@ -44,17 +36,8 @@ const Setting = require("./models/Setting");
 const User = require("./models/User");
 const Staff = require("./models/Staff");
 const WalletReport = require("./models/WalletReport");
-=======
 const Page = require('./models/Page');
-const PaymentList = require('./models/PaymentList');
-const PersonRecord = require('./models/PersonRecord');
-const Property = require('./models/Property');
-const TblProp = require('./models/TblProp');
-const Setting = require('./models/Setting');
-const User = require('./models/user');
-const Staff = require('./models/Staff');
-const WalletReport = require("./models/walletReport");
->>>>>>> origin/suresh
+
 
 // Routes
 const adminRoutes = require("./routes/adminRoutes");
@@ -80,12 +63,13 @@ app.use(
 app.use("/admin", adminRoutes);
 app.use("/countries", countriesRoutes);
 app.use("/categories", categoryRoutes);
+app.use('/users',require('./userRoutes/user_auth_router'))
 
 app.get("/", (req, res) => {
   res.send("Server is Running");
 });
 
-<<<<<<< HEAD
+
 sequelize
   .sync()
   .then(() => {
@@ -98,25 +82,3 @@ sequelize
 app.listen(PORT, () => {
   console.log(`Server is Running on PORT http://localhost:${PORT}`);
 });
-=======
-app.get('/',(req,res)=>{
-    res.send("Server is Running");
-})
-
-
-
-sequelize.sync()
-    .then(() => {
-        console.log('Database & tables created!');
-    })
-    .catch(err => {
-        console.error('Unable to create the database:', err);
-    });
-
-app.listen(PORT,()=>{
-    console.log(`Server is Running on PORT http://localhost:${PORT}`);
-})
-
-app.use('/users',require('./userRoutes/user_auth_router'))
-
->>>>>>> origin/suresh
