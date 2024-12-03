@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../db'); // Assuming 'db.js' is where the connection is established
+const sequelize = require('../db');
 
 const PaymentList = sequelize.define('PaymentList', {
   id: {
@@ -43,8 +43,8 @@ const PaymentList = sequelize.define('PaymentList', {
 }, {
   tableName: 'tbl_payment_list', 
   charset: 'latin1',  
-  timestamps: true, // Enable timestamps
-  paranoid: true // Enable paranoid mode for soft deletion
+  timestamps: true, 
+  paranoid: true 
 });
 
 module.exports = PaymentList;
