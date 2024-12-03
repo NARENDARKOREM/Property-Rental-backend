@@ -7,6 +7,7 @@ const session = require('express-session');
 const sequelize = require("./db")
 const PORT = process.env.PORT || 5000;
 
+
 // Routes
 const adminRoutes = require('./routes/adminRoutes');
 
@@ -33,9 +34,9 @@ const PersonRecord = require('./models/PersonRecord');
 const Property = require('./models/Property');
 const TblProp = require('./models/TblProp');
 const Setting = require('./models/Setting');
-const User = require('./models/User');
+const User = require('./models/user');
 const Staff = require('./models/Staff');
-const WalletReport = require("./models/WalletReport");
+const WalletReport = require("./models/walletReport");
 
 // Middlewares
 dotEnv.config();
@@ -59,6 +60,8 @@ app.get('/',(req,res)=>{
     res.send("Server is Running");
 })
 
+
+
 sequelize.sync()
     .then(() => {
         console.log('Database & tables created!');
@@ -70,4 +73,6 @@ sequelize.sync()
 app.listen(PORT,()=>{
     console.log(`Server is Running on PORT http://localhost:${PORT}`);
 })
+
+app.use('/users',require('./userRoutes/user_auth_router'))
 
