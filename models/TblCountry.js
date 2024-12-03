@@ -5,17 +5,17 @@ const TblCountry = sequelize.define('TblCountry', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    autoIncrement:true,
+    autoIncrement: true,
     primaryKey: true
   },
   title: {
-    type: DataTypes.TEXT,
+    type: DataTypes.STRING,
     allowNull: false,
     charset: 'utf8mb4',
     collate: 'utf8mb4_general_ci'
   },
   img: {
-    type: DataTypes.TEXT,
+    type: DataTypes.STRING,
     allowNull: false
   },
   status: {
