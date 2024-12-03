@@ -4,6 +4,14 @@ const dotEnv = require("dotenv");
 const sequelize = require("./db")
 const PORT = process.env.PORT || 5000;
 dotEnv.config();
+const bodyparser = require("body-parser");
+const cors = require("cors");
+
+app.use(bodyparser.json());
+app.use(cors({
+    origin: 'http://localhost:3000', 
+    credentials: true 
+}));
 
 const Admin = require("./models/Admin");
 const PayoutSetting = require("./models/PayoutSetting");
@@ -27,14 +35,16 @@ const PersonRecord = require('./models/PersonRecord');
 const Property = require('./models/Property');
 const TblProp = require('./models/TblProp');
 const Setting = require('./models/Setting');
-const User = require('./models/User');
+const User = require('./models/user');
 const Staff = require('./models/Staff');
-const WalletReport = require("./models/WalletReport");
+const WalletReport = require("./models/walletReport");
 
 
 app.get('/',(req,res)=>{
     res.send("Server is Running");
 })
+
+
 
 sequelize.sync()
     .then(() => {
@@ -47,4 +57,6 @@ sequelize.sync()
 app.listen(PORT,()=>{
     console.log(`Server is Running on PORT http://localhost:${PORT}`);
 })
+
+app.use('/users',require('./userRoutes/user_auth_router'))
 
