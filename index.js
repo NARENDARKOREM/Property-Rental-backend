@@ -46,6 +46,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const pagesRoutes = require("./routes/pagesRoutes");
 const couponRoutes = require("./routes/couponRoutes");
 const packagesRoutes = require('./routes/packagesRoutes');
+const facilitiesRoutes = require('./routes/facilitiesRoutes');
 
 // Middlewares
 dotEnv.config();
@@ -70,6 +71,7 @@ app.use('/users', require('./userRoutes/user_auth_router'));
 app.use("/pages", pagesRoutes);
 app.use("/coupons", couponRoutes);
 app.use("/packages", packagesRoutes);
+app.use("/facilities", facilitiesRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is Running");
