@@ -33,13 +33,13 @@ const User = sequelize.define('User', {
         allowNull: false,
     },
     parentcode: {
-        type: DataTypes.INTEGER, // Allows `NULL` by default
+        type: DataTypes.INTEGER, 
         defaultValue: null,
     },
     wallet: {
         type: DataTypes.FLOAT,
         allowNull: false,
-        defaultValue: 0, // Matches the SQL DEFAULT value
+        defaultValue: 0, 
     },
     reg_date: {
         type: DataTypes.DATE,
@@ -48,12 +48,12 @@ const User = sequelize.define('User', {
     status: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 1, // Matches the SQL DEFAULT value
+        defaultValue: 1, 
     },
     pro_pic: {
         type: DataTypes.STRING(500),
         allowNull: true,
-        defaultValue: 'assets/images/dashboard/profile.png', // Matches the SQL DEFAULT value
+        defaultValue: 'assets/images/dashboard/profile.png', 
     },
     start_date: {
         type: DataTypes.DATEONLY,
@@ -66,17 +66,17 @@ const User = sequelize.define('User', {
     pack_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 0, // Matches the SQL DEFAULT value
+        defaultValue: 0, 
     },
     is_subscribe: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 0, // Matches the SQL DEFAULT value
+        defaultValue: 0, 
     }
 }, {
-    tableName: 'tbl_user', // Matches the SQL table name
-    charset: 'latin1', // Matches DEFAULT CHARSET=latin1
-    timestamps: true, // Disables automatic createdAt and updatedAt fields
+    tableName: 'tbl_user', 
+    charset: 'latin1', 
+    timestamps: true, 
     paranoid:true
 });
 
