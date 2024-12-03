@@ -43,6 +43,7 @@ const Page = require('./models/Page');
 const adminRoutes = require("./routes/adminRoutes");
 const countriesRoutes = require("./routes/countriesRoutes");
 const categoryRoutes = require('./routes/categoryRoutes');
+const pagesRoutes = require("./routes/pagesRoutes");
 
 // Middlewares
 dotEnv.config();
@@ -63,7 +64,8 @@ app.use(
 app.use("/admin", adminRoutes);
 app.use("/countries", countriesRoutes);
 app.use("/categories", categoryRoutes);
-app.use('/users',require('./userRoutes/user_auth_router'))
+app.use('/users',require('./userRoutes/user_auth_router'));
+app.use("/pages", pagesRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is Running");
