@@ -5,6 +5,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
 
 router.post('/register', adminController.registerAdmin);
 router.post('/login', adminController.loginAdmin);
+router.get('/userbytoken',authMiddleware.isAuthenticated, adminController.getUserbyToken);
 router.put('/update/:id', authMiddleware.isAuthenticated, adminController.updateAdmin);
 // Delete admin (soft delete by default, force delete with query param ?forceDelete=true)
 router.delete('/delete/:id', authMiddleware.isAuthenticated, adminController.deleteAdmin);
