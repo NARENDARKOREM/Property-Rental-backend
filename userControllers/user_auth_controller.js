@@ -3,13 +3,13 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User'); 
 const Setting = require('../models/Setting');
 const WalletReport = require('../models/WalletReport');
-
+const {Op } = require('sequelize');
 
 
 
 function generateToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email },
+    { id: user.id, email: user.email, userType: user.userType },
     process.env.JWT_SECRET,
     { expiresIn: '1d' } 
   );
@@ -159,11 +159,12 @@ async function userLogin(req, res) {
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
     return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
-      ResponseMsg: "Internal Server Error"
+      ResponseMsg: "Internal Server Error",
+      details: error.message
     });
   }
 }
