@@ -12,6 +12,7 @@ const generateToken = (admin) => {
 // Signup Controller
 const registerAdmin = async (req, res) => {
   const { username, password, userType } = req.body;
+  console.log(req.body);
 
   if (!userType) {
     return res.status(400).json({ error: "User type is required" });
@@ -23,13 +24,17 @@ const registerAdmin = async (req, res) => {
       return res.status(400).json({ error: "Admin already exists" });
     }
 
+    
+
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const admin = await Admin.create({
       username,
-      password: hashedPassword,
+      password,
       userType
     });
+
+    
 
     const token = generateToken(admin);
 
@@ -46,15 +51,17 @@ const registerAdmin = async (req, res) => {
 // Signin Controller
 const loginAdmin = async (req, res) => {
   const { username, password } = req.body;
+  console.log(req.body);
 
   try {
     const admin = await Admin.findOne({ where: { username } });
+    
     if (!admin) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
-    const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) {
+    // const isMatch = await bcrypt.compare(password, admin.password);
+    if (admin.password !== password) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
@@ -82,15 +89,38 @@ const updateAdmin = async (req, res) => {
     }
 
     admin.username = username;
-    if (password) {
-      admin.password = await bcrypt.hash(password, 12);
-    }
+    admin.password = password;
+    // if (password) {
+    //   admin.password = await bcrypt.hash(password, 12);
+    // }
 
     await admin.save();
 
     res.status(200).json({ message: "Admin updated successfully", admin });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const getUserbyToken = async (req, res) => {
+  try {
+    
+    const token = req.cookies.token;
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized: No token provided' });
+    }
+
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id; 
+    const user = await Admin.findByPk(userId); 
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(user); 
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -164,5 +194,6 @@ module.exports = {
   deleteAdmin,
   getAllAdmins,
   getAdminById,
-  logoutAdmin
+  logoutAdmin,
+  getUserbyToken
 };

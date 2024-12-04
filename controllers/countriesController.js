@@ -5,11 +5,8 @@ const path = require('path');
 // Create or Update Country
 const upsertCountry = async (req, res) => {
   const { id, title, status, img } = req.body;
-  let imgPath = img || '';
-
-  if (req.file) {
-    imgPath = `uploads/${req.file.filename}`;
-  }
+  console.log(req.body);
+  
 
   try {
     if (id) {
@@ -19,12 +16,12 @@ const upsertCountry = async (req, res) => {
         return res.status(404).json({ error: 'Country not found' });
       }
 
-      if (req.file && country.img && !country.img.startsWith('http')) {
-        fs.unlinkSync(path.join(__dirname, '..', country.img)); // Remove old image if not a URL
-      }
+      // if (req.file && country.img && !country.img.startsWith('http')) {
+      //   fs.unlinkSync(path.join(__dirname, '..', country.img)); // Remove old image if not a URL
+      // }
 
       country.title = title;
-      country.img = imgPath || country.img;
+      country.img = img;
       country.status = status;
 
       await country.save();
@@ -33,7 +30,7 @@ const upsertCountry = async (req, res) => {
       // Create new country
       const country = await TblCountry.create({
         title,
-        img: imgPath,
+        img,
         status,
         d_con: 0
       });
@@ -46,6 +43,7 @@ const upsertCountry = async (req, res) => {
 
 // Get All Countries
 const getAllCountries = async (req, res) => {
+  console.log("req from frontend");
   try {
     const countries = await TblCountry.findAll();
     res.status(200).json(countries);

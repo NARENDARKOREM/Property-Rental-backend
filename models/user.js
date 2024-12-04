@@ -5,7 +5,7 @@ const User = sequelize.define('User', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true, 
+        autoIncrement: true,
         allowNull: false
     },
     name: {
@@ -33,13 +33,13 @@ const User = sequelize.define('User', {
         allowNull: false,
     },
     parentcode: {
-        type: DataTypes.INTEGER, 
+        type: DataTypes.INTEGER,
         defaultValue: null,
     },
     wallet: {
         type: DataTypes.FLOAT,
         allowNull: false,
-        defaultValue: 0, 
+        defaultValue: 0,
     },
     reg_date: {
         type: DataTypes.DATE,
@@ -48,12 +48,12 @@ const User = sequelize.define('User', {
     status: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 1, 
+        defaultValue: 1,
     },
     pro_pic: {
         type: DataTypes.STRING(500),
         allowNull: true,
-        defaultValue: 'assets/images/dashboard/profile.png', 
+        defaultValue: 'assets/images/dashboard/profile.png',
     },
     start_date: {
         type: DataTypes.DATEONLY,
@@ -66,18 +66,23 @@ const User = sequelize.define('User', {
     pack_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 0, 
+        defaultValue: 0,
     },
     is_subscribe: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 0, 
+        defaultValue: 0,
+    },
+    role: {
+        type: DataTypes.ENUM('host', 'guest'), // Define the possible values
+        allowNull: false,
+        defaultValue: 'guest', 
     }
 }, {
-    tableName: 'tbl_user', 
-    charset: 'latin1', 
-    timestamps: true, 
-    paranoid:true
+    tableName: 'tbl_user',
+    charset: 'latin1',
+    timestamps: true,
+    paranoid: true
 });
 
 module.exports = User;
