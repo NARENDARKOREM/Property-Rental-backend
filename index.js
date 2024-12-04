@@ -54,6 +54,7 @@ const propertyRoutes = require('./routes/propertyRoutes');
 const galCatRoutes = require('./routes/galCatRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
 const extraRoutes = require("./routes/extraRoutes");
+const bookRoutes = require('./routes/bookRoutes');
 
 // Middlewares
 dotEnv.config();
@@ -89,6 +90,7 @@ app.use("/properties", propertyRoutes);
 app.use("/galleryCategories", galCatRoutes);
 app.use("/galleries", galleryRoutes);
 app.use("/extra", extraRoutes);
+app.use("/bookings", bookRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is Running");
