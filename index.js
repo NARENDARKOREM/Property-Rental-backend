@@ -37,6 +37,8 @@ const User = require("./models/User");
 const Staff = require("./models/Staff");
 const WalletReport = require("./models/WalletReport");
 const Page = require('./models/Page');
+const RoleChangeRequest = require('./models/RoleChangeRequest');
+const foreignKeysetup = require('./models/index');
 
 
 // Routes
@@ -79,6 +81,7 @@ app.use(
 );
 
 app.use("/admin", adminRoutes);
+app.use("/rollrequest",require('./routes/RoleChangeRequestRoute'));
 app.use("/countries", countriesRoutes);
 app.use("/categories", categoryRoutes);
 app.use('/users', require('./userRoutes/user_auth_router'));
