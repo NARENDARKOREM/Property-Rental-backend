@@ -17,9 +17,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-router.post('/upsert', authMiddleware.isAuthenticated, adminMiddleware.isAdmin, upload.single('coupon_img'), couponsController.upsertCoupon);
+router.post('/upsert', authMiddleware.isAdminOrHost, upload.single('coupon_img'), couponsController.upsertCoupon);
 router.get('/all', authMiddleware.isAuthenticated, couponsController.getAllCoupons);
 router.get('/:id', authMiddleware.isAuthenticated, couponsController.getCouponById);
-router.delete('/delete/:id', authMiddleware.isAuthenticated, adminMiddleware.isAdmin, couponsController.deleteCoupon);
+router.delete('/delete/:id', authMiddleware.isAdminOrHost, couponsController.deleteCoupon);
 
 module.exports = router;

@@ -7,7 +7,7 @@ const { getPendingRoleChangeRequests, handleRoleChangeRequest } = require('../co
 
 
 router.get('/all',  getPendingRoleChangeRequests);
-// router.get('/all', authMiddleware.isAuthenticated, adminMiddleware.isAdmin, getPendingRoleChangeRequests);
+// router.get('/all', authMiddleware.isAdminOrHost, getPendingRoleChangeRequests);
 router.put('/update/:id',  handleRoleChangeRequest);
 
 module.exports = router;
