@@ -17,6 +17,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.get('/', authMiddleware.isAuthenticated, settingController.getSetting);
-router.post('/update', authMiddleware.isAuthenticated, adminMiddleware.isAdmin, upload.single('weblogo'), settingController.updateSetting);
+router.post('/update', authMiddleware.isAdminOrHost, upload.single('weblogo'), settingController.updateSetting);
 
 module.exports = router;
