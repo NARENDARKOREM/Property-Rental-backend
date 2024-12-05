@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const packagesController = require('../controllers/packagesController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const adminMiddleware = require('../middlewares/adminMiddleware');
+// const adminMiddleware = require('../middlewares/adminMiddleware');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -17,9 +17,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-router.post('/upsert', authMiddleware.isAuthenticated, adminMiddleware.isAdmin, upload.single('cat_img'), packagesController.upsertPackage);
+router.post('/upsert', authMiddleware.isAuthenticated, authMiddleware.isAdmin, upload.single('cat_img'), packagesController.upsertPackage);
 router.get('/all', authMiddleware.isAuthenticated, packagesController.getAllPackages);
 router.get('/:id', authMiddleware.isAuthenticated, packagesController.getPackageById);
-router.delete('/delete/:id', authMiddleware.isAuthenticated, adminMiddleware.isAdmin, packagesController.deletePackage);
+router.delete('/delete/:id', authMiddleware.isAuthenticated, authMiddleware.isAdmin, packagesController.deletePackage);
 
 module.exports = router;
