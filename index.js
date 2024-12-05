@@ -49,6 +49,17 @@ const pagesRoutes = require("./routes/pagesRoutes");
 const couponRoutes = require("./routes/couponRoutes");
 const packagesRoutes = require('./routes/packagesRoutes');
 const facilitiesRoutes = require('./routes/facilitiesRoutes');
+const staffRoutes = require('./routes/staffRoutes');
+const settingRoutes = require('./routes/settingRoutes');
+const paymentListRoutes = require('./routes/paymentListRoutes');
+const propertyRoutes = require('./routes/propertyRoutes');
+const galCatRoutes = require('./routes/galCatRoutes');
+const galleryRoutes = require('./routes/galleryRoutes');
+const extraRoutes = require("./routes/extraRoutes");
+const bookRoutes = require('./routes/bookRoutes');
+const walletRoutes = require('./routes/walletRoutes');
+const enquiryRoutes = require('./routes/enquiryRoutes');
+const favRoutes = require('./routes/favRoutes');
 
 // Middlewares
 dotEnv.config();
@@ -78,6 +89,17 @@ app.use("/pages", pagesRoutes);
 app.use("/coupons", couponRoutes);
 app.use("/packages", packagesRoutes);
 app.use("/facilities", facilitiesRoutes);
+app.use("/staff", staffRoutes);
+app.use("/settings", settingRoutes);
+app.use("/payment-methods", paymentListRoutes);
+app.use("/properties", propertyRoutes);
+app.use("/galleryCategories", galCatRoutes);
+app.use("/galleries", galleryRoutes);
+app.use("/extra", extraRoutes);
+app.use("/bookings", bookRoutes);
+app.use("/wallet", walletRoutes);
+app.use("/enquiries", enquiryRoutes);
+app.use("/favorites", favRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is Running");
