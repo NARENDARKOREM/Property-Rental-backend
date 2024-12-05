@@ -38,7 +38,7 @@ const Staff = require("./models/Staff");
 const WalletReport = require("./models/WalletReport");
 const Page = require('./models/Page');
 const RoleChangeRequest = require('./models/RoleChangeRequest');
-const foreignKeysetup = require('./models/index');
+// const foreignKeysetup = require('./models/index');
 
 
 // Routes
