@@ -9,4 +9,5 @@ router.get('/all', authMiddleware. authMiddleware.isAuthenticated, faqsControlle
 router.get('/:id', authMiddleware. authMiddleware.isAuthenticated, faqsController.getFaqById);
 router.delete('/delete/:id', adminMiddleware.isAdmin, faqsController.deleteFaq);
 
+
 module.exports = router;

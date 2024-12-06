@@ -3,6 +3,9 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User'); 
 const Setting = require('../models/Setting');
 const WalletReport = require('../models/WalletReport');
+const {Op } = require('sequelize');
+
+
 
 function generateToken(user) {
   return jwt.sign(
