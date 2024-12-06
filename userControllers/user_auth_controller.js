@@ -3,7 +3,13 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User'); 
 const Setting = require('../models/Setting');
 const WalletReport = require('../models/WalletReport');
+
+const RoleChangeRequest = require('../models/RoleChangeRequest');
+
+
+
 const {Op } = require('sequelize');
+
 
 
 
@@ -169,7 +175,42 @@ async function userLogin(req, res) {
   }
 }
 
+
+//Role change controller
+async function requestRoleChange(req, res){
+  const { requested_role,userId } = req.body;
+  // const userId = req.user.id; 
+
+  if (!requested_role || !['guest', 'host'].includes(requested_role)) {
+      return res.status(400).json({ message: "Invalid role requested." });
+  }
+
+  try {
+      
+      const existingRequest = await RoleChangeRequest.findOne({
+          where: { user_id: userId, status: 'pending' },
+      });
+
+      if (existingRequest) {
+          return res.status(400).json({ message: "You already have a pending request." });
+      }
+
+      // Create a new role change request
+      await RoleChangeRequest.create({
+          user_id: userId,
+          requested_role,
+      });
+
+      res.status(201).json({ message: "Role change request submitted successfully." });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to submit role change request." });
+  }
+};
+
+
 module.exports = {
   userRegister,
-  userLogin
+  userLogin,
+  requestRoleChange
 };

@@ -74,9 +74,9 @@ const User = sequelize.define('User', {
         defaultValue: 0,
     },
     role: {
-        type: DataTypes.ENUM('host', 'guest'), // Define the possible values
+        type: DataTypes.ENUM('host', 'guest'),
         allowNull: false,
-        defaultValue: 'guest', 
+        defaultValue: 'guest',
     }
 }, {
     tableName: 'tbl_user',

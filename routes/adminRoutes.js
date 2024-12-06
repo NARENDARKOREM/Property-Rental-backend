@@ -16,3 +16,4 @@ router.post('/logout', adminMiddleware.isAdmin, adminController.logoutAdmin);
 
 
 module.exports = router;
+
