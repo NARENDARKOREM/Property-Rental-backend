@@ -2,30 +2,29 @@ const jwt = require("jsonwebtoken");
 const User = require('../models/User');
 
 exports.isAuthenticated = async (req, res, next) => {
-  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
-  console.log("Token ", token);
+  const token = req.headers.authorization?.split(" ")[1];
+  console.log("Token: ", token); // Log the token
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: No token provided" });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decode ", decoded);
-    
+    console.log("Decoded token: ", decoded); // Log the decoded token
+
     req.user = await User.findByPk(decoded.id);
+    console.log("Authenticated user: ", req.user); // Log the user
 
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized: User not found" });
     }
 
-    req.user.userType = 'user'; // Ensure userType is set
     next();
   } catch (err) {
-    console.error("Token verification error", err);
+    console.error("Token verification error: ", err);
     return res.status(401).json({ error: "Unauthorized: Invalid token" });
   }
 };
-
 
 exports.isGuest = (req, res, next) => {
   if (req.user && req.user.role === "guest") {
