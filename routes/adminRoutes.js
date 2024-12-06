@@ -13,4 +13,5 @@ router.get('/all-admins', authMiddleware.isAuthenticated, adminController.getAll
 router.get('/single-admin/:id', authMiddleware.isAuthenticated, adminController.getAdminById);
 router.post('/logout', authMiddleware.isAuthenticated, adminController.logoutAdmin);
 
+
 module.exports = router;

@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { requestHost, getNotifications, handleHostRequest } = require('../controllers/hostRequstController');
-const { isAuthenticated, isAdmin } = require('../middlewares/authMiddleware');
+const authMiddleware = require('../middlewares/authMiddleware');
 
 // Route to send a host request
-router.post('/requestHost', isAuthenticated, requestHost);
+router.post('/requestHost',  authMiddleware.isAuthenticated, requestHost);
 
 // Route to get notifications for user or admin
-router.get('/', isAuthenticated, getNotifications);
+router.get('/',  authMiddleware.isAuthenticated, getNotifications);
 
 // Route to handle host request (accept/decline)
-router.post('/handleHostRequest', isAuthenticated, isAdmin, handleHostRequest);
+router.post('/handleHostRequest', authMiddleware.isAdminOrHost, handleHostRequest);
 
 module.exports = router;
