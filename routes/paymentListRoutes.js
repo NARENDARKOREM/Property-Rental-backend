@@ -18,8 +18,8 @@ const upload = multer({ storage });
 
 router.get('/', authMiddleware.isAuthenticated, paymentListController.getAllPayments);
 router.get('/:id', authMiddleware.isAuthenticated, paymentListController.getPaymentById);
-router.post('/create', authMiddleware.isAdminOrHost, upload.single('img'), paymentListController.createPayment);
-router.post('/update/:id', authMiddleware.isAdminOrHost, upload.single('img'), paymentListController.updatePayment);
-router.delete('/delete/:id', authMiddleware.isAdminOrHost, paymentListController.deletePayment);
+router.post('/create', adminMiddleware.isAdmin, upload.single('img'), paymentListController.createPayment);
+router.post('/update/:id', adminMiddleware.isAdmin, upload.single('img'), paymentListController.updatePayment);
+router.delete('/delete/:id', adminMiddleware.isAdmin, paymentListController.deletePayment);
 
 module.exports = router;

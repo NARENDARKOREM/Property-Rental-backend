@@ -3,11 +3,7 @@ const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 
 // Generate JWT
-const generateToken = (admin) => {
-  return jwt.sign({ id: admin.id, username: admin.username, userType:admin.userType }, process.env.JWT_SECRET, {
-    expiresIn: "1h",
-  });
-};
+const generateToken = (admin) => { return jwt.sign({ id: admin.id, username: admin.username, userType: 'admin' }, process.env.JWT_SECRET, { expiresIn: "1h", }); };
 
 // Signup Controller
 const registerAdmin = async (req, res) => {
