@@ -4,6 +4,7 @@ const path = require('path');
 
 // Create or Update Coupon
 const upsertCoupon = async (req, res) => {
+  console.log("Request user: ", req.user);
   const { id, expire_date, coupon_code, title, subtitle, status, min_amt, coupon_val, description, img } = req.body;
   let imgPath = img || ''; // Default to image URL if provided
 
@@ -51,6 +52,7 @@ const upsertCoupon = async (req, res) => {
       res.status(201).json({ message: 'Coupon created successfully', coupon });
     }
   } catch (error) {
+    console.error("Error in upsertCoupon: ", error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 };
