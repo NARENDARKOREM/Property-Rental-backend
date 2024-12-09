@@ -3,13 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User'); 
 const Setting = require('../models/Setting');
 const WalletReport = require('../models/WalletReport');
-
-const RoleChangeRequest = require('../models/RoleChangeRequest');
-
-
-
 const {Op } = require('sequelize');
-
 
 
 
@@ -175,7 +169,6 @@ async function userLogin(req, res) {
   }
 }
 
-
 //Role change controller
 async function requestRoleChange(req, res){
   const { requested_role,userId } = req.body;
@@ -207,6 +200,7 @@ async function requestRoleChange(req, res){
       res.status(500).json({ message: "Failed to submit role change request." });
   }
 };
+
 
 
 module.exports = {
