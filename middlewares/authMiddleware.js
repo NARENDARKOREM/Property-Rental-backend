@@ -8,7 +8,6 @@ exports.isAuthenticated = async (req, res, next) => {
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: No token provided" });
   }
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log("Decode ", decoded);
@@ -17,7 +16,6 @@ exports.isAuthenticated = async (req, res, next) => {
     } else {
       req.user = await User.findByPk(decoded.id);
     }
-
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized: User not found" });
     }
@@ -47,6 +45,7 @@ exports.isStaff = (permission) => {
 exports.isAdminOrHost = async (req, res, next) => {
   try {
     const { id, userType } = req.user;
+    console.log(req.user,"from admin cred");
 
     if (userType === "admin") {
       const admin = await Admin.findByPk(id);

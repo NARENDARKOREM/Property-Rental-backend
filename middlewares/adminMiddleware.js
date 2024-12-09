@@ -1,23 +1,30 @@
+
+
+const jwt = require("jsonwebtoken");
 const Admin = require('../models/Admin');
 
 exports.isAdmin = async (req, res, next) => {
-    try {
-      const { id, userType } = req.user;
-  
-      if (userType !== "admin") {
-        return res.status(403).json({ error: "Permission denied. Admin access only." });
-      }
-  
-      const admin = await Admin.findByPk(id);
-  
-      if (!admin) {
-        return res.status(403).json({ error: "Permission denied. Admin access only." });
-      }
-  
-      console.log("Admin access granted");
-      next();
-    } catch (error) {
-      console.error("Error in isAdmin middleware:", error);
-      res.status(500).json({ error: "Internal server error", details: error.message });
+  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+  console.log("Token: ", token);
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: No token provided" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("Decoded token: ", decoded);
+
+    req.user = await Admin.findByPk(decoded.id);
+    console.log("Admin user: ", req.user);
+
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized: Admin not found" });
     }
-  };
+
+    req.user.userType = 'admin'; // Ensure userType is set
+    next();
+  } catch (err) {
+    console.error("Token verification error: ", err);
+    return res.status(401).json({ error: "Unauthorized: Invalid token" });
+  }
+};

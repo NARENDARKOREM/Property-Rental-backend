@@ -154,6 +154,7 @@ async function userLogin(req, res) {
 
     const settings = await Setting.findOne();
     const token = generateToken(user);
+    console.log(token);
 
     return res.status(200).json({
       UserLogin: user,
@@ -177,6 +178,7 @@ async function userLogin(req, res) {
 
 
 //Role change controller
+
 async function requestRoleChange(req, res){
   const { requested_role,userId } = req.body;
   // const userId = req.user.id; 
@@ -195,7 +197,7 @@ async function requestRoleChange(req, res){
           return res.status(400).json({ message: "You already have a pending request." });
       }
 
-      // Create a new role change request
+     
       await RoleChangeRequest.create({
           user_id: userId,
           requested_role,
@@ -209,8 +211,56 @@ async function requestRoleChange(req, res){
 };
 
 
+ async function forgotPassword (req, res) {
+  const { mobile, password, ccode } = req.body;
+  
+  if (!mobile || !password || !ccode) {
+    return res.status(401).json({
+      ResponseCode: '401',
+      Result: 'false',
+      ResponseMsg: 'Something went wrong. Try again!',
+    });
+  }
+
+  try {
+    const user = await User.findOne({
+      where: {
+        mobile: mobile.trim(),
+        ccode: ccode.trim(),
+      },
+    });
+
+    if (user) {
+      
+      await user.update({ password: password.trim() });
+
+      return res.status(200).json({
+        ResponseCode: '200',
+        Result: 'true',
+        ResponseMsg: 'Password Changed Successfully!',
+      });
+    } else {
+      
+      return res.status(401).json({
+        ResponseCode: '401',
+        Result: 'false',
+        ResponseMsg: 'Mobile Not Matched!',
+      });
+    }
+  } catch (error) {
+    console.error('Error updating password:', error);
+    return res.status(500).json({
+      ResponseCode: '500',
+      Result: 'false',
+      ResponseMsg: 'Internal Server Error',
+    });
+  }
+}
+
+
 module.exports = {
   userRegister,
   userLogin,
-  requestRoleChange
+  requestRoleChange,
+  forgotPassword
 };
