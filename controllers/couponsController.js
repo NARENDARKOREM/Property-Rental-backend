@@ -4,13 +4,12 @@ const path = require('path');
 
 // Create or Update Coupon
 const upsertCoupon = async (req, res) => {
-  console.log("Request user: ", req.user);
-  const { id, expire_date, coupon_code, title, subtitle, status, min_amt, coupon_val, description, img } = req.body;
-  let imgPath = img || ''; // Default to image URL if provided
 
-  if (req.file) {
-    imgPath = `uploads/${req.file.filename}`;
-  }
+  const { id, cdate, c_img, c_title, subtitle,ctitle, status, min_amt, c_value, c_desc } = req.body;
+
+
+  
+ 
 
   try {
     if (id) {
@@ -20,34 +19,32 @@ const upsertCoupon = async (req, res) => {
         return res.status(404).json({ error: 'Coupon not found' });
       }
 
-      if (req.file && coupon.c_img && !coupon.c_img.startsWith('http')) {
-        fs.unlinkSync(path.join(__dirname, '..', coupon.c_img)); // Remove old image if not a URL
-      }
+      
 
-      coupon.c_img = imgPath || coupon.c_img;
-      coupon.cdate = expire_date;
-      coupon.c_title = coupon_code;
-      coupon.ctitle = title;
+      coupon.c_img = c_img;
+      coupon.cdate = cdate;
+      coupon.c_title = c_title;
+      coupon.ctitle = ctitle;
       coupon.subtitle = subtitle;
       coupon.status = status;
       coupon.min_amt = min_amt;
-      coupon.c_value = coupon_val;
-      coupon.c_desc = description;
+      coupon.c_value = c_value;
+      coupon.c_desc = c_desc;
 
       await coupon.save();
       res.status(200).json({ message: 'Coupon updated successfully', coupon });
     } else {
       // Create new coupon
       const coupon = await TblCoupon.create({
-        c_img: imgPath,
-        cdate: expire_date,
-        c_title: coupon_code,
-        ctitle: title,
-        subtitle: subtitle,
+        c_img,
+        cdate,
+        c_title,
+        ctitle,
+        subtitle,
         status,
         min_amt,
-        c_value: coupon_val,
-        c_desc: description
+        c_value,
+        c_desc,
       });
       res.status(201).json({ message: 'Coupon created successfully', coupon });
     }
