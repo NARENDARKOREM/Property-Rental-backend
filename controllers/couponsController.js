@@ -4,7 +4,9 @@ const path = require('path');
 
 // Create or Update Coupon
 const upsertCoupon = async (req, res) => {
+
   const { id, cdate, c_img, c_title, subtitle,ctitle, status, min_amt, c_value, c_desc } = req.body;
+
 
   
  
@@ -47,6 +49,7 @@ const upsertCoupon = async (req, res) => {
       res.status(201).json({ message: 'Coupon created successfully', coupon });
     }
   } catch (error) {
+    console.error("Error in upsertCoupon: ", error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 };

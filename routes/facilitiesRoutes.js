@@ -17,9 +17,11 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-router.post('/upsert', authMiddleware.isAdminOrHost, upload.single('cat_img'), facilitiesController.upsertFacility);
+
+router.post('/upsert', adminMiddleware.isAdmin, upload.single('cat_img'), facilitiesController.upsertFacility);
 router.get('/all', authMiddleware.isAuthenticated, facilitiesController.getAllFacilities);
 router.get('/:id', authMiddleware.isAuthenticated, facilitiesController.getFacilityById);
-router.delete('/delete/:id', authMiddleware.isAdminOrHost, facilitiesController.deleteFacility);
+router.delete('/delete/:id', adminMiddleware.isAdmin, facilitiesController.deleteFacility);
+
 
 module.exports = router;

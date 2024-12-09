@@ -7,10 +7,11 @@ const adminMiddleware = require('../middlewares/adminMiddleware');
 
 
 
-router.get('/',  paymentListController.getAllPayments);
+router.get('/', adminMiddleware.isAdmin, paymentListController.getAllPayments);
 router.get('/:id', adminMiddleware.isAdmin, paymentListController.getPaymentById);
 router.post('/create', adminMiddleware.isAdmin, paymentListController.createPayment);
 router.post('/update/:id', adminMiddleware.isAdmin,  paymentListController.updatePayment);
+
 router.delete('/delete/:id', adminMiddleware.isAdmin, paymentListController.deletePayment);
 
 module.exports = router;

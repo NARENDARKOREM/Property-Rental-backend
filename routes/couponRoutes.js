@@ -3,7 +3,6 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const couponsController = require('../controllers/couponsController');
-const authMiddleware = require('../middlewares/authMiddleware');
 const adminMiddleware = require('../middlewares/adminMiddleware');
 
 const storage = multer.diskStorage({
@@ -17,7 +16,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+
 router.post('/upsert', adminMiddleware.isAdmin, couponsController.upsertCoupon);
+
 router.get('/all', adminMiddleware.isAdmin, couponsController.getAllCoupons);
 router.get('/:id', adminMiddleware.isAdmin, couponsController.getCouponById);
 router.delete('/delete/:id', adminMiddleware.isAdmin, couponsController.deleteCoupon);

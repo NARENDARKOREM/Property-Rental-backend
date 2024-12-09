@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const galleryController = require('../controllers/galleryController');
-// const { isAuthenticated, isAdmin } = require('../middlewares/authMiddleware');
+
 const authMiddleware = require('../middlewares/authMiddleware');
+const adminMiddleware = require('../middlewares/adminMiddleware');
 
 const multer = require('multer');
 
@@ -18,9 +19,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.post('/upsert', authMiddleware.isAdminOrHost, upload.single('cat_img'), galleryController.upsertGallery);
-router.get('/', authMiddleware.isAuthenticated, galleryController.getAllGalleries);
-router.get('/:id', authMiddleware.isAuthenticated, galleryController.getGalleryById);
-router.delete('/delete/:id',authMiddleware.isAdminOrHost, galleryController.deleteGallery);
+
+router.post('/upsert', adminMiddleware.isAdmin, upload.single('cat_img'), galleryController.upsertGallery);
+router.get('/',  authMiddleware.isAuthenticated, galleryController.getAllGalleries);
+router.get('/:id',  authMiddleware.isAuthenticated, galleryController.getGalleryById);
+router.delete('/delete/:id', adminMiddleware.isAdmin, galleryController.deleteGallery);
+
 
 module.exports = router;

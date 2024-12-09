@@ -1,5 +1,4 @@
 
-
 const jwt = require("jsonwebtoken");
 const Admin = require('../models/Admin');
 
@@ -27,4 +26,6 @@ exports.isAdmin = async (req, res, next) => {
     console.error("Token verification error: ", err);
     return res.status(401).json({ error: "Unauthorized: Invalid token" });
   }
+
 };
+
