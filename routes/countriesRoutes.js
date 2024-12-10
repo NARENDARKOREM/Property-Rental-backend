@@ -6,16 +6,7 @@ const countriesController = require('../controllers/countriesController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const adminMiddleware = require('../middlewares/adminMiddleware');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '..', 'uploads');
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Appending extension
-  }
-});
-const upload = multer({ storage: storage });
+
 
 
 router.post('/upsert', adminMiddleware.isAdmin,  countriesController.upsertCountry);
