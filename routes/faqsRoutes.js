@@ -5,9 +5,9 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const adminMiddleware = require('../middlewares/adminMiddleware');
 
 router.post('/upsert', adminMiddleware.isAdmin, faqsController.upsertFaq);
-router.get('/all', authMiddleware. authMiddleware.isAuthenticated, faqsController.getAllFaqs);
-router.get('/:id', authMiddleware. authMiddleware.isAuthenticated, faqsController.getFaqById);
-router.delete('/delete/:id', adminMiddleware.isAdmin, faqsController.deleteFaq);
+router.get('/all',  faqsController.getAllFaqs);
+router.get('/:id', faqsController.getFaqById);
+router.delete('/delete/:id',faqsController.deleteFaq);
 
 
 module.exports = router;

@@ -2,35 +2,39 @@ const jwt = require("jsonwebtoken");
 const User = require('../models/User');
 
 exports.isAuthenticated = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  console.log("Token: ", token); // Log the token
-  if (!token) {
-    return res.status(401).json({ error: "Unauthorized: No token provided" });
-  }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    console.log("Decode ", decoded);
-    if (decoded.userType === 'admin') {
-      req.user = await Admin.findByPk(decoded.id);
-    } else {
-      req.user = await User.findByPk(decoded.id);
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is not defined in the environment variables.");
     }
 
-    console.log("Decoded token: ", decoded); // Log the decoded token
+    const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
 
-    req.user = await User.findByPk(decoded.id);
-    console.log("Authenticated user: ", req.user); // Log the user
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized: No token provided" });
+    }
 
 
-    if (!req.user) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.id);
+
+    if (!user) {
       return res.status(401).json({ error: "Unauthorized: User not found" });
     }
+    req.user = user;
 
     next();
   } catch (err) {
-    console.error("Token verification error: ", err);
-    return res.status(401).json({ error: "Unauthorized: Invalid token" });
+    console.error("Authentication error:", err.message);
+
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Unauthorized: Token has expired" });
+    }
+
+    if (err.name === "JsonWebTokenError") {
+      return res.status(401).json({ error: "Unauthorized: Invalid token" });
+    }
+
+    return res.status(401).json({ error: "Unauthorized: Authentication failed" });
   }
 };
 
