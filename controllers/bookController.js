@@ -228,6 +228,8 @@ module.exports = {
     searchBookingsByDate,
     changeStatus,
     gettingAllBookings,
-  getUserNotifications
+
+    getUserNotifications
+
 
 };
