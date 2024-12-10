@@ -12,7 +12,6 @@ exports.isAdmin = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log("Decoded token: ", decoded);
-
     req.user = await Admin.findByPk(decoded.id);
     console.log("Admin user: ", req.user);
 

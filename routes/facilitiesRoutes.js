@@ -6,20 +6,11 @@ const facilitiesController = require('../controllers/facilitiesController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const adminMiddleware = require('../middlewares/adminMiddleware');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '..', 'uploads');
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Appending extension
-  }
-});
-const upload = multer({ storage: storage });
 
 
-router.post('/upsert', adminMiddleware.isAdmin, upload.single('cat_img'), facilitiesController.upsertFacility);
-router.get('/all', authMiddleware.isAuthenticated, facilitiesController.getAllFacilities);
+
+router.post('/upsert', adminMiddleware.isAdmin,  facilitiesController.upsertFacility);
+router.get('/all',  facilitiesController.getAllFacilities);
 router.get('/:id', authMiddleware.isAuthenticated, facilitiesController.getFacilityById);
 router.delete('/delete/:id', adminMiddleware.isAdmin, facilitiesController.deleteFacility);
 
