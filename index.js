@@ -64,7 +64,9 @@ const hostRequestRoutes = require('./routes/hostRequestRoutes');
 const personRecordRoutes = require('./routes/personRecordRoutes');
 const planRoutes = require('./routes/planRoutes');
 const payoutRoutes = require('./routes/payoutRoutes');
+
 const faqRoutes = require('./routes/faqsRoutes');
+
 
 // Middlewares
 dotEnv.config();
@@ -110,7 +112,9 @@ app.use("/host-request", hostRequestRoutes);
 app.use("/person-records", personRecordRoutes);
 app.use("/plans", planRoutes);
 app.use("/payout-settings", payoutRoutes);
+
 app.use("/faq",faqRoutes)
+
 
 app.get("/", (req, res) => {
   // const query

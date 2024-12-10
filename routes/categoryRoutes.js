@@ -18,12 +18,9 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
-
 router.post('/upsert', adminMiddleware.isAdmin,  categoryController.upsertCategory);
-
+router.get('/all', categoryController.getAllCategories);
 router.get('/:id', authMiddleware.isAuthenticated, categoryController.getCategoryById);
 router.delete('/delete/:id', authMiddleware.isAuthenticated, categoryController.deleteCategory);
-
-
 
 module.exports = router;
