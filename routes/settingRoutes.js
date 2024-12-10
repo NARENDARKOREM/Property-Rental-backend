@@ -7,7 +7,7 @@ const multer = require('multer');
 
 
 
-router.get('/', authMiddleware.isAuthenticated, settingController.getSetting);
+router.get('/', adminMiddleware.isAdmin, settingController.getSetting);
 router.put('/update/:id', adminMiddleware.isAdmin,  settingController.updateSetting);
 
 module.exports = router;

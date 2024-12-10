@@ -3,7 +3,7 @@ const Page = require('../models/Page');
 // Create or Update Page
 const upsertPage = async (req, res) => {
   const { id, ctitle, cstatus, cdesc } = req.body;
-
+  console.log(req.body)
   try {
     if (id) {
       // Update page
@@ -60,7 +60,6 @@ const getPageById = async (req, res) => {
 const deletePage = async (req, res) => {
   const { id } = req.params;
   const { forceDelete } = req.query;
-
   try {
     const page = await Page.findOne({ where: { id }, paranoid: false });
     if (!page) {
