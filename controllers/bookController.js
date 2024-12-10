@@ -227,7 +227,7 @@ module.exports = {
     getStatusWiseBookings,
     searchBookingsByDate,
     changeStatus,
-    gettingAllBookings
+    gettingAllBookings,
   getUserNotifications
 
 };
