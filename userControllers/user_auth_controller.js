@@ -203,8 +203,6 @@ async function requestRoleChange(req, res){
   }
 };
 
-
-
  async function forgotPassword (req, res) {
   const { mobile, password, ccode } = req.body;
   
@@ -251,11 +249,20 @@ async function requestRoleChange(req, res){
   }
 }
 
+const getAllusers=async(req, res)=>{
+  try {
+    const data = await User.findAll();
 
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+};
 
 module.exports = {
   userRegister,
   userLogin,
   requestRoleChange,
-  forgotPassword
+  forgotPassword,
+  getAllusers
 };
