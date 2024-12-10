@@ -5,26 +5,18 @@ const path = require('path');
 // Create or Update Property
 const upsertProperty = async (req, res) => {
     const { id, title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, pbuysell, country_id, plimit, is_sell } = req.body;
-    let imagePath = image || '';
 
-    if (req.file) {
-        imagePath = `uploads/${req.file.filename}`;
-    }
+    console.log(req.body, " from property")
 
     try {
         if (id) {
-            // Update property
+            
             const property = await Property.findByPk(id);
             if (!property) {
                 return res.status(404).json({ error: 'Property not found' });
             }
-
-            if (req.file && property.image && !property.image.startsWith('http')) {
-                fs.unlinkSync(path.join(__dirname, '..', property.image)); // Remove old image if not a URL
-            }
-
             Object.assign(property, {
-                title, image: imagePath || property.image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, pbuysell, country_id, plimit, is_sell
+                title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, pbuysell, country_id, plimit, is_sell
             });
 
             await property.save();
@@ -32,7 +24,7 @@ const upsertProperty = async (req, res) => {
         } else {
             // Create new property
             const property = await Property.create({
-                title, image: imagePath, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, pbuysell, country_id, plimit, is_sell
+                title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, pbuysell, country_id, plimit, is_sell
             });
             res.status(201).json({ message: 'Property created successfully', property });
         }
