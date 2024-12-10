@@ -9,7 +9,7 @@ const path = require('path');
 const sequelize = require("./db");
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const PORT = process.env.PORT || 5000;
-
+const morgan = require('morgan')
 
 // Models
 const Admin = require("./models/Admin");
@@ -81,6 +81,7 @@ app.use(
   })
 );
 
+app.use(morgan('dev'))
 app.use("/admin", adminRoutes);
 app.use("/rollrequest",require('./routes/RoleChangeRequestRoute'));
 app.use("/countries", countriesRoutes);
@@ -104,6 +105,7 @@ app.use("/favorites", favRoutes);
 app.use("/host-request", hostRequestRoutes);
 
 app.get("/", (req, res) => {
+  // const query
   res.send("Server is Running");
 });
 
