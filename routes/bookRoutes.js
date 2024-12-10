@@ -7,13 +7,17 @@ const authMiddleware = require('../middlewares/authMiddleware');
 router.post('/create',  authMiddleware.isAuthenticated, bookController.createBooking);
 
 // Route to get booking details by user
-router.get('/myBookings',  authMiddleware.isAuthenticated, bookController.getBookingDetailsByUser);
+// router.get('/myBookings',  bookController.getBookingDetailsByUser);
+router.get('/myBookings/all',  bookController.gettingAllBookings);
 
 // Route to cancel a booking
 router.put('/cancel/:id',  authMiddleware.isAuthenticated, bookController.cancelBooking);
 
 // Route to get status wise bookings
 router.get('/status/:status',  authMiddleware.isAuthenticated, bookController.getStatusWiseBookings);
+
+// change status
+router.put('/status/:id',  authMiddleware.isAuthenticated, bookController.changeStatus);
 
 // Route to search bookings by date range
 router.post('/search',  authMiddleware.isAuthenticated, bookController.searchBookingsByDate);

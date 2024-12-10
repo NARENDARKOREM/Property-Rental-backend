@@ -112,6 +112,16 @@ const getBookingDetailsByUser = async (req, res) => {
   }
 };
 
+// getting all bookings
+const gettingAllBookings = async (req, res) => {
+    try {
+        const bookings = await TblBook.findAll();
+        res.status(200).json(bookings);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+};
+
 // Cancel a Booking
 const cancelBooking = async (req, res) => {
   const { id } = req.params;
@@ -149,6 +159,36 @@ const getStatusWiseBookings = async (req, res) => {
   }
 };
 
+// for changing status
+const changeStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    try {
+        // Ensure the status value is valid before proceeding
+        if (!status || !['Completed', 'Confirmed', 'Cancelled','Check_in','Booked',].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        // Update the booking status
+        const [updatedRows] = await TblBook.update(
+            { book_status: status },
+            { where: { id } }
+        );
+
+        if (updatedRows === 0) {
+            return res.status(404).json({ error: 'Booking not found or no changes made.' });
+        }
+
+        res.status(200).json({ message: 'Status updated successfully' });
+    } catch (error) {
+        console.error('Error updating status:', error.message);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+};
+
+
+
 // Search Bookings by Date Range
 const searchBookingsByDate = async (req, res) => {
   const { start_date, end_date } = req.body;
@@ -180,10 +220,14 @@ const getUserNotifications = async (req, res) => {
 };
 
 module.exports = {
-  createBooking,
-  getBookingDetailsByUser,
-  cancelBooking,
-  getStatusWiseBookings,
-  searchBookingsByDate,
+
+    createBooking,
+    getBookingDetailsByUser,
+    cancelBooking,
+    getStatusWiseBookings,
+    searchBookingsByDate,
+    changeStatus,
+    gettingAllBookings,
   getUserNotifications
+
 };
