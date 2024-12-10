@@ -43,7 +43,6 @@ const PaymentList = sequelize.define('PaymentList', {
 }, {
   tableName: 'tbl_payment_list', 
   charset: 'latin1',  
-  timestamps: true, 
   paranoid: true 
 });
 

@@ -4,8 +4,10 @@ const fs = require('fs');
 
 // Get all payment methods
 const getAllPayments = async (req, res) => {
+  console.log("hii from payment list")
   try {
     const payments = await PaymentList.findAll();
+    console.log(payments ,"from payyyyyyyyy");
     res.status(200).json(payments);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error', details: error.message });
