@@ -2,8 +2,9 @@ const TblFaq = require('../models/TblFaq');
 
 // Create or Update FAQ
 const upsertFaq = async (req, res) => {
+  console.log(req)
   const { id, question, answer, status } = req.body;
-
+  console.log(req.body)
   try {
     if (id) {
       // Update FAQ
@@ -60,6 +61,8 @@ const getFaqById = async (req, res) => {
 const deleteFaq = async (req, res) => {
   const { id } = req.params;
   const { forceDelete } = req.query;
+  console.log(id)
+  console.log(forceDelete)
 
   try {
     const faq = await TblFaq.findOne({ where: { id }, paranoid: false });

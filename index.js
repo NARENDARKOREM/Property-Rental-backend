@@ -9,7 +9,7 @@ const path = require('path');
 const sequelize = require("./db");
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const PORT = process.env.PORT || 5000;
-
+const morgan = require('morgan')
 
 // Models
 const Admin = require("./models/Admin");
@@ -65,6 +65,9 @@ const personRecordRoutes = require('./routes/personRecordRoutes');
 const planRoutes = require('./routes/planRoutes');
 const payoutRoutes = require('./routes/payoutRoutes');
 
+const faqRoutes = require('./routes/faqsRoutes');
+
+
 // Middlewares
 dotEnv.config();
 app.use(bodyParser.json());
@@ -84,6 +87,7 @@ app.use(
   })
 );
 
+app.use(morgan('dev'))
 app.use("/admin", adminRoutes);
 app.use("/rollrequest",require('./routes/RoleChangeRequestRoute'));
 app.use("/countries", countriesRoutes);
@@ -109,7 +113,11 @@ app.use("/person-records", personRecordRoutes);
 app.use("/plans", planRoutes);
 app.use("/payout-settings", payoutRoutes);
 
+app.use("/faq",faqRoutes)
+
+
 app.get("/", (req, res) => {
+  // const query
   res.send("Server is Running");
 });
 
