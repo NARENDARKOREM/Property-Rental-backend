@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User'); 
 const Setting = require('../models/Setting');
 const WalletReport = require('../models/WalletReport');
+const RoleChangeRequest = require('../models/RoleChangeRequest');
 const {Op } = require('sequelize');
 
 
@@ -175,6 +176,8 @@ async function userLogin(req, res) {
 async function requestRoleChange(req, res){
   const { requested_role,userId } = req.body;
   // const userId = req.user.id; 
+
+  console.log(req.body,"bodyyyyyyyyyyyy");
 
   if (!requested_role || !['guest', 'host'].includes(requested_role)) {
       return res.status(400).json({ message: "Invalid role requested." });
