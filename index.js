@@ -7,7 +7,6 @@ const bodyParser = require("body-parser");
 const session = require("express-session");
 const path = require("path");
 const sequelize = require("./db");
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const PORT = process.env.PORT || 5000;
 const morgan = require("morgan");
 

@@ -5,15 +5,9 @@ const Property = require("../models/Property");
 
 // Create or Update Extra Image
 const upsertExtra = async (req, res) => {
-  const { id, pid, pano, status } = req.body;
-  const add_user_id = req.user.id; // Get the user ID from the authenticated user
-  let imgPath = "";
-
-  if (req.file) {
-    imgPath = `uploads/${req.file.filename}`;
-  } else {
-    imgPath = req.body.img || "";
-  }
+  const { id, pid, img, status } = req.body;
+  console.log(req.body);
+  const add_user_id = 1; // Get the user ID from the authenticated user
 
   try {
     if (id) {
@@ -23,17 +17,9 @@ const upsertExtra = async (req, res) => {
         return res.status(404).json({ error: "Extra image not found" });
       }
 
-      if (req.file && extra.img && !extra.img.startsWith("http")) {
-        const oldImagePath = path.join(__dirname, "..", extra.img);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath); // Remove old image if not a URL
-        }
-      }
-
       Object.assign(extra, {
         pid,
-        img: imgPath || extra.img,
-        pano,
+        img,
         status,
         add_user_id,
       });
@@ -45,8 +31,7 @@ const upsertExtra = async (req, res) => {
       // Create new extra image
       const extra = await TblExtra.create({
         pid,
-        img: imgPath,
-        pano,
+        img,
         status,
         add_user_id,
       });
