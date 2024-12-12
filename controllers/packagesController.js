@@ -1,26 +1,21 @@
-const TblPackage = require('../models/TblPackage');
-const fs = require('fs');
-const path = require('path');
+const TblPackage = require("../models/TblPackage");
+const fs = require("fs");
+const path = require("path");
 
 // Create or Update Package
 const upsertPackage = async (req, res) => {
   const { id, title, day, price, description, status, img } = req.body;
-  let imgPath = img || ''; // Default to image URL if provided
-
-  if (req.file) {
-    imgPath = `uploads/${req.file.filename}`;
-  }
 
   try {
     if (id) {
       // Update package
       const package = await TblPackage.findByPk(id);
       if (!package) {
-        return res.status(404).json({ error: 'Package not found' });
+        return res.status(404).json({ error: "Package not found" });
       }
 
-      if (req.file && package.image && !package.image.startsWith('http')) {
-        fs.unlinkSync(path.join(__dirname, '..', package.image)); // Remove old image if not a URL
+      if (req.file && package.image && !package.image.startsWith("http")) {
+        fs.unlinkSync(path.join(__dirname, "..", package.image)); // Remove old image if not a URL
       }
 
       package.title = title;
@@ -28,10 +23,12 @@ const upsertPackage = async (req, res) => {
       package.price = price;
       package.description = description;
       package.status = status;
-      package.image = imgPath || package.image;
+      package.img;
 
       await package.save();
-      res.status(200).json({ message: 'Package updated successfully', package });
+      res
+        .status(200)
+        .json({ message: "Package updated successfully", package });
     } else {
       // Create new package
       const package = await TblPackage.create({
@@ -40,15 +37,18 @@ const upsertPackage = async (req, res) => {
         price,
         description,
         status,
-        image: imgPath
+        img,
       });
-      res.status(201).json({ message: 'Package created successfully', package });
+      res
+        .status(201)
+        .json({ message: "Package created successfully", package });
     }
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
-
 
 // Get All Packages
 const getAllPackages = async (req, res) => {
@@ -56,7 +56,9 @@ const getAllPackages = async (req, res) => {
     const packages = await TblPackage.findAll();
     res.status(200).json(packages);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -66,11 +68,13 @@ const getPackageById = async (req, res) => {
     const { id } = req.params;
     const package = await TblPackage.findByPk(id);
     if (!package) {
-      return res.status(404).json({ error: 'Package not found' });
+      return res.status(404).json({ error: "Package not found" });
     }
     res.status(200).json(package);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -80,27 +84,34 @@ const deletePackage = async (req, res) => {
   const { forceDelete } = req.query;
 
   try {
-    const package = await TblPackage.findOne({ where: { id }, paranoid: false });
+    const package = await TblPackage.findOne({
+      where: { id },
+      paranoid: false,
+    });
     if (!package) {
-      return res.status(404).json({ error: 'Package not found' });
+      return res.status(404).json({ error: "Package not found" });
     }
 
-    if (package.deletedAt && forceDelete !== 'true') {
-      return res.status(400).json({ error: 'Package is already soft-deleted' });
+    if (package.deletedAt && forceDelete !== "true") {
+      return res.status(400).json({ error: "Package is already soft-deleted" });
     }
 
-    if (forceDelete === 'true') {
-      if (package.image && !package.image.startsWith('http')) {
-        fs.unlinkSync(path.join(__dirname, '..', package.image)); // Remove image file if it's a local path
+    if (forceDelete === "true") {
+      if (package.image && !package.image.startsWith("http")) {
+        fs.unlinkSync(path.join(__dirname, "..", package.image)); // Remove image file if it's a local path
       }
       await package.destroy({ force: true });
-      res.status(200).json({ message: 'Package permanently deleted successfully' });
+      res
+        .status(200)
+        .json({ message: "Package permanently deleted successfully" });
     } else {
       await package.destroy();
-      res.status(200).json({ message: 'Package soft-deleted successfully' });
+      res.status(200).json({ message: "Package soft-deleted successfully" });
     }
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -108,5 +119,5 @@ module.exports = {
   upsertPackage,
   getAllPackages,
   getPackageById,
-  deletePackage
+  deletePackage,
 };

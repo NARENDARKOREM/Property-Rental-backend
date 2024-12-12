@@ -1,8 +1,8 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const propertyController = require('../controllers/propertyController');
-const authMiddleware = require('../middlewares/authMiddleware');
-const adminMiddleware = require('../middlewares/adminMiddleware');
+const propertyController = require("../controllers/propertyController");
+const authMiddleware = require("../middlewares/authMiddleware");
+const adminMiddleware = require("../middlewares/adminMiddleware");
 
 router.post('/upsert', adminMiddleware.isAdmin, propertyController.upsertProperty);
 router.get('/', propertyController.getAllProperties);
