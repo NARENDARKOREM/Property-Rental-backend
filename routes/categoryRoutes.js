@@ -12,9 +12,9 @@ const adminMiddleware = require('../middlewares/adminMiddleware');
 
 
 router.post('/upsert', adminMiddleware.isAdmin,  categoryController.upsertCategory);
-router.post('/all', categoryController.getAllCategories);
+router.get('/all', categoryController.getAllCategories);
 
-router.get('/:id', authMiddleware.isAuthenticated, categoryController.getCategoryById);
+router.get('/:id', categoryController.getCategoryById);
 router.delete('/delete/:id', authMiddleware.isAuthenticated, categoryController.deleteCategory);
 
 module.exports = router;
