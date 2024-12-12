@@ -91,7 +91,6 @@ app.use("/admin", adminRoutes);
 app.use("/rollrequest", require("./routes/RoleChangeRequestRoute"));
 app.use("/countries", countriesRoutes);
 app.use("/categories", categoryRoutes);
-app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/pages", pagesRoutes);
 app.use("/coupons", couponRoutes);
 app.use("/packages", packagesRoutes);
@@ -112,7 +111,15 @@ app.use("/person-records", personRecordRoutes);
 app.use("/plans", planRoutes);
 app.use("/payout-settings", payoutRoutes);
 
+
 app.use("/faq", faqRoutes);
+
+
+{/** user Routes */}
+
+app.use('/users', require('./userRoutes/user_auth_router'));
+app.use('/users/properties', require('./userRoutes/user_properties_route'))
+
 
 app.get("/", (req, res) => {
   // const query
