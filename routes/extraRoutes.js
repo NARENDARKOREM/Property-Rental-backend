@@ -7,7 +7,7 @@ const adminMiddleware = require("../middlewares/adminMiddleware");
 // Configure Multer for file uploads
 
 router.post("/upsert",  extraController.upsertExtra);
-router.get("/", authMiddleware.isAuthenticated, extraController.getAllExtras);
+router.get("/",  extraController.getAllExtras);
 router.get(
   "/:id",
   authMiddleware.isAuthenticated,
