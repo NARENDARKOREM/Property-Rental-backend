@@ -3,7 +3,13 @@ const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 
 // Generate JWT
-const generateToken = (admin) => { return jwt.sign({ id: admin.id, username: admin.username, userType: 'admin' }, process.env.JWT_SECRET, { expiresIn: "24h", }); };
+const generateToken = (admin) => {
+  return jwt.sign(
+    { id: admin.id, username: admin.username, userType: "admin" },
+    process.env.JWT_SECRET,
+    { expiresIn: "24h" }
+  );
+};
 
 // Signup Controller
 const registerAdmin = async (req, res) => {
@@ -20,28 +26,23 @@ const registerAdmin = async (req, res) => {
       return res.status(400).json({ error: "Admin already exists" });
     }
 
-    
-
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const admin = await Admin.create({
       username,
       password,
-      userType
+      userType,
     });
-
-    
 
     const token = generateToken(admin);
 
     res.cookie("token", token, { httpOnly: true });
     // res.cookie("token", token, {
-    //   httpOnly: true, 
+    //   httpOnly: true,
     //   secure: process.env.NODE_ENV === "production",
-    //   sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", 
+    //   sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
     //   maxAge: 60 * 60 * 1000
     // });
-    
 
     req.session.admin = admin;
 
@@ -58,7 +59,7 @@ const loginAdmin = async (req, res) => {
 
   try {
     const admin = await Admin.findOne({ where: { username } });
-    
+
     if (!admin) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
@@ -72,12 +73,11 @@ const loginAdmin = async (req, res) => {
 
     res.cookie("token", token, { httpOnly: true });
     // res.cookie("token", token, {
-    //   httpOnly: true, 
-    //   secure: process.env.NODE_ENV === "production", 
-    //   sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", 
-    //   maxAge: 60 * 60 * 1000 
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === "production",
+    //   sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    //   maxAge: 60 * 60 * 1000
     // });
-    
 
     req.session.admin = admin;
 
@@ -105,7 +105,6 @@ const updateAdmin = async (req, res) => {
     // }
 
     await admin.save();
-
     res.status(200).json({ message: "Admin updated successfully", admin });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
@@ -114,23 +113,21 @@ const updateAdmin = async (req, res) => {
 
 const getUserbyToken = async (req, res) => {
   try {
-    
     const token = req.cookies.token;
     if (!token) {
-      return res.status(401).json({ error: 'Unauthorized: No token provided' });
+      return res.status(401).json({ error: "Unauthorized: No token provided" });
     }
 
-    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id; 
-    const user = await Admin.findByPk(userId); 
+    const userId = decoded.id;
+    const user = await Admin.findByPk(userId);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: "User not found" });
     }
-    res.json(user); 
+    res.json(user);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -145,13 +142,15 @@ const deleteAdmin = async (req, res) => {
       return res.status(404).json({ error: "Admin not found" });
     }
 
-    if (admin.deletedAt && forceDelete !== 'true') {
+    if (admin.deletedAt && forceDelete !== "true") {
       return res.status(400).json({ error: "Admin is already soft-deleted" });
     }
 
-    if (forceDelete === 'true') {
+    if (forceDelete === "true") {
       await admin.destroy({ force: true });
-      res.status(200).json({ message: "Admin permanently deleted successfully" });
+      res
+        .status(200)
+        .json({ message: "Admin permanently deleted successfully" });
     } else {
       await admin.destroy();
       res.status(200).json({ message: "Admin soft-deleted successfully" });
@@ -205,5 +204,5 @@ module.exports = {
   getAllAdmins,
   getAdminById,
   logoutAdmin,
-  getUserbyToken
+  getUserbyToken,
 };

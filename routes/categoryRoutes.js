@@ -22,3 +22,4 @@ router.delete(
   categoryController.deleteCategory
 );
 
+module.exports = router;
