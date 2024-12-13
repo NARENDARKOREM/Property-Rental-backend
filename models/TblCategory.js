@@ -1,34 +1,40 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../db');
+const { DataTypes } = require("sequelize");
+const sequelize = require("../db");
+const Property = require("./Property");
 
-const TblCategory = sequelize.define('TblCategory', {
-  id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true
+const TblCategory = sequelize.define(
+  "TblCategory",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      charset: "utf8mb4",
+      collate: "utf8mb4_general_ci",
+    },
+    img: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      charset: "utf8mb4",
+      collate: "utf8mb4_general_ci",
+    },
+    status: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
   },
-  title: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    charset: 'utf8mb4',
-    collate: 'utf8mb4_general_ci'
-  },
-  img: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    charset: 'utf8mb4',
-    collate: 'utf8mb4_general_ci'
-  },
-  status: {
-    type: DataTypes.INTEGER,
-    allowNull: false
+  {
+    tableName: "tbl_category",
+    timestamps: true,
+    paranoid: true,
+    charset: "latin1",
   }
-}, {
-  tableName: 'tbl_category',
-  timestamps: true,
-  paranoid: true,
-  charset: 'latin1'
-});
+);
+
 
 module.exports = TblCategory;
