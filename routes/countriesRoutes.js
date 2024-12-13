@@ -7,6 +7,8 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/adminMiddleware");
 
 
+
+
 router.post(
   "/upsert",
   adminMiddleware.isAdmin,
@@ -27,5 +29,6 @@ router.get(
   "/property-counts",
   countriesController.fetchCountriesWithPropertyCount
 );
+
 
 module.exports = router;

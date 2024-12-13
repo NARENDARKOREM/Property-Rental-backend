@@ -6,98 +6,36 @@ const TblCountry = require("../models/TblCountry");
 
 // Create or Update Property
 const upsertProperty = async (req, res) => {
-  const {
-    id,
-    title,
-    image,
-    price,
-    status,
-    address,
-    facility,
-    description,
-    beds,
-    bathroom,
-    sqrft,
-    rate,
-    ptype,
-    latitude,
-    longtitude,
-    mobile,
-    city,
-    listing_date,
-    add_user_id,
-    pbuysell,
-    country_id,
-    plimit,
-    is_sell,
-  } = req.body;
+
+    const { id, title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, rules, country_id, plimit, is_sell } = req.body;
+
 
   console.log(req.body, " from property");
 
-  try {
-    if (id) {
-      const property = await Property.findByPk(id);
-      if (!property) {
-        return res.status(404).json({ error: "Property not found" });
-      }
-      Object.assign(property, {
-        title,
-        image,
-        price,
-        status,
-        address,
-        facility,
-        description,
-        beds,
-        bathroom,
-        sqrft,
-        rate,
-        ptype,
-        latitude,
-        longtitude,
-        mobile,
-        city,
-        listing_date,
-        add_user_id,
-        pbuysell,
-        country_id,
-        plimit,
-        is_sell,
-      });
 
-      await property.save();
-      res
-        .status(200)
-        .json({ message: "Property updated successfully", property });
-    } else {
-      // Create new property
-      const property = await Property.create({
-        title,
-        image,
-        price,
-        status,
-        address,
-        facility,
-        description,
-        beds,
-        bathroom,
-        sqrft,
-        rate,
-        ptype,
-        latitude,
-        longtitude,
-        mobile,
-        city,
-        listing_date,
-        add_user_id,
-        pbuysell,
-        country_id,
-        plimit,
-        is_sell,
-      });
-      res
-        .status(201)
-        .json({ message: "Property created successfully", property });
+    try {
+        if (id) {
+            
+            const property = await Property.findByPk(id);
+            if (!property) {
+                return res.status(404).json({ error: 'Property not found' });
+            }
+            Object.assign(property, {
+                title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, rules, country_id, plimit, is_sell
+            });
+
+            await property.save();
+            res.status(200).json({ message: 'Property updated successfully', property });
+        } else {
+            // Create new property
+            const property = await Property.create({
+                title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, rules, country_id, plimit, is_sell
+            });
+            res.status(201).json({ message: 'Property created successfully', property });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+
     }
   } catch (error) {
     res
