@@ -35,12 +35,7 @@ const registerAdmin = async (req, res) => {
     const token = generateToken(admin);
 
     res.cookie("token", token, { httpOnly: true });
-    // res.cookie("token", token, {
-    //   httpOnly: true, 
-    //   secure: process.env.NODE_ENV === "production",
-    //   sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", 
-    //   maxAge: 60 * 60 * 1000
-    // });
+    
     
 
     req.session.admin = admin;
@@ -71,14 +66,7 @@ const loginAdmin = async (req, res) => {
     const token = generateToken(admin);
 
     res.cookie("token", token, { httpOnly: true });
-    // res.cookie("token", token, {
-    //   httpOnly: true, 
-    //   secure: process.env.NODE_ENV === "production", 
-    //   sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", 
-    //   maxAge: 60 * 60 * 1000 
-    // });
     
-
     req.session.admin = admin;
 
     res.status(200).json({ message: "Admin signed in successfully", admin });

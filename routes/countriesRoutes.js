@@ -9,9 +9,9 @@ const adminMiddleware = require('../middlewares/adminMiddleware');
 
 
 
-router.post('/upsert', adminMiddleware.isAdmin,  countriesController.upsertCountry);
+router.post('/upsert',   countriesController.upsertCountry);
 router.get('/all',  countriesController.getAllCountries);
-router.get('/:id', authMiddleware.isAuthenticated, countriesController.getCountryById);
+router.get('/:id',  countriesController.getCountryById);
 router.delete('/delete/:id', adminMiddleware.isAdmin, countriesController.deleteCountry);
 
 

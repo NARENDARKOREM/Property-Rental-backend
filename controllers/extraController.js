@@ -7,7 +7,7 @@ const Property = require("../models/Property");
 const upsertExtra = async (req, res) => {
   const { id, pid, img, status } = req.body;
   console.log(req.body);
-  const add_user_id = 1; // Get the user ID from the authenticated user
+  const add_user_id = 1; 
 
   try {
     if (id) {

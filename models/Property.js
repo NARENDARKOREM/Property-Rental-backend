@@ -83,9 +83,9 @@ const Property = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    pbuysell: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
+    rules: {
+      type: DataTypes.TEXT,
+      // allowNull: false,
     },
     country_id: {
       type: DataTypes.INTEGER,

@@ -4,7 +4,7 @@ const path = require('path');
 
 // Create or Update Property
 const upsertProperty = async (req, res) => {
-    const { id, title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, pbuysell, country_id, plimit, is_sell } = req.body;
+    const { id, title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, rules, country_id, plimit, is_sell } = req.body;
 
     console.log(req.body, " from property")
 
@@ -16,7 +16,7 @@ const upsertProperty = async (req, res) => {
                 return res.status(404).json({ error: 'Property not found' });
             }
             Object.assign(property, {
-                title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, pbuysell, country_id, plimit, is_sell
+                title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, rules, country_id, plimit, is_sell
             });
 
             await property.save();
@@ -24,7 +24,7 @@ const upsertProperty = async (req, res) => {
         } else {
             // Create new property
             const property = await Property.create({
-                title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, pbuysell, country_id, plimit, is_sell
+                title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, rules, country_id, plimit, is_sell
             });
             res.status(201).json({ message: 'Property created successfully', property });
         }
