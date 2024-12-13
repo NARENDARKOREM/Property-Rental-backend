@@ -8,7 +8,9 @@ const adminMiddleware = require('../middlewares/adminMiddleware');
 router.post('/upsert',  galCatController.upsertGalCat);
 router.get('/all',   galCatController.getAllGalCats);
 router.get('/:id',   galCatController.getGalCatById);
-router.delete('/delete/:id',  galCatController.deleteGalCat);
+
+router.delete('/delete/:id', adminMiddleware.isAdmin, galCatController.deleteGalCat);
+
 
 
 module.exports = router;

@@ -5,7 +5,7 @@ const Property = require("../models/Property");
 
 // Create or Update Extra Image
 const upsertExtra = async (req, res) => {
-  const { id, pid, img, status } = req.body;
+  const { id, pid, img, status, pano } = req.body;
   console.log(req.body);
   const add_user_id = 1; 
 
@@ -22,6 +22,7 @@ const upsertExtra = async (req, res) => {
         img,
         status,
         add_user_id,
+        pano,
       });
       await extra.save();
       res
@@ -34,6 +35,7 @@ const upsertExtra = async (req, res) => {
         img,
         status,
         add_user_id,
+        pano,
       });
       res
         .status(201)
@@ -49,10 +51,10 @@ const upsertExtra = async (req, res) => {
 // Get All Extra Images
 const getAllExtras = async (req, res) => {
   try {
-    // const extras = await TblExtra.findAll();
     const extras = await TblExtra.findAll({
       include: {
         model: Property,
+        as: "properties",
         attributes: ["title"],
       },
     });

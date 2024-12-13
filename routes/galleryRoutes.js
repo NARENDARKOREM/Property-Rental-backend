@@ -10,10 +10,11 @@ const adminMiddleware = require('../middlewares/adminMiddleware');
 
 
 
-router.post('/upsert',   galleryController.upsertGallery);
-router.get('/all',   galleryController.getAllGalleries);
-router.get('/:id',   galleryController.getGalleryById);
-router.delete('/delete/:id',  galleryController.deleteGallery);
+router.post('/upsert', adminMiddleware.isAdmin,  galleryController.upsertGallery);
+router.get('/all',  galleryController.getAllGalleries);
+router.get('/:id', galleryController.getGalleryById);
+router.delete('/delete/:id', adminMiddleware.isAdmin, galleryController.deleteGallery);
+
 
 
 module.exports = router;

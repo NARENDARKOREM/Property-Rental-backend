@@ -48,6 +48,7 @@ const upsertCategory = async (req, res) => {
 const getAllCategories = async (req, res) => {
   try {
     const categories = await TblCategory.findAll();
+    console.log(categories)
     res.status(200).json(categories);
   } catch (error) {
     res
