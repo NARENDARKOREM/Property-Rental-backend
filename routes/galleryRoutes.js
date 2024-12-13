@@ -21,8 +21,8 @@ const upload = multer({ storage });
 
 
 router.post('/upsert', adminMiddleware.isAdmin, upload.single('cat_img'), galleryController.upsertGallery);
-router.get('/',  authMiddleware.isAuthenticated, galleryController.getAllGalleries);
-router.get('/:id',  authMiddleware.isAuthenticated, galleryController.getGalleryById);
+router.get('/all',  galleryController.getAllGalleries);
+router.get('/:id', galleryController.getGalleryById);
 router.delete('/delete/:id', adminMiddleware.isAdmin, galleryController.deleteGallery);
 
 

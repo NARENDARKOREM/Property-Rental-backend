@@ -1,14 +1,17 @@
 const TblGalCat = require('../models/TblGalCat');
 const Property = require('../models/Property');
-
+const jwt = require("jsonwebtoken");
 // Create or Update Gallery Category
 const upsertGalCat = async (req, res) => {
-    const { id, pid, title, status } = req.body;
-    const add_user_id = req.user.id; // Get the user ID from the authenticated user
-
     try {
+        const { id, pid, title, status } = req.body;
+        console.log(req.body)
+        const token = req.cookies.token;
+        // console.log(token)
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const add_user_id = decoded.id;
+        // console.log(decoded)
         if (id) {
-            // Update gallery category
             const galCat = await TblGalCat.findByPk(id);
             if (!galCat) {
                 return res.status(404).json({ error: 'Gallery category not found' });
@@ -18,11 +21,13 @@ const upsertGalCat = async (req, res) => {
             await galCat.save();
             res.status(200).json({ message: 'Gallery category updated successfully', galCat });
         } else {
-            // Create new gallery category
             const galCat = await TblGalCat.create({ pid, title, status, add_user_id });
             res.status(201).json({ message: 'Gallery category created successfully', galCat });
         }
     } catch (error) {
+        if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
         res.status(500).json({ error: 'Internal server error', details: error.message });
     }
 };
