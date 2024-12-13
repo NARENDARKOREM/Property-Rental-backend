@@ -1,5 +1,8 @@
 const express = require("express");
+const http = require("http");
+const socketIo = require("socket.io");
 const app = express();
+const httpserver = http.createServer(app);
 const dotEnv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -110,10 +113,25 @@ app.use("/host-request", hostRequestRoutes);
 app.use("/person-records", personRecordRoutes);
 app.use("/plans", planRoutes);
 app.use("/payout-settings", payoutRoutes);
-
-
 app.use("/faq", faqRoutes);
 
+
+const io = socketIo(httpserver, {
+  cors: { origin: "*", methods: ["GET", "POST"] },allowEIO3: true,
+});
+
+// Make `io` accessible globally
+app.set("io", io);
+
+// Socket.IO logic
+io.on("connection", (socket) => {
+  console.log("A user connected: ", socket.id);
+
+  // Handle disconnection
+  socket.on("disconnect", () => {
+      console.log("User disconnected: ", socket.id);
+  });
+});
 
 {/** user Routes */}
 
@@ -135,6 +153,6 @@ sequelize
     console.error("Unable to create the database:", err);
   });
 
-app.listen(PORT, () => {
+httpserver.listen(PORT, () => {
   console.log(`Server is Running on PORT http://localhost:${PORT}`);
 });

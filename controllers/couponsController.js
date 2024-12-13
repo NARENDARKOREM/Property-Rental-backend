@@ -4,14 +4,12 @@ const path = require('path');
 
 // Create or Update Coupon
 const upsertCoupon = async (req, res) => {
-
-  const { id, cdate, c_img, c_title, subtitle,ctitle, status, min_amt, c_value, c_desc } = req.body;
-
-
-  
- 
+  const { id, cdate, c_img, c_title, subtitle, ctitle, status, min_amt, c_value, c_desc } = req.body;
 
   try {
+    // Format the date to YYYY-MM-DD
+    const formattedDate = new Date(cdate).toISOString().split('T')[0];
+
     if (id) {
       // Update coupon
       const coupon = await TblCoupon.findByPk(id);
@@ -19,10 +17,8 @@ const upsertCoupon = async (req, res) => {
         return res.status(404).json({ error: 'Coupon not found' });
       }
 
-      
-
       coupon.c_img = c_img;
-      coupon.cdate = cdate;
+      coupon.cdate = formattedDate; // Use the formatted date
       coupon.c_title = c_title;
       coupon.ctitle = ctitle;
       coupon.subtitle = subtitle;
@@ -37,7 +33,7 @@ const upsertCoupon = async (req, res) => {
       // Create new coupon
       const coupon = await TblCoupon.create({
         c_img,
-        cdate,
+        cdate: formattedDate, // Use the formatted date
         c_title,
         ctitle,
         subtitle,

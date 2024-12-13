@@ -173,38 +173,52 @@ async function userLogin(req, res) {
 
 //Role change controller
 
-async function requestRoleChange(req, res){
-  const { requested_role,userId } = req.body;
-  // const userId = req.user.id; 
+async function requestRoleChange(req, res) {
+  const { requested_role, userId } = req.body;
 
-  console.log(req.body,"bodyyyyyyyyyyyy");
+  console.log(req.body, "bodyyyyyyyyyyyy");
 
+  // Validate input
   if (!requested_role || !['guest', 'host'].includes(requested_role)) {
       return res.status(400).json({ message: "Invalid role requested." });
   }
+  if (!userId) {
+      return res.status(400).json({ message: "User ID is required." });
+  }
 
   try {
-      
+      // Check for existing pending request
       const existingRequest = await RoleChangeRequest.findOne({
-          where: { user_id: userId, status: 'pending' },
+          where: { user_id: userId, status: 'approved' },
       });
 
       if (existingRequest) {
           return res.status(400).json({ message: "You already have a pending request." });
       }
 
-     
-      await RoleChangeRequest.create({
+      // Create a new role change request
+      const newRequest = await RoleChangeRequest.create({
           user_id: userId,
           requested_role,
+          status: 'pending', // Default status
       });
 
-      res.status(201).json({ message: "Role change request submitted successfully." });
+      // Emit notification
+      const io = req.app.get("io");
+      io.emit("notification", {
+          message: `User ${userId} has requested a role change to '${requested_role}'. Request ID: ${newRequest.id}`,
+      });
+
+      res.status(201).json({ 
+          message: "Role change request submitted successfully.",
+          request: newRequest, 
+      });
   } catch (error) {
-      console.error(error);
+      console.error("Error submitting role change request:", error);
       res.status(500).json({ message: "Failed to submit role change request." });
   }
-};
+}
+
 
  async function forgotPassword (req, res) {
   const { mobile, password, ccode } = req.body;
