@@ -76,37 +76,21 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 
-// app.use(
-//   cors({
-//     origin: ["http://localhost:3000", "http://localhost:5173","https://servostay-rajeshs-projects-936dca46.vercel.app/"],
-//     credentials: true,
-//   })
-// );
 
-// app.use(
-//   cors({
-//     origin: [
-//       "http://localhost:3000",
-//       "http://localhost:5173",
-//       "https://servostay.vercel.app",
-//     ],
-//     credentials: true, 
-//   })
-// );
 
 // Optional: Ensure preflight requests are handled
 app.options('*', cors());
 
 app.use(
   cors({
-    origin: ["https://servostay.vercel.app", "http://localhost:3000"], // Allowed origins
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
-    credentials: true, // Allow cookies or authorization headers
+    origin: "https://servostay.vercel.app", 
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
+    credentials: false, 
   })
 );
 
-// Optional: Ensure preflight requests are handled
-app.options('*', cors());
+// // Optional: Ensure preflight requests are handled
+// app.options('*', cors());
 
 app.use(cookieParser());
 app.use(
