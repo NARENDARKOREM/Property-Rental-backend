@@ -39,7 +39,6 @@ const registerAdmin = async (req, res) => {
 
     res.cookie("token", token, { httpOnly: true });
 
-
     req.session.admin = admin;
 
     res.status(201).json({ message: "Admin created successfully", admin });
@@ -153,8 +152,9 @@ const deleteAdmin = async (req, res) => {
 // Get All Admins Controller
 const getAllAdmins = async (req, res) => {
   try {
+    const adminCount = await Admin.count();
     const admins = await Admin.findAll();
-    res.status(200).json(admins);
+    res.status(200).json({ admins, count: adminCount });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }

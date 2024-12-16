@@ -42,6 +42,16 @@ const getAllGalCats = async (req, res) => {
     }
 };
 
+// Get All Gallery Categories
+const getGalCatCount = async (req, res) => {
+    try {
+        const galCatCount = await TblGalCat.count();
+        res.status(200).json({count:galCatCount});
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+};
+
 // Get Single Gallery Category by ID
 const getGalCatById = async (req, res) => {
     try {
@@ -87,5 +97,6 @@ module.exports = {
     upsertGalCat,
     getAllGalCats,
     getGalCatById,
-    deleteGalCat
+    deleteGalCat,
+    getGalCatCount
 };

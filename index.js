@@ -113,8 +113,7 @@ app.use("/host-request", hostRequestRoutes);
 app.use("/person-records", personRecordRoutes);
 app.use("/plans", planRoutes);
 app.use("/payout-settings", payoutRoutes);
-
-app.use("/faq", faqRoutes);
+app.use("/faqs", faqRoutes);
 
 {
   /** user Routes */

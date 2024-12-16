@@ -262,10 +262,21 @@ const getAllusers=async(req, res)=>{
   }
 };
 
+const getUsersCount=async(req, res)=>{
+  try {
+    const usersCount = await User.count();
+
+    res.status(200).json({count:usersCount});
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+};
+
 module.exports = {
   userRegister,
   userLogin,
   requestRoleChange,
   forgotPassword,
-  getAllusers
+  getAllusers,
+  getUsersCount
 };

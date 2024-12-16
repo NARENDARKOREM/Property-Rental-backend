@@ -1,16 +1,30 @@
-const PaymentList = require('../models/PaymentList');
-const path = require('path');
-const fs = require('fs');
+const PaymentList = require("../models/PaymentList");
+const path = require("path");
+const fs = require("fs");
+const { count } = require("console");
 
 // Get all payment methods
 const getAllPayments = async (req, res) => {
-  console.log("hii from payment list")
   try {
     const payments = await PaymentList.findAll();
-    console.log(payments ,"from payyyyyyyyy");
+    console.log(payments, "from payyyyyyyyy");
     res.status(200).json(payments);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
+
+// Get Payments Count
+const getPaymentCount = async (req, res) => {
+  try {
+    const paymentCount = await PaymentList.count();
+    res.status(200).json({ count: paymentCount });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -19,11 +33,13 @@ const getPaymentById = async (req, res) => {
   try {
     const payment = await PaymentList.findByPk(req.params.id);
     if (!payment) {
-      return res.status(404).json({ error: 'Payment method not found' });
+      return res.status(404).json({ error: "Payment method not found" });
     }
     res.status(200).json(payment);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -44,11 +60,15 @@ const createPayment = async (req, res) => {
       attributes,
       status,
       p_show,
-      s_show
+      s_show,
     });
-    res.status(201).json({ message: 'Payment method created successfully', newPayment });
+    res
+      .status(201)
+      .json({ message: "Payment method created successfully", newPayment });
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -64,11 +84,11 @@ const updatePayment = async (req, res) => {
   try {
     const payment = await PaymentList.findByPk(req.params.id);
     if (!payment) {
-      return res.status(404).json({ error: 'Payment method not found' });
+      return res.status(404).json({ error: "Payment method not found" });
     }
 
-    if (req.file && payment.img && !payment.img.startsWith('http')) {
-      fs.unlinkSync(path.join(__dirname, '..', payment.img)); // Remove old image if not a URL
+    if (req.file && payment.img && !payment.img.startsWith("http")) {
+      fs.unlinkSync(path.join(__dirname, "..", payment.img)); // Remove old image if not a URL
     }
 
     await payment.update({
@@ -78,12 +98,16 @@ const updatePayment = async (req, res) => {
       attributes,
       status,
       p_show,
-      s_show
+      s_show,
     });
 
-    res.status(200).json({ message: 'Payment method updated successfully', payment });
+    res
+      .status(200)
+      .json({ message: "Payment method updated successfully", payment });
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -93,24 +117,35 @@ const deletePayment = async (req, res) => {
   const { forceDelete } = req.query;
 
   try {
-    const payment = await PaymentList.findOne({ where: { id }, paranoid: false });
+    const payment = await PaymentList.findOne({
+      where: { id },
+      paranoid: false,
+    });
     if (!payment) {
-      return res.status(404).json({ error: 'Payment method not found' });
+      return res.status(404).json({ error: "Payment method not found" });
     }
 
-    if (payment.deletedAt && forceDelete !== 'true') {
-      return res.status(400).json({ error: 'Payment method is already soft-deleted' });
+    if (payment.deletedAt && forceDelete !== "true") {
+      return res
+        .status(400)
+        .json({ error: "Payment method is already soft-deleted" });
     }
 
-    if (forceDelete === 'true') {
+    if (forceDelete === "true") {
       await payment.destroy({ force: true });
-      res.status(200).json({ message: 'Payment method permanently deleted successfully' });
+      res
+        .status(200)
+        .json({ message: "Payment method permanently deleted successfully" });
     } else {
       await payment.destroy();
-      res.status(200).json({ message: 'Payment method soft-deleted successfully' });
+      res
+        .status(200)
+        .json({ message: "Payment method soft-deleted successfully" });
     }
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -119,5 +154,6 @@ module.exports = {
   getPaymentById,
   createPayment,
   updatePayment,
-  deletePayment
+  deletePayment,
+  getPaymentCount,
 };
