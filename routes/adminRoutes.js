@@ -27,6 +27,7 @@ router.get(
   adminMiddleware.isAdmin,
   adminController.getAdminById
 );
+router.get("/search", adminMiddleware.isAdmin, adminController.searchAdmins);
 router.post("/logout", adminMiddleware.isAdmin, adminController.logoutAdmin);
 
 module.exports = router;

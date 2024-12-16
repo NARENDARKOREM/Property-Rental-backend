@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
+const { Op } = require("sequelize");
 
 // Generate JWT
 const generateToken = (admin) => {
@@ -196,6 +197,35 @@ const logoutAdmin = (req, res) => {
   });
 };
 
+const searchAdmins = async (req, res) => {
+  const { id, username, userType } = req.query;
+
+  try {
+    const whereClause = {};
+
+    if (id) whereClause.id = id;
+    if (username && username.trim()) {
+      whereClause.username = { [Op.like]: `%${username}%` };
+    }
+    if (userType && userType.trim()) {
+      whereClause.userType = { [Op.like]: `%${userType}%` };
+    }
+
+    console.log("Generated whereClause:", whereClause);
+
+    const admins = await Admin.findAll({ where: whereClause });
+
+    if (admins.length === 0) {
+      return res.status(404).json({ error: "No matching admins found" });
+    }
+
+    res.status(200).json(admins);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   registerAdmin,
   loginAdmin,
@@ -205,4 +235,5 @@ module.exports = {
   getAdminById,
   logoutAdmin,
   getUserbyToken,
+  searchAdmins,
 };
