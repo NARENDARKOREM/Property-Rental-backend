@@ -1,6 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../db");
-const TblExtra = require("./TblExtra");
+const TblCategory = require("./TblCategory");
 
 const Property = sequelize.define(
   "Property",
@@ -83,9 +83,9 @@ const Property = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    pbuysell: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
+    rules: {
+      type: DataTypes.TEXT,
+      // allowNull: false,
     },
     country_id: {
       type: DataTypes.INTEGER,
@@ -108,6 +108,5 @@ const Property = sequelize.define(
     paranoid: true,
   }
 );
-// Property.hasOne(TblExtra, { foreignKey: "id" });
 
 module.exports = Property;

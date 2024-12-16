@@ -46,6 +46,21 @@ exports.isAuthenticated = async (req, res, next) => {
   }
 };
 
+ exports.authenticateToken = (req, res, next) => {
+  const token = req.cookies.token;
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = user; 
+    next();
+  } catch (error) {
+    res.status(403).json({ message: 'Forbidden' });
+  }
+};
+
 exports.isGuest = (req, res, next) => {
   if (req.user && req.user.role === "guest") {
     next();

@@ -12,6 +12,7 @@ const path = require("path");
 const sequelize = require("./db");
 const PORT = process.env.PORT || 5000;
 const morgan = require("morgan");
+require("./models/index");
 
 // Models
 const Admin = require("./models/Admin");
@@ -41,6 +42,9 @@ const WalletReport = require("./models/WalletReport");
 const Page = require("./models/Page");
 const RoleChangeRequest = require("./models/RoleChangeRequest");
 const foreignKeysetup = require("./models/index");
+
+app.use(express.json());
+
 
 // Routes
 const adminRoutes = require("./routes/adminRoutes");
@@ -78,7 +82,6 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
 app.use(cookieParser());
 app.use(
   session({
@@ -114,7 +117,6 @@ app.use("/person-records", personRecordRoutes);
 app.use("/plans", planRoutes);
 app.use("/payout-settings", payoutRoutes);
 app.use("/faq", faqRoutes);
-
 
 const io = socketIo(httpserver, {
   cors: { origin: "*", methods: ["GET", "POST"] },allowEIO3: true,
