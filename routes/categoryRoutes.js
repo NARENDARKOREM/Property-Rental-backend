@@ -10,7 +10,7 @@ router.post(
   categoryController.upsertCategory
 );
 router.get("/all", categoryController.getAllCategories);
-
+router.get("/count", categoryController.getCategoryCount);
 router.get(
   "/:id",
   authMiddleware.isAuthenticated,
@@ -23,4 +23,3 @@ router.delete(
 );
 
 module.exports = router;
-

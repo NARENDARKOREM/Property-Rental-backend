@@ -1,3 +1,4 @@
+const { count } = require("console");
 const TblGallery = require("../models/TblGallery");
 const fs = require("fs");
 const path = require("path");
@@ -52,6 +53,18 @@ const getAllGalleries = async (req, res) => {
   try {
     const galleries = await TblGallery.findAll();
     res.status(200).json(galleries);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
+
+// Get All Galleries
+const getGalleryCount = async (req, res) => {
+  try {
+    const galleryCount = await TblGallery.count();
+    res.status(200).json({count:galleryCount});
   } catch (error) {
     res
       .status(500)
@@ -120,4 +133,5 @@ module.exports = {
   getAllGalleries,
   getGalleryById,
   deleteGallery,
+  getGalleryCount
 };

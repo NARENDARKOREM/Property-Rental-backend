@@ -1,3 +1,4 @@
+const { count } = require("console");
 const TblCategory = require("../models/TblCategory");
 const fs = require("fs");
 const path = require("path");
@@ -48,8 +49,20 @@ const upsertCategory = async (req, res) => {
 const getAllCategories = async (req, res) => {
   try {
     const categories = await TblCategory.findAll();
-    console.log(categories)
+    console.log(categories);
     res.status(200).json(categories);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
+
+// Category Count
+const getCategoryCount = async (req, res) => {
+  try {
+    const categoryCount = await TblCategory.count();
+    res.status(200).json({ count: categoryCount });
   } catch (error) {
     res
       .status(500)
@@ -121,4 +134,5 @@ module.exports = {
   getAllCategories,
   getCategoryById,
   deleteCategory,
+  getCategoryCount
 };
