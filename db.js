@@ -6,7 +6,8 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
     host: process.env.DB_HOST,
     dialect: process.env.DB_DIALECT || 'mysql',
     dialectModule:require('mysql2'),
-    port: process.env.DB_PORT
+    port: process.env.DB_PORT 
+
   });
 
 sequelize.authenticate()
@@ -17,4 +18,6 @@ sequelize.authenticate()
         console.error('Unable to connect to the database:', err);
     });
 
+
 module.exports = sequelize;
+
