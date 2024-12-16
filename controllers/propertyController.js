@@ -38,7 +38,7 @@ const upsertProperty = async (req, res) => {
         res.status(500).json({ error: 'Internal server error', details: error.message });
 
     }
-  
+
 };
 
 // Get All Properties
@@ -90,6 +90,16 @@ const getAllProperties = async (req, res) => {
   };
   
   
+
+// Get Property Count
+const getPropertyCount = async (req, res) =>{
+  try {
+    const propertyCount = await Property.count();
+    res.status(200).json({count:propertyCount});
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error", details: error.message });
+  }
+}
 
 // Get Single Property by ID
 const getPropertyById = async (req, res) => {
@@ -153,4 +163,5 @@ module.exports = {
   getAllProperties,
   getPropertyById,
   deleteProperty,
+  getPropertyCount
 };
