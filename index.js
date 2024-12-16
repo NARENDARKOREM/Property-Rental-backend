@@ -93,14 +93,9 @@ app.use(express.urlencoded({ extended: true }));
 //     credentials: true, 
 //   })
 // );
-// app.use(cors());
-// app.options('*', cors());
 
-header("Access-Control-Allow-Origin: *", ); 
-header("Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE");
-header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization");
-
-
+// Optional: Ensure preflight requests are handled
+app.options('*', cors());
 
 app.use(
   cors({
