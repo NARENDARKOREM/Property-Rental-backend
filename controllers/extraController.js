@@ -8,11 +8,10 @@ const TblExtraImage = require("../models/TableExtraImages");
 const upsertExtra = async (req, res) => {
   const { id, pid, img, status } = req.body;
   console.log(req.body, "from body");
-  const add_user_id = 1; 
+  const add_user_id = 1;
 
   try {
     if (id) {
-      
       const extra = await TblExtra.findByPk(id, { include: "images" });
       if (!extra) {
         return res.status(404).json({ error: "Extra not found" });
@@ -64,6 +63,18 @@ const getAllExtras = async (req, res) => {
   }
 };
 
+// Get Extra Images Count
+const getExtraImagesCount = async (req, res) => {
+  try {
+    const extraImagesCount = await TblExtra.count();
+    res.status(200).json({ count: extraImagesCount });
+  } catch (error) {
+    res.status(500).json({
+      error: "Internal server error",
+      details: error.message,
+    });
+  }
+};
 
 // Get Single Extra Image by ID
 const getExtraById = async (req, res) => {
@@ -127,4 +138,5 @@ module.exports = {
   getAllExtras,
   getExtraById,
   deleteExtra,
+  getExtraImagesCount,
 };
