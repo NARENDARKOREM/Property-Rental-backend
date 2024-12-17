@@ -18,21 +18,21 @@ router.get("/count", bookController.getBookingCountByStatus);
 // Route to cancel a booking
 router.put(
   "/cancel/:id",
-  authMiddleware.isAuthenticated,
+  // authMiddleware.isAuthenticated,
   bookController.cancelBooking
 );
 
 // Route to get status wise bookings
 router.get(
   "/status/:status",
-  authMiddleware.isAuthenticated,
+  // authMiddleware.isAuthenticated,
   bookController.getStatusWiseBookings
 );
 
 // change status
 router.put(
   "/status/:id",
-  authMiddleware.isAuthenticated,
+  // authMiddleware.isAuthenticated,
   bookController.changeStatus
 );
 
