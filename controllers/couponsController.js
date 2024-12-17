@@ -1,10 +1,24 @@
-const TblCoupon = require('../models/TblCoupon');
-const fs = require('fs');
-const path = require('path');
+const { count } = require("console");
+const TblCoupon = require("../models/TblCoupon");
+const fs = require("fs");
+const path = require("path");
 
 // Create or Update Coupon
 const upsertCoupon = async (req, res) => {
-  const { id, cdate, c_img, c_title, subtitle, ctitle, status, min_amt, c_value, c_desc } = req.body;
+
+  const {
+    id,
+    cdate,
+    c_img,
+    c_title,
+    subtitle,
+    ctitle,
+    status,
+    min_amt,
+    c_value,
+    c_desc,
+  } = req.body;
+
 
   try {
     // Format the date to YYYY-MM-DD
@@ -14,7 +28,7 @@ const upsertCoupon = async (req, res) => {
       // Update coupon
       const coupon = await TblCoupon.findByPk(id);
       if (!coupon) {
-        return res.status(404).json({ error: 'Coupon not found' });
+        return res.status(404).json({ error: "Coupon not found" });
       }
 
       coupon.c_img = c_img;
@@ -28,7 +42,7 @@ const upsertCoupon = async (req, res) => {
       coupon.c_desc = c_desc;
 
       await coupon.save();
-      res.status(200).json({ message: 'Coupon updated successfully', coupon });
+      res.status(200).json({ message: "Coupon updated successfully", coupon });
     } else {
       // Create new coupon
       const coupon = await TblCoupon.create({
@@ -42,11 +56,13 @@ const upsertCoupon = async (req, res) => {
         c_value,
         c_desc,
       });
-      res.status(201).json({ message: 'Coupon created successfully', coupon });
+      res.status(201).json({ message: "Coupon created successfully", coupon });
     }
   } catch (error) {
     console.error("Error in upsertCoupon: ", error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -56,7 +72,21 @@ const getAllCoupons = async (req, res) => {
     const coupons = await TblCoupon.findAll();
     res.status(200).json(coupons);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
+
+// Get Coupon Count
+const getCouponCount = async (req, res) => {
+  try {
+    const couponCount = await TblCoupon.count();
+    res.status(200).json({ count: couponCount });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -66,11 +96,13 @@ const getCouponById = async (req, res) => {
     const { id } = req.params;
     const coupon = await TblCoupon.findByPk(id);
     if (!coupon) {
-      return res.status(404).json({ error: 'Coupon not found' });
+      return res.status(404).json({ error: "Coupon not found" });
     }
     res.status(200).json(coupon);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -82,25 +114,29 @@ const deleteCoupon = async (req, res) => {
   try {
     const coupon = await TblCoupon.findOne({ where: { id }, paranoid: false });
     if (!coupon) {
-      return res.status(404).json({ error: 'Coupon not found' });
+      return res.status(404).json({ error: "Coupon not found" });
     }
 
-    if (coupon.deletedAt && forceDelete !== 'true') {
-      return res.status(400).json({ error: 'Coupon is already soft-deleted' });
+    if (coupon.deletedAt && forceDelete !== "true") {
+      return res.status(400).json({ error: "Coupon is already soft-deleted" });
     }
 
-    if (forceDelete === 'true') {
-      if (coupon.c_img && !coupon.c_img.startsWith('http')) {
-        fs.unlinkSync(path.join(__dirname, '..', coupon.c_img)); // Remove image file if it's a local path
+    if (forceDelete === "true") {
+      if (coupon.c_img && !coupon.c_img.startsWith("http")) {
+        fs.unlinkSync(path.join(__dirname, "..", coupon.c_img)); // Remove image file if it's a local path
       }
       await coupon.destroy({ force: true });
-      res.status(200).json({ message: 'Coupon permanently deleted successfully' });
+      res
+        .status(200)
+        .json({ message: "Coupon permanently deleted successfully" });
     } else {
       await coupon.destroy();
-      res.status(200).json({ message: 'Coupon soft-deleted successfully' });
+      res.status(200).json({ message: "Coupon soft-deleted successfully" });
     }
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -108,5 +144,6 @@ module.exports = {
   upsertCoupon,
   getAllCoupons,
   getCouponById,
-  deleteCoupon
+  deleteCoupon,
+  getCouponCount,
 };

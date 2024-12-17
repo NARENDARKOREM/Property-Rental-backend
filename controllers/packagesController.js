@@ -1,3 +1,4 @@
+const { count } = require("console");
 const TblPackage = require("../models/TblPackage");
 const fs = require("fs");
 const path = require("path");
@@ -55,6 +56,18 @@ const getAllPackages = async (req, res) => {
   try {
     const packages = await TblPackage.findAll();
     res.status(200).json(packages);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
+
+// Get Packages Count
+const getPackagesCount = async (req, res) => {
+  try {
+    const packagesCount = await TblPackage.count();
+    res.status(200).json({count:packagesCount});
   } catch (error) {
     res
       .status(500)
@@ -120,4 +133,5 @@ module.exports = {
   getAllPackages,
   getPackageById,
   deletePackage,
+  getPackagesCount
 };

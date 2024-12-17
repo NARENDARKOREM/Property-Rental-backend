@@ -15,10 +15,6 @@ const TblExtra = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    img: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
     status: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -28,11 +24,7 @@ const TblExtra = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
-    pano: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
-    },
+    
   },
   {
     tableName: "tbl_extra",

@@ -10,11 +10,18 @@ router.post(
   categoryController.upsertCategory
 );
 router.get("/all", categoryController.getAllCategories);
-router.post('/upsert', adminMiddleware.isAdmin,  categoryController.upsertCategory);
-router.get('/all', categoryController.getAllCategories);
 
-router.get('/:id', categoryController.getCategoryById);
-router.delete('/delete/:id', authMiddleware.isAuthenticated, categoryController.deleteCategory);
+router.get("/count", categoryController.getCategoryCount);
+router.get(
+  "/:id",
+  authMiddleware.isAuthenticated,
+  categoryController.getCategoryById
+);
+router.delete(
+  "/delete/:id",
+  authMiddleware.isAuthenticated,
+  categoryController.deleteCategory
+);
+
 
 module.exports = router;
-

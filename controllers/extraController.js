@@ -2,44 +2,35 @@ const TblExtra = require("../models/TblExtra");
 const fs = require("fs");
 const path = require("path");
 const Property = require("../models/Property");
+const TblExtraImage = require("../models/TableExtraImages");
 
 // Create or Update Extra Image
 const upsertExtra = async (req, res) => {
-  const { id, pid, img, status, pano } = req.body;
-  console.log(req.body);
+  const { id, pid, img, status } = req.body;
+  console.log(req.body, "from body");
   const add_user_id = 1; 
 
   try {
     if (id) {
-      // Update extra image
-      const extra = await TblExtra.findByPk(id);
+      
+      const extra = await TblExtra.findByPk(id, { include: "images" });
       if (!extra) {
-        return res.status(404).json({ error: "Extra image not found" });
+        return res.status(404).json({ error: "Extra not found" });
       }
 
-      Object.assign(extra, {
-        pid,
-        img,
-        status,
-        add_user_id,
-        pano,
-      });
+      Object.assign(extra, { pid, status, add_user_id });
       await extra.save();
-      res
-        .status(200)
-        .json({ message: "Extra image updated successfully", extra });
+      await TblExtraImage.destroy({ where: { extra_id: id } });
+      const newImages = img.map((url) => ({ extra_id: id, url }));
+      await TblExtraImage.bulkCreate(newImages);
+
+      res.status(200).json({ message: "Extra updated successfully", extra });
     } else {
-      // Create new extra image
-      const extra = await TblExtra.create({
-        pid,
-        img,
-        status,
-        add_user_id,
-        pano,
-      });
-      res
-        .status(201)
-        .json({ message: "Extra image created successfully", extra });
+      const extra = await TblExtra.create({ pid, status, add_user_id });
+      const newImages = img.map((url) => ({ extra_id: extra.id, url }));
+      await TblExtraImage.bulkCreate(newImages);
+
+      res.status(201).json({ message: "Extra created successfully", extra });
     }
   } catch (error) {
     res
@@ -52,20 +43,27 @@ const upsertExtra = async (req, res) => {
 const getAllExtras = async (req, res) => {
   try {
     const extras = await TblExtra.findAll({
-      include: {
-        model: Property,
-        as: "properties",
-        attributes: ["title"],
-      },
+      include: [
+        {
+          model: TblExtraImage,
+          as: "images",
+        },
+        {
+          model: Property,
+          attributes: ["title"],
+        },
+      ],
     });
 
     res.status(200).json(extras);
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
+    res.status(500).json({
+      error: "Internal server error",
+      details: error.message,
+    });
   }
 };
+
 
 // Get Single Extra Image by ID
 const getExtraById = async (req, res) => {

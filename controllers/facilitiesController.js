@@ -1,3 +1,4 @@
+const { count } = require("console");
 const TblFacility = require("../models/TblFacility");
 const fs = require("fs");
 const path = require("path");
@@ -72,6 +73,18 @@ const getFacilityById = async (req, res) => {
   }
 };
 
+// Get Facility Count
+const getFacilityCount = async (req, res) =>{
+  try {
+    const facilityCount = await TblFacility.count();
+    res.status(200).json({count:facilityCount});
+  } catch (error) {
+    res
+    .status(500)
+    .json({ error: "Internal server error", details: error.message }); 
+  }
+}
+
 // Delete Facility
 const deleteFacility = async (req, res) => {
   const { id } = req.params;
@@ -116,4 +129,5 @@ module.exports = {
   getAllFacilities,
   getFacilityById,
   deleteFacility,
+  getFacilityCount
 };

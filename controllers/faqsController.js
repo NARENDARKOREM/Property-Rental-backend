@@ -1,16 +1,16 @@
-const TblFaq = require('../models/TblFaq');
+const TblFaq = require("../models/TblFaq");
 
 // Create or Update FAQ
 const upsertFaq = async (req, res) => {
-  console.log(req)
+  console.log(req);
   const { id, question, answer, status } = req.body;
-  console.log(req.body)
+  console.log(req.body);
   try {
     if (id) {
       // Update FAQ
       const faq = await TblFaq.findByPk(id);
       if (!faq) {
-        return res.status(404).json({ error: 'FAQ not found' });
+        return res.status(404).json({ error: "FAQ not found" });
       }
 
       faq.question = question;
@@ -18,18 +18,20 @@ const upsertFaq = async (req, res) => {
       faq.status = status;
 
       await faq.save();
-      res.status(200).json({ message: 'FAQ updated successfully', faq });
+      res.status(200).json({ message: "FAQ updated successfully", faq });
     } else {
       // Create new FAQ
       const faq = await TblFaq.create({
         question,
         answer,
-        status
+        status,
       });
-      res.status(201).json({ message: 'FAQ created successfully', faq });
+      res.status(201).json({ message: "FAQ created successfully", faq });
     }
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -39,7 +41,21 @@ const getAllFaqs = async (req, res) => {
     const faqs = await TblFaq.findAll();
     res.status(200).json(faqs);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
+
+// Get Faqs Count
+const getFaqCount = async (req, res) => {
+  try {
+    const faqCount = await TblFaq.count();
+    res.status(200).json({ count: faqCount });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -49,11 +65,13 @@ const getFaqById = async (req, res) => {
     const { id } = req.params;
     const faq = await TblFaq.findByPk(id);
     if (!faq) {
-      return res.status(404).json({ error: 'FAQ not found' });
+      return res.status(404).json({ error: "FAQ not found" });
     }
     res.status(200).json(faq);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -61,28 +79,30 @@ const getFaqById = async (req, res) => {
 const deleteFaq = async (req, res) => {
   const { id } = req.params;
   const { forceDelete } = req.query;
-  console.log(id)
-  console.log(forceDelete)
+  console.log(id);
+  console.log(forceDelete);
 
   try {
     const faq = await TblFaq.findOne({ where: { id }, paranoid: false });
     if (!faq) {
-      return res.status(404).json({ error: 'FAQ not found' });
+      return res.status(404).json({ error: "FAQ not found" });
     }
 
-    if (faq.deletedAt && forceDelete !== 'true') {
-      return res.status(400).json({ error: 'FAQ is already soft-deleted' });
+    if (faq.deletedAt && forceDelete !== "true") {
+      return res.status(400).json({ error: "FAQ is already soft-deleted" });
     }
 
-    if (forceDelete === 'true') {
+    if (forceDelete === "true") {
       await faq.destroy({ force: true });
-      res.status(200).json({ message: 'FAQ permanently deleted successfully' });
+      res.status(200).json({ message: "FAQ permanently deleted successfully" });
     } else {
       await faq.destroy();
-      res.status(200).json({ message: 'FAQ soft-deleted successfully' });
+      res.status(200).json({ message: "FAQ soft-deleted successfully" });
     }
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 
@@ -90,5 +110,6 @@ module.exports = {
   upsertFaq,
   getAllFaqs,
   getFaqById,
-  deleteFaq
+  deleteFaq,
+  getFaqCount
 };

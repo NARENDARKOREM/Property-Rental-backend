@@ -1,14 +1,13 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../db");
 
-
 const TblBook = sequelize.define(
   "TblBook",
   {
     id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      autoIncrement:true,
+      autoIncrement: true,
       primaryKey: true,
     },
     prop_id: {
@@ -129,7 +128,7 @@ const TblBook = sequelize.define(
   {
     tableName: "tbl_book",
     timestamps: true,
-    paranoid:true,
+    paranoid: true,
     charset: "latin1",
   }
 );

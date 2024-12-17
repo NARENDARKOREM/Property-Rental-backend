@@ -4,6 +4,9 @@ const enquiryController = require('../controllers/enquiryController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 router.post('/submit',  authMiddleware.isAuthenticated, enquiryController.submitEnquiry);
-router.post('/retrieve',   enquiryController.getEnquiries);
+
+router.get('/retrieve',  authMiddleware.isAuthenticated, enquiryController.getEnquiries);
+router.get('/count',  authMiddleware.isAuthenticated, enquiryController.getEnquiryCount);
+
 
 module.exports = router;

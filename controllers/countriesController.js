@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const Property = require("../models/Property");
 const { Sequelize } = require("sequelize");
+const { count } = require("console");
 
 // Create or Update Country
 const upsertCountry = async (req, res) => {
@@ -46,10 +47,21 @@ const upsertCountry = async (req, res) => {
 
 // Get All Countries
 const getAllCountries = async (req, res) => {
-  console.log("req from frontend");
   try {
     const countries = await TblCountry.findAll();
     res.status(200).json(countries);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
+
+// Get Counties Count
+const getCountryCount = async (req, res) => {
+  try {
+    const countryCount = await TblCountry.count();
+    res.status(200).json({ count: countryCount });
   } catch (error) {
     res
       .status(500)
@@ -126,7 +138,10 @@ const fetchCountriesWithPropertyCount = async (req, res) => {
       attributes: [
         "id",
         "title",
-        [Sequelize.fn("COUNT", Sequelize.col("properties.id")), "property_count"],
+        [
+          Sequelize.fn("COUNT", Sequelize.col("properties.id")),
+          "property_count",
+        ],
       ],
       group: ["TblCountry.id"],
       logging: (sql) => {
@@ -153,4 +168,5 @@ module.exports = {
   getCountryById,
   deleteCountry,
   fetchCountriesWithPropertyCount,
+  getCountryCount,
 };
