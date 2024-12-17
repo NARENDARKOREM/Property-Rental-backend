@@ -1,5 +1,8 @@
 const express = require("express");
+// const http = require("http");
+// const socketIo = require("socket.io");
 const app = express();
+// const httpserver = http.createServer(app);
 const dotEnv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -113,14 +116,17 @@ app.use("/host-request", hostRequestRoutes);
 app.use("/person-records", personRecordRoutes);
 app.use("/plans", planRoutes);
 app.use("/payout-settings", payoutRoutes);
+
 app.use("/faqs", faqRoutes);
 
-{
-  /** user Routes */
-}
 
-app.use("/users", require("./userRoutes/user_auth_router"));
-app.use("/users/properties", require("./userRoutes/user_properties_route"));
+
+
+{/** user Routes */}
+
+app.use('/users', require('./userRoutes/user_auth_router'));
+app.use('/users/properties', require('./userRoutes/user_properties_route'))
+
 
 app.get("/", (req, res) => {
   // const query

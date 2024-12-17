@@ -9,4 +9,7 @@ router.get('/', authMiddleware.isAuthenticated, payoutController.getPayoutSettin
 // Upsert payout setting
 router.post('/upsert', authMiddleware.isAuthenticated, payoutController.upsertPayoutSetting);
 
+// get all 
+router.get('/all',authMiddleware.isAuthenticated,payoutController.getAllPayoutList)
+
 module.exports = router;

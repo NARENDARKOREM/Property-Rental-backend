@@ -19,31 +19,19 @@ exports.handleRoleChangeRequest = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['approved', 'rejected'].includes(status)) {
-        return res.status(400).json({ message: "Invalid status." });
-    }
-
     try {
         const request = await RoleChangeRequest.findByPk(id);
 
-        if (!request) {
-            return res.status(404).json({ message: "Request not found." });
-        }
+        if (!request) return res.status(404).json({ message: "Request not found." });
 
-        if (request.status !== 'pending') {
-            return res.status(400).json({ message: "Request has already been processed." });
-        }
-
-        if (status === 'approved') {
-        
+        if (status === "approved") {
             const user = await User.findByPk(request.user_id);
-            if (!user) {
-                return res.status(404).json({ message: "User not found." });
-            }
+            if (!user) return res.status(404).json({ message: "User not found." });
 
             user.role = request.requested_role;
             await user.save();
         }
+
         request.status = status;
         await request.save();
 
@@ -53,3 +41,4 @@ exports.handleRoleChangeRequest = async (req, res) => {
         res.status(500).json({ message: "Failed to process the request." });
     }
 };
+
