@@ -10,6 +10,7 @@ router.post(
   categoryController.upsertCategory
 );
 router.get("/all", categoryController.getAllCategories);
+
 router.get("/count", categoryController.getCategoryCount);
 router.get(
   "/:id",
@@ -21,5 +22,6 @@ router.delete(
   authMiddleware.isAuthenticated,
   categoryController.deleteCategory
 );
+
 
 module.exports = router;

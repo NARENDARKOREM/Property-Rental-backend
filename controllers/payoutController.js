@@ -73,7 +73,19 @@ const upsertPayoutSetting = async (req, res) => {
   }
 };
 
+
+// get all
+const getAllPayoutList=async(req,res)=>{
+  try {
+    const payoutSettings = await PayoutSetting.findAll();
+    res.status(200).json(payoutSettings);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+}
+
 module.exports = {
   getPayoutSettingsByUser,
-  upsertPayoutSetting
+  upsertPayoutSetting,
+  getAllPayoutList
 };
