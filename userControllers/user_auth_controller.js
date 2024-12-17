@@ -189,22 +189,24 @@ async function requestRoleChange(req, res) {
       status: "pending",
     };
 
-    // Send FCM notification
-    const message = {
-      notification: {
-        title: "Role Change Request",
-        body: `User ${userId} requested to change role to '${requested_role}'`,
-      },
-      token: deviceToken,
-    };
-
     await admin.messaging().send(message);
 
-    res.status(201).json({
-      message:
-        "Role change request submitted and notification sent successfully.",
-      request: newRequest,
-    });
+      // Emit notification
+      const message={
+        notification:{
+          title:'Role Change Request',
+          body: `User ${userId} requested to change role to ${requested_role}`
+        },
+        token:deviceToken
+      };
+      console.log(message)
+      await admin.messaging().send(message)
+
+      res.status(201).json({ 
+          message: "Role change request submitted successfully.",
+          request: newRequest, 
+      });
+
   } catch (error) {
     console.error("Error sending notification:", error);
     res.status(500).json({ message: "Failed to process role change request." });
