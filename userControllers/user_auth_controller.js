@@ -5,7 +5,7 @@ const Setting = require('../models/Setting');
 const WalletReport = require('../models/WalletReport');
 const RoleChangeRequest = require('../models/RoleChangeRequest');
 const {Op } = require('sequelize');
-
+const admin=require("../config/firebase-config")
 
 
 function generateToken(user) {
@@ -174,50 +174,44 @@ async function userLogin(req, res) {
 //Role change controller
 
 async function requestRoleChange(req, res) {
-  const { requested_role, userId } = req.body;
+  const { requested_role, userId, deviceToken } = req.body; 
 
-  console.log(req.body, "bodyyyyyyyyyyyy");
-
-  // Validate input
-  if (!requested_role || !['guest', 'host'].includes(requested_role)) {
-      return res.status(400).json({ message: "Invalid role requested." });
+  if (!requested_role || !["guest", "host"].includes(requested_role)) {
+    return res.status(400).json({ message: "Invalid role requested." });
   }
-  if (!userId) {
-      return res.status(400).json({ message: "User ID is required." });
+  if (!userId || !deviceToken) {
+    return res.status(400).json({ message: "User ID and device token are required." });
   }
 
   try {
-      // Check for existing pending request
-      const existingRequest = await RoleChangeRequest.findOne({
-          where: { user_id: userId, status: 'approved' },
-      });
+    const newRequest = {
+      id: 1, 
+      user_id: userId,
+      requested_role,
+      status: "pending",
+    };
 
-      if (existingRequest) {
-          return res.status(400).json({ message: "You already have a pending request." });
-      }
+    // Send FCM notification
+    const message = {
+      notification: {
+        title: "Role Change Request",
+        body: `User ${userId} requested to change role to '${requested_role}'`,
+      },
+      token: deviceToken, 
+    };
 
-      // Create a new role change request
-      const newRequest = await RoleChangeRequest.create({
-          user_id: userId,
-          requested_role,
-          status: 'pending', // Default status
-      });
+    await admin.messaging().send(message);
 
-      // Emit notification
-      const io = req.app.get("io");
-      io.emit("notification", {
-          message: `User ${userId} has requested a role change to '${requested_role}'. Request ID: ${newRequest.id}`,
-      });
-
-      res.status(201).json({ 
-          message: "Role change request submitted successfully.",
-          request: newRequest, 
-      });
+    res.status(201).json({
+      message: "Role change request submitted and notification sent successfully.",
+      request: newRequest,
+    });
   } catch (error) {
-      console.error("Error submitting role change request:", error);
-      res.status(500).json({ message: "Failed to submit role change request." });
+    console.error("Error sending notification:", error);
+    res.status(500).json({ message: "Failed to process role change request." });
   }
 }
+
 
 
  async function forgotPassword (req, res) {
