@@ -37,11 +37,8 @@ const upsertProperty = async (req, res) => {
         res.status(500).json({ error: 'Internal server error', details: error.message });
 
     }
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
-  }
+  
+    
 };
 
 // Get All Properties
