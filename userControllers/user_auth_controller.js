@@ -213,6 +213,78 @@ async function requestRoleChange(req, res) {
   }
 }
 
+const googleAuth = async (req, res) => {
+  const { name, email, refercode, pro_pic } = req.body;
+
+  if (!name || !email) {
+    return res.status(400).json({
+      ResponseCode: "400",
+      Result: "false",
+      ResponseMsg: "All fields are required!",
+    });
+  }
+
+  try {
+    // Check if the email is already used
+    const existingUserByEmail = await User.findOne({ where: { email } });
+
+    if (existingUserByEmail) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Email Address Already Used!",
+      });
+    }
+
+    // Validate refer code if provided
+    let parentcode = null;
+    if (refercode) {
+      const referredUser = await User.findOne({ where: { refercode } });
+      if (referredUser) {
+        parentcode = refercode;
+      } else {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg: "Invalid Refer Code!",
+        });
+      }
+    }
+
+    // Generate a random refer code
+    const timestamp = new Date();
+    const refercodeGenerated = generateRandom();
+
+    // Create a new user
+    const newUser = await User.create({
+      name,
+      email,
+      pro_pic,
+      reg_date: timestamp,
+      refercode: refercodeGenerated,
+      parentcode,
+      password:"0"
+    });
+
+    // Generate a token for the user
+    const token = generateToken(newUser);
+
+    return res.status(201).json({
+      UserLogin: newUser,
+      token,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Sign Up Done Successfully!",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+    });
+  }
+};
 
 
 
@@ -351,6 +423,9 @@ const deleteUser = async (req, res) => {
   }
 };
 
+
+
+
 module.exports = {
   userRegister,
   userLogin,
@@ -360,4 +435,5 @@ module.exports = {
   getUsersCount,
   updateUser,
   deleteUser,
+  googleAuth
 };
