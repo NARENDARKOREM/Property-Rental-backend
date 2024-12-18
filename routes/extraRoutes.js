@@ -9,11 +9,7 @@ const adminMiddleware = require("../middlewares/adminMiddleware");
 router.post("/upsert", extraController.upsertExtra);
 router.get("/", extraController.getAllExtras);
 router.get("/count", extraController.getExtraImagesCount);
-router.get(
-  "/:id",
-  authMiddleware.isAuthenticated,
-  extraController.getExtraById
-);
+router.get("/:id", extraController.getExtraById);
 router.delete(
   "/delete/:id",
   adminMiddleware.isAdmin,

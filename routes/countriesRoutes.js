@@ -15,7 +15,7 @@ router.get("/all", countriesController.getAllCountries);
 router.get("/count", countriesController.getCountryCount);
 router.get(
   "/:id",
-  authMiddleware.isAuthenticated,
+  // authMiddleware.isAuthenticated,
   countriesController.getCountryById
 );
 router.delete(
