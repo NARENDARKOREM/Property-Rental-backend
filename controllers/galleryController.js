@@ -64,7 +64,7 @@ const getAllGalleries = async (req, res) => {
 const getGalleryCount = async (req, res) => {
   try {
     const galleryCount = await TblGallery.count();
-    res.status(200).json({count:galleryCount});
+    res.status(200).json({ count: galleryCount });
   } catch (error) {
     res
       .status(500)
@@ -133,5 +133,5 @@ module.exports = {
   getAllGalleries,
   getGalleryById,
   deleteGallery,
-  getGalleryCount
+  getGalleryCount,
 };
