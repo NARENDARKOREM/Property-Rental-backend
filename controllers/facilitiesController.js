@@ -15,13 +15,11 @@ const upsertFacility = async (req, res) => {
         return res.status(404).json({ error: "Facility not found" });
       }
 
-      if (req.file && facility.img && !facility.img.startsWith("http")) {
-        fs.unlinkSync(path.join(__dirname, "..", facility.img)); // Remove old image if not a URL
-      }
+     
 
       facility.title = title;
       facility.status = status;
-      facility.img = imgPath || facility.img;
+      facility.img = img || facility.img;
 
       await facility.save();
       res
@@ -124,7 +122,37 @@ const deleteFacility = async (req, res) => {
   }
 };
 
+
+const getAllFss = async (req, res) => {
+  try {
+    // Log the incoming search query to check if it's passed correctly
+    const searchQuery = req.query.search ? req.query.search.toLowerCase() : '';  // Make it lowercase for case-insensitive search
+    console.log('Search Query:', searchQuery);  // Debugging line to log the search query
+
+    // If a search term is provided, filter results where the title contains the search query
+    const facilities = await Facility.findAll({
+      where: searchQuery
+        ? {
+            title: {
+              [Op.like]: `%${searchQuery}%`,  // Case-insensitive search by title
+            },
+          }
+        : {},  // If no search query, return all records
+      order: [['createdAt', 'DESC']],  // Order by createdAt in descending order
+    });
+
+    console.log('Filtered Facilities:', facilities);  // Debugging line to check the filtered results
+    res.status(200).json(facilities);  // Return the filtered facilities
+  } catch (error) {
+    console.error("Error fetching facilities:", error);
+    res.status(500).json({ message: "Error fetching facilities", error });  // Error handling
+  }
+};
+
+
+
 module.exports = {
+  getAllFss,
   upsertFacility,
   getAllFacilities,
   getFacilityById,

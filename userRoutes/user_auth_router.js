@@ -8,11 +8,13 @@ const {
   getUsersCount,
   updateUser,
   deleteUser,
+  googleAuth,
 } = require("../userControllers/user_auth_controller");
 const router = express.Router();
 
 router.post("/user/signup", userRegister);
 router.post("/user/signin", userLogin);
+router.post("/user/googleauth", googleAuth);
 router.post("/user/changerole", requestRoleChange);
 router.put("/user/forgotpassword", forgotPassword);
 router.get("/user/getalluser", getAllusers);

@@ -6,7 +6,7 @@ const path = require("path");
 // Create or Update Package
 const upsertPackage = async (req, res) => {
   const { id, title, day, price, description, status, img } = req.body;
-
+console.log(req.body)
   try {
     if (id) {
       // Update package

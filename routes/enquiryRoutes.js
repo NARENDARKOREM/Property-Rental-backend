@@ -7,7 +7,7 @@ const adminMiddleware = require('../middlewares/adminMiddleware');
 router.post('/submit',  authMiddleware.isAuthenticated, enquiryController.submitEnquiry);
 
 router.get('/retrieve',  authMiddleware.isAuthenticated, enquiryController.getEnquiries);
-router.get('/count',  adminMiddleware.isAdmin, enquiryController.getEnquiryCount);
 
+router.get('/count',  adminMiddleware.isAdmin, enquiryController.getEnquiryCount);
 
 module.exports = router;

@@ -19,7 +19,7 @@ const upload = multer({ storage: storage });
 
 router.post(
   "/upsert",
-  adminMiddleware.isAdmin,
+  // adminMiddleware.isAdmin,
   packagesController.upsertPackage
 );
 router.get("/all", packagesController.getAllPackages);
