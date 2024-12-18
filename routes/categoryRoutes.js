@@ -12,16 +12,11 @@ router.post(
 router.get("/all", categoryController.getAllCategories);
 
 router.get("/count", categoryController.getCategoryCount);
-router.get(
-  "/:id",
-  authMiddleware.isAuthenticated,
-  categoryController.getCategoryById
-);
+router.get("/:id", categoryController.getCategoryById);
 router.delete(
   "/delete/:id",
-  authMiddleware.isAuthenticated,
+  adminMiddleware.isAdmin,
   categoryController.deleteCategory
 );
-
 
 module.exports = router;
