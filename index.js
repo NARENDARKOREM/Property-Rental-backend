@@ -83,22 +83,22 @@ app.use(express.urlencoded({ extended: true }));
 //   })
 // );
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "https://servostay.vercel.app",
-    ],
-    credentials: true, 
-  })
-);
+// app.use(
+//   cors({
+//     origin: [
+//       "http://localhost:3000",
+//       "http://localhost:5173",
+//       "https://servostay.vercel.app",
+//     ],
+//     credentials: true, 
+//   })
+// );
+app.use(cors());
+// app.options('*', cors());
 
-app.options('*', cors());
-
-res.header("Access-Control-Allow-Origin", req.headers.origin); 
-res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
-res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+// res.header("Access-Control-Allow-Origin", req.headers.origin); 
+// res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
+// res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
 
 
 app.use(cookieParser());
