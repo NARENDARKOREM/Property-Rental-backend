@@ -88,7 +88,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:5173",
-      "https://servostay-rajeshs-projects-936dca46.vercel.app",
+      "https://servostay.vercel.app",
     ],
     credentials: true, 
   })
