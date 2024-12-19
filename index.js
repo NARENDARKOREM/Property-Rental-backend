@@ -83,7 +83,7 @@ app.options('*', cors());
 
 app.use(
   cors({
-    origin: "https://servostay.vercel.app", 
+    origin: ["https://servostay.vercel.app","http://localhost:3000/"], 
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
     credentials: false, 
   })
