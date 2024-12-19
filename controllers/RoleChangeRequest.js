@@ -5,7 +5,7 @@ exports.getPendingRoleChangeRequests = async (req, res) => {
   try {
     const pendingRequests = await RoleChangeRequest.findAll({
       where: { status: "pending" },
-      // include: [{ model: User, attributes: ['id', 'name', 'email', 'role'] }],
+      include: [{ model: User,as: "user",attributes: ['id', 'name', 'email', 'role'] }],
     });
     res.status(200).json(pendingRequests);
   } catch (error) {
