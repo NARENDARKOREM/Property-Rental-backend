@@ -93,7 +93,14 @@ app.use(express.urlencoded({ extended: true }));
 //     credentials: true, 
 //   })
 // );
-app.use(cors());
+// Enable CORS with specific allowed origin
+app.use(cors({
+  origin: 'https://servostay-one.vercel.app', // Replace with your frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Adjust based on the methods you need
+  allowedHeaders: ['Content-Type', 'Authorization'], // Adjust based on the headers your frontend sends
+}));
+
+app.options('*', cors()); // Enable CORS for preflight requests
 // app.options('*', cors());
 
 // res.header("Access-Control-Allow-Origin", req.headers.origin); 
