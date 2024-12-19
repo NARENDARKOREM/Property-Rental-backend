@@ -76,19 +76,14 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 
-
-
 app.use(
   cors({
-    origin: "https://servostay.vercel.app", 
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
-    credentials: false, 
+    origin: [
+      "https://servostay-flame.vercel.app/",
+    ],
+    credentials: true,
   })
 );
-
-// // Optional: Ensure preflight requests are handled
-// app.options('*', cors());
-
 
 app.use(cookieParser());
 app.use(
