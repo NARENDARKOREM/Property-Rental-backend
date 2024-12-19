@@ -1,14 +1,11 @@
-
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const User = require('../models/User'); 
-const Setting = require('../models/Setting');
-const WalletReport = require('../models/WalletReport');
-const RoleChangeRequest = require('../models/RoleChangeRequest');
-const {Op } = require('sequelize');
-const admin=require("../config/firebase-config")
-
-
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const User = require("../models/User");
+const Setting = require("../models/Setting");
+const WalletReport = require("../models/WalletReport");
+const RoleChangeRequest = require("../models/RoleChangeRequest");
+const { Op } = require("sequelize");
+const admin = require("../config/firebase-config");
 
 function generateToken(user) {
   return jwt.sign(
@@ -63,7 +60,6 @@ async function userRegister(req, res) {
 
     const timestamp = new Date();
     const refercodeGenerated = generateRandom();
-
     const walletSettings = await Setting.findOne();
     const walletCredit = walletSettings.scredit;
 
@@ -174,19 +170,20 @@ async function userLogin(req, res) {
 //Role change controller
 
 async function requestRoleChange(req, res) {
-
-  const { requested_role, userId, deviceToken } = req.body; 
+  const { requested_role, userId, deviceToken } = req.body;
 
   if (!requested_role || !["guest", "host"].includes(requested_role)) {
     return res.status(400).json({ message: "Invalid role requested." });
   }
   if (!userId || !deviceToken) {
-    return res.status(400).json({ message: "User ID and device token are required." });
+    return res
+      .status(400)
+      .json({ message: "User ID and device token are required." });
   }
 
   try {
     const newRequest = {
-      id: 1, 
+      id: 1,
       user_id: userId,
       requested_role,
       status: "pending",
@@ -198,13 +195,14 @@ async function requestRoleChange(req, res) {
         title: "Role Change Request",
         body: `User ${userId} requested to change role to '${requested_role}'`,
       },
-      token: deviceToken, 
+      token: deviceToken,
     };
 
     await admin.messaging().send(message);
 
     res.status(201).json({
-      message: "Role change request submitted and notification sent successfully.",
+      message:
+        "Role change request submitted and notification sent successfully.",
       request: newRequest,
     });
   } catch (error) {
@@ -263,12 +261,11 @@ const googleAuth = async (req, res) => {
       reg_date: timestamp,
       refercode: refercodeGenerated,
       parentcode,
-      password:"0"
+      password: "0",
     });
 
     // Generate a token for the user
     const token = generateToken(newUser);
-
     return res.status(201).json({
       UserLogin: newUser,
       token,
@@ -285,8 +282,6 @@ const googleAuth = async (req, res) => {
     });
   }
 };
-
-
 
 async function forgotPassword(req, res) {
   const { mobile, password, ccode } = req.body;
@@ -335,7 +330,6 @@ async function forgotPassword(req, res) {
 const getAllusers = async (req, res) => {
   try {
     const data = await User.findAll();
-
     res.status(200).json(data);
   } catch (error) {
     res
@@ -347,7 +341,6 @@ const getAllusers = async (req, res) => {
 const getUsersCount = async (req, res) => {
   try {
     const usersCount = await User.count();
-
     res.status(200).json({ count: usersCount });
   } catch (error) {
     res
@@ -423,8 +416,27 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const handleToggle = async (req, res) => {
+  const { id, field, value } = req.body; // Correctly extract `value`
+  try {
+    if (!["status", "is_subscribe"].includes(field)) {
+      return res.status(400).json({ message: "Invalid field." });
+    }
 
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
 
+    user[field] = value; // Correctly update the field
+    await user.save();
+
+    res.status(200).json({ message: "User updated successfully." });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
 
 module.exports = {
   userRegister,
@@ -435,5 +447,6 @@ module.exports = {
   getUsersCount,
   updateUser,
   deleteUser,
-  googleAuth
+  googleAuth,
+  handleToggle,
 };

@@ -9,6 +9,7 @@ const {
   updateUser,
   deleteUser,
   googleAuth,
+  handleToggle,
 } = require("../userControllers/user_auth_controller");
 const router = express.Router();
 
@@ -21,5 +22,6 @@ router.get("/user/getalluser", getAllusers);
 router.get("/user/count", getUsersCount);
 router.put("/user/update/:id", updateUser);
 router.delete("/user/delete/:id", deleteUser);
+router.put("/user/toggle-update", handleToggle);
 
 module.exports = router;
