@@ -93,13 +93,25 @@ app.use(express.urlencoded({ extended: true }));
 //     credentials: true, 
 //   })
 // );
-app.use(cors());
+// app.use(cors());
 // app.options('*', cors());
 
-// res.header("Access-Control-Allow-Origin", req.headers.origin); 
-// res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
-// res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+header("Access-Control-Allow-Origin: *", ); 
+header("Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE");
+header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization");
 
+
+
+app.use(
+  cors({
+    origin: ["https://servostay.vercel.app", "http://localhost:3000"], // Allowed origins
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
+    credentials: true, // Allow cookies or authorization headers
+  })
+);
+
+// Optional: Ensure preflight requests are handled
+app.options('*', cors());
 
 app.use(cookieParser());
 app.use(
