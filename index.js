@@ -76,12 +76,30 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 
+// app.use(
+//   cors({
+//     origin: ["http://localhost:3000", "http://localhost:5173","https://servostay-rajeshs-projects-936dca46.vercel.app/"],
+//     credentials: true,
+//   })
+// );
+
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173","https://servostay-rajeshs-projects-936dca46.vercel.app/"],
-    credentials: true,
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://servostay-rajeshs-projects-936dca46.vercel.app",
+    ],
+    credentials: true, 
   })
 );
+
+app.options('*', cors());
+
+res.header("Access-Control-Allow-Origin", req.headers.origin); 
+res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
+res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
 
 app.use(cookieParser());
 app.use(
