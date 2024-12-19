@@ -94,18 +94,35 @@ app.use(express.urlencoded({ extended: true }));
 //   })
 // );
 // Enable CORS with specific allowed origin
-app.use(cors({
-  origin: 'https://servostay-one.vercel.app', // Replace with your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Adjust based on the methods you need
-  allowedHeaders: ['Content-Type', 'Authorization'], // Adjust based on the headers your frontend sends
-}));
+// app.use(cors({
+//   origin: 'https://servostay-one.vercel.app', // Replace with your frontend URL
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Adjust based on the methods you need
+//   allowedHeaders: ['Content-Type', 'Authorization'], // Adjust based on the headers your frontend sends
+// }));
 
-app.options('*', cors()); // Enable CORS for preflight requests
+// app.options('*', cors()); // Enable CORS for preflight requests
 // app.options('*', cors());
 
 // res.header("Access-Control-Allow-Origin", req.headers.origin); 
 // res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
 // res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+header("Access-Control-Allow-Origin: *", ); 
+header("Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE");
+header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+
+
+app.use(
+  cors({
+    origin: ["https://servostay.vercel.app", "http://localhost:3000"], // Allowed origins
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
+    credentials: true, // Allow cookies or authorization headers
+  })
+);
+
+// Optional: Ensure preflight requests are handled
+app.options('*', cors());
 
 
 app.use(cookieParser());
