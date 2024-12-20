@@ -2,6 +2,7 @@ const { count } = require("console");
 const TblPackage = require("../models/TblPackage");
 const fs = require("fs");
 const path = require("path");
+const { Property } = require("../models");
 
 // Create or Update Package
 const upsertPackage = async (req, res) => {
@@ -124,10 +125,42 @@ const deletePackage = async (req, res) => {
   }
 };
 
+const togglePackageStatus = async (req, res) => {
+  const { id, field, value } = req.body;
+  try {
+    if (!id || !field || !value === undefined) {
+      return res.status(400).json({ message: "Invalid request payload" });
+    }
+    console.log("Upadating packages field: ", { id, field, value });
+    if (!["status"].includes(field)) {
+      console.error(`Invalid field: ${field}`);
+      return res.status(400).json({ message: "Invalid field for update." });
+    }
+    const package = await TblPackage.findByPk(id);
+    if (!package) {
+      console.error(`Package with ID ${id} not found.`);
+      return res.status(404).json({ message: "Package not found. " });
+    }
+    package[field] = value;
+    package.save();
+    console.log("Package status updated", package);
+    res.status(200).json({
+      message: `${field} updated successfully. `,
+      updatedField: field,
+      updatedValue: value,
+      package,
+    });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 module.exports = {
   upsertPackage,
   getAllPackages,
   getPackageById,
   deletePackage,
   getPackagesCount,
+  togglePackageStatus,
 };

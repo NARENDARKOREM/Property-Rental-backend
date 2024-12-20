@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const Property = require("../models/Property");
 const TblExtraImage = require("../models/TableExtraImages");
+const { fileURLToPath } = require("url");
 
 // Create or Update Extra Image
 const upsertExtra = async (req, res) => {
@@ -13,30 +14,27 @@ const upsertExtra = async (req, res) => {
 
   try {
     if (id) {
-      
       const extra = await TblExtra.findByPk(id, { include: "images" });
       if (!extra) {
         return res.status(404).json({ error: "Extra not found" });
       }
 
-     
       Object.assign(extra, { pid, status, add_user_id });
       await extra.save();
 
-      
       await TblExtraImage.destroy({ where: { extra_id: id } });
 
-      
-      const newImages = img.map(( urls ) => ({ extra_id: id, url:urls.url })); 
+      const newImages = img.map((urls) => ({ extra_id: id, url: urls.url }));
       await TblExtraImage.bulkCreate(newImages);
 
       res.status(200).json({ message: "Extra updated successfully", extra });
     } else {
-      
       const extra = await TblExtra.create({ pid, status, add_user_id });
 
-      
-      const newImages = img.map(( urls ) => ({ extra_id: extra.id, url: urls.url}));
+      const newImages = img.map((urls) => ({
+        extra_id: extra.id,
+        url: urls.url,
+      }));
 
       await TblExtraImage.bulkCreate(newImages);
 
@@ -48,7 +46,6 @@ const upsertExtra = async (req, res) => {
       .json({ error: "Internal server error", details: error.message });
   }
 };
-
 
 // Get All Extra Images
 const getAllExtras = async (req, res) => {
@@ -93,7 +90,7 @@ const getExtraImagesCount = async (req, res) => {
 const getExtraById = async (req, res) => {
   try {
     const { id } = req.params;
-    const extras = await TblExtra.findByPk(id,{
+    const extras = await TblExtra.findByPk(id, {
       include: [
         {
           model: TblExtraImage,
@@ -158,10 +155,43 @@ const deleteExtra = async (req, res) => {
   }
 };
 
+const toggleExtraImagesStatus = async (req, res) => {
+  const { id, field, value } = req.body;
+  try {
+    if (!id || !field || !value == undefined) {
+      return res.status(400).json({ message: "Invalid request payload" });
+    }
+    console.log("Updated Extra Images status field: ", { id, field, value });
+    if (!["status"].includes(field)) {
+      console.error(`Invalid field: ${field}`);
+      return res.status(400).json({ message: "Invalid field for update." });
+    }
+    const extraImages = await TblExtra.findByPk(id);
+    if (!extraImages) {
+      console.error(`Property with ID ${id} not found`);
+      return res.status(404).json({ message: "Image not found." });
+    }
+    extraImages[field] = value;
+    await extraImages.save();
+    console.log("Payment status updated", extraImages);
+    console.log(await TblExtra.findAll());
+    res.status(200).json({
+      message: `${field} updated successfully.`,
+      updatedField: field,
+      updatedValue: value,
+      extraImages,
+    });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 module.exports = {
   upsertExtra,
   getAllExtras,
   getExtraById,
   deleteExtra,
   getExtraImagesCount,
+  toggleExtraImagesStatus,
 };

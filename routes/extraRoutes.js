@@ -16,4 +16,6 @@ router.delete(
   extraController.deleteExtra
 );
 
+router.patch("/toggle-status", extraController.toggleExtraImagesStatus);
+
 module.exports = router;

@@ -79,7 +79,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
 
-    origin: ["https://servostay-flame.vercel.app", "http://localhost:3000"],
+    origin: ["https://servostay-flame.vercel.app", "http://localhost:3000","http://localhost:59257"],
 
     credentials: true,
   })
@@ -145,4 +145,6 @@ sequelize
 
 app.listen(PORT, () => {
   console.log(`Server is Running on PORT http://localhost:${PORT}`);
+
 });
+
