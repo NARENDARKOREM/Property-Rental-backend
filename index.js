@@ -145,6 +145,6 @@ sequelize
 
 app.listen(PORT, () => {
   console.log(`Server is Running on PORT http://localhost:${PORT}`);
-});
 
+});
 

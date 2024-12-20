@@ -15,6 +15,8 @@ function generateToken(user) {
   );
 }
 
+const TWO_FACTOR_API_KEY = 'YOUR_2FACTOR_API_KEY';
+
 function generateRandom() {
   const random = Math.floor(100000 + Math.random() * 900000);
   return random;
@@ -223,7 +225,7 @@ const googleAuth = async (req, res) => {
   }
 
   try {
-    // Check if the email is already used
+    
     const existingUserByEmail = await User.findOne({ where: { email } });
 
     if (existingUserByEmail) {
@@ -282,6 +284,49 @@ const googleAuth = async (req, res) => {
     });
   }
 };
+
+
+const otpLogin = async (req, res) => {
+  const { phone } = req.body;
+
+  if (!phone) {
+    return res.status(400).json({ message: 'Phone number is required.' });
+  }
+
+  
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  try {
+   
+    const response = await axios.get(
+      `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${phone}/${otp}`
+    );
+
+    if (response.data.Status !== 'Success') {
+      return res.status(500).json({ message: 'Failed to send OTP.' });
+    }
+
+    
+    const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); 
+    const [user] = await User.findOrCreate({
+      where: { phone },
+      defaults: { phone, otp, otpExpiresAt },
+    });
+
+    
+    if (!user.isNewRecord) {
+      await user.update({ otp, otpExpiresAt });
+    }
+
+    res.status(200).json({ message: 'OTP sent successfully.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error sending OTP.' });
+  }
+}
+
+
+
 
 async function forgotPassword(req, res) {
   const { mobile, password, ccode } = req.body;
@@ -453,4 +498,5 @@ module.exports = {
   deleteUser,
   googleAuth,
   handleToggle,
+  otpLogin,
 };

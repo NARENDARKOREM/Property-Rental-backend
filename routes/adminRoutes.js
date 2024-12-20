@@ -18,7 +18,6 @@ router.put("/update/:id", adminMiddleware.isAdmin, adminController.updateAdmin);
 
 router.get("/search", adminMiddleware.isAdmin, adminController.searchAdmins);
 router.post("/logout", adminMiddleware.isAdmin, adminController.logoutAdmin);
-
 router.delete('/delete/:id', adminMiddleware.isAdmin, adminController.deleteAdmin);
 router.get('/all-admins', adminMiddleware.isAdmin, adminController.getAllAdmins);
 router.get('/single-admin/:id', adminMiddleware.isAdmin, adminController.getAdminById);
