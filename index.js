@@ -78,7 +78,9 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
+
     origin: ["https://servostay-flame.vercel.app", "http://localhost:3000"],
+
     credentials: true,
   })
 );
