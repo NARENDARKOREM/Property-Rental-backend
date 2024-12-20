@@ -149,6 +149,55 @@ const deletePayment = async (req, res) => {
   }
 };
 
+// const togglePaymentStatus = async (req, res) => {
+//   const { id, field, value } = req.body;
+
+//   try {
+//     const payment = await PaymentList.findByPk(id);
+
+//     if (!payment) {
+//       return res.status(404).json({ message: "Payment record not found." });
+//     }
+
+//     // Update the specified field (p_show, s_show, or status)
+//     payment[field] = value;
+//     await payment.save();
+
+//     res.status(200).json({
+//       message: `${field} updated successfully.`,
+//       updatedStatus: payment[field],
+//     });
+//   } catch (error) {
+//     console.error("Error updating payment status:", error);
+//     res.status(500).json({ message: "Internal server error." });
+//   }
+// };
+
+const togglePaymentStatus = async (req, res) => {
+  const { id, field, value } = req.body;
+  try {
+    if (!["status", "p_show", "s_show"].includes(field)) {
+      return res.status(400).json({ message: "Invalid field for update. " });
+    }
+    const payment = await PaymentList.findByPk(id);
+    if (!payment) {
+      console.log("Payment list not found");
+      return res.status(404).json({ message: "Payment list not found." });
+    }
+    payment[field] = value;
+    await payment.save();
+    console.log("Payment status updated", payment);
+    res.status(200).json({
+      message: `${field} updated successfully.`,
+      updatedField: field,
+      updatedValue: value,
+    });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 module.exports = {
   getAllPayments,
   getPaymentById,
@@ -156,4 +205,5 @@ module.exports = {
   updatePayment,
   deletePayment,
   getPaymentCount,
+  togglePaymentStatus,
 };

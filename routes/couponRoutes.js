@@ -28,5 +28,6 @@ router.delete(
   adminMiddleware.isAdmin,
   couponsController.deleteCoupon
 );
+router.patch("/toggle-status", couponsController.toggleCouponStatus);
 
 module.exports = router;
