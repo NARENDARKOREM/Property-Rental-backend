@@ -6,7 +6,7 @@ const path = require("path");
 // Create or Update Package
 const upsertPackage = async (req, res) => {
   const { id, title, day, price, description, status, img } = req.body;
-console.log(req.body)
+  console.log(req.body);
   try {
     if (id) {
       // Update package
@@ -15,16 +15,12 @@ console.log(req.body)
         return res.status(404).json({ error: "Package not found" });
       }
 
-      if (req.file && package.image && !package.image.startsWith("http")) {
-        fs.unlinkSync(path.join(__dirname, "..", package.image)); // Remove old image if not a URL
-      }
-
       package.title = title;
       package.day = day;
       package.price = price;
       package.description = description;
       package.status = status;
-      package.img;
+      package.image = img; // Ensure the field name matches the model
 
       await package.save();
       res
@@ -38,7 +34,7 @@ console.log(req.body)
         price,
         description,
         status,
-        img,
+        image: img, // Ensure the field name matches the model
       });
       res
         .status(201)
@@ -67,7 +63,7 @@ const getAllPackages = async (req, res) => {
 const getPackagesCount = async (req, res) => {
   try {
     const packagesCount = await TblPackage.count();
-    res.status(200).json({count:packagesCount});
+    res.status(200).json({ count: packagesCount });
   } catch (error) {
     res
       .status(500)
@@ -133,5 +129,5 @@ module.exports = {
   getAllPackages,
   getPackageById,
   deletePackage,
-  getPackagesCount
+  getPackagesCount,
 };

@@ -8,25 +8,36 @@ const TblExtraImage = require("../models/TableExtraImages");
 const upsertExtra = async (req, res) => {
   const { id, pid, img, status } = req.body;
   console.log(req.body, "from body");
+
   const add_user_id = 1;
 
   try {
     if (id) {
+      
       const extra = await TblExtra.findByPk(id, { include: "images" });
       if (!extra) {
         return res.status(404).json({ error: "Extra not found" });
       }
 
+     
       Object.assign(extra, { pid, status, add_user_id });
       await extra.save();
+
+      
       await TblExtraImage.destroy({ where: { extra_id: id } });
-      const newImages = img.map((url) => ({ extra_id: id, url }));
+
+      
+      const newImages = img.map(( urls ) => ({ extra_id: id, url:urls.url })); 
       await TblExtraImage.bulkCreate(newImages);
 
       res.status(200).json({ message: "Extra updated successfully", extra });
     } else {
+      
       const extra = await TblExtra.create({ pid, status, add_user_id });
-      const newImages = img.map((url) => ({ extra_id: extra.id, url }));
+
+      
+      const newImages = img.map(( urls ) => ({ extra_id: extra.id, url: urls.url}));
+
       await TblExtraImage.bulkCreate(newImages);
 
       res.status(201).json({ message: "Extra created successfully", extra });
@@ -38,6 +49,7 @@ const upsertExtra = async (req, res) => {
   }
 };
 
+
 // Get All Extra Images
 const getAllExtras = async (req, res) => {
   try {
@@ -46,6 +58,7 @@ const getAllExtras = async (req, res) => {
         {
           model: TblExtraImage,
           as: "images",
+          attributes: ["url"],
         },
         {
           model: Property,
@@ -80,11 +93,23 @@ const getExtraImagesCount = async (req, res) => {
 const getExtraById = async (req, res) => {
   try {
     const { id } = req.params;
-    const extra = await TblExtra.findByPk(id);
-    if (!extra) {
+    const extras = await TblExtra.findByPk(id,{
+      include: [
+        {
+          model: TblExtraImage,
+          as: "images",
+          attributes: ["url"],
+        },
+        {
+          model: Property,
+          attributes: ["title"],
+        },
+      ],
+    });
+    if (!extras) {
       return res.status(404).json({ error: "Extra image not found" });
     }
-    res.status(200).json(extra);
+    res.status(200).json(extras);
   } catch (error) {
     res
       .status(500)

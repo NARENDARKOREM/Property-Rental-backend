@@ -78,12 +78,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+
+    origin: ["https://servostay-flame.vercel.app", "http://localhost:3000"],
+
     credentials: true,
   })
 );
+
 app.use(cookieParser());
 app.use(
   session({
