@@ -140,10 +140,34 @@ const deleteCoupon = async (req, res) => {
   }
 };
 
+const toggleCouponStatus = async (req, res) => {
+  const { id, value } = req.body;
+
+  try {
+    const coupon = await TblCoupon.findByPk(id);
+
+    if (!coupon) {
+      return res.status(404).json({ message: "Coupon not found." });
+    }
+
+    coupon.status = value; 
+    await coupon.save();
+
+    res.status(200).json({
+      message: "Coupon status updated successfully.",
+      updatedStatus: coupon.status,
+    });
+  } catch (error) {
+    console.error("Error updating coupon status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 module.exports = {
   upsertCoupon,
   getAllCoupons,
   getCouponById,
   deleteCoupon,
   getCouponCount,
+  toggleCouponStatus
 };

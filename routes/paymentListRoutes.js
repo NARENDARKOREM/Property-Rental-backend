@@ -32,4 +32,6 @@ router.delete(
   paymentListController.deletePayment
 );
 
+router.patch("/toggle-status", paymentListController.togglePaymentStatus);
+
 module.exports = router;

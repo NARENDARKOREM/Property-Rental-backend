@@ -1,6 +1,5 @@
-
 const jwt = require("jsonwebtoken");
-const Admin = require('../models/Admin');
+const Admin = require("../models/Admin");
 
 exports.isAdmin = async (req, res, next) => {
   const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
@@ -19,12 +18,10 @@ exports.isAdmin = async (req, res, next) => {
       return res.status(401).json({ error: "Unauthorized: Admin not found" });
     }
 
-    req.user.userType = 'admin'; // Ensure userType is set
+    req.user.userType = "admin"; // Ensure userType is set
     next();
   } catch (err) {
     console.error("Token verification error: ", err);
     return res.status(401).json({ error: "Unauthorized: Invalid token" });
   }
-
 };
-

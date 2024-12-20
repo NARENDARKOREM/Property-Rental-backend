@@ -22,6 +22,6 @@ router.get("/user/getalluser", getAllusers);
 router.get("/user/count", getUsersCount);
 router.put("/user/update/:id", updateUser);
 router.delete("/user/delete/:id", deleteUser);
-router.put("/user/toggle-update", handleToggle);
+router.patch("/user/toggle-update", handleToggle);
 
 module.exports = router;
