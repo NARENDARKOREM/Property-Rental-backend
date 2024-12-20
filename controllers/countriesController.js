@@ -162,6 +162,37 @@ const fetchCountriesWithPropertyCount = async (req, res) => {
   }
 };
 
+const toggleCountryStatus = async (req, res) => {
+  const { id, field, value } = req.body;
+  try {
+    if (!id || !field || value == undefined) {
+      return res.status(400).json({ message: "Invalid request payload" });
+    }
+    console.log("Updating payment field:", { id, field, value });
+    if (!["status"].includes(field)) {
+      console.error(`Invalid field: ${field}`);
+    }
+    const country = await TblCountry.findByPk(id);
+    if (!country) {
+      console.error(`Country with ID ${id} not found`);
+      return res.status(404).json({ message: "Country not found." });
+    }
+    country[field] = value;
+    await country.save();
+    console.log("Country status updated", country);
+    console.log(await TblCountry.findAll());
+    res.status(200).json({
+      message: `${field} updated successfully.`,
+      updateField: field,
+      updatedValue: value,
+      country,
+    });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 module.exports = {
   upsertCountry,
   getAllCountries,
@@ -169,4 +200,5 @@ module.exports = {
   deleteCountry,
   fetchCountriesWithPropertyCount,
   getCountryCount,
+  toggleCountryStatus,
 };

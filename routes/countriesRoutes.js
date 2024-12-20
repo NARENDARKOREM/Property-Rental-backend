@@ -27,5 +27,6 @@ router.get(
   "/property-counts",
   countriesController.fetchCountriesWithPropertyCount
 );
+router.patch("/toggle-status", countriesController.toggleCountryStatus);
 
 module.exports = router;

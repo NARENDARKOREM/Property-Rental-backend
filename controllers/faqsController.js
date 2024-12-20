@@ -106,10 +106,43 @@ const deleteFaq = async (req, res) => {
   }
 };
 
+const toggleFaqStatus = async (req, res) => {
+  const { id, field, value } = req.body;
+  try {
+    if (!id || !field || !value === undefined) {
+      return res.status(400).json({ message: "Invalid request payload" });
+    }
+    console.log("Updating faq field:", { id, field, value });
+    if (!["status"].includes(field)) {
+      console.error(`Invalid field: ${field}`);
+      return res.status(400).json({ message: "Invalid field for update." });
+    }
+    const faqs = await TblFaq.findByPk(id);
+    if (!faqs) {
+      console.error(`FAQ'S with ID ${id} not found`);
+      return res.status(404).json({ message: "FAQ'S not found." });
+    }
+    faqs[field] = value;
+    await faqs.save();
+    console.log("FAQ'S status updated", faqs);
+    console.log(await TblFaq.findAll());
+    res.status(200).json({
+      message: `${field} updated successfully`,
+      updateField: field,
+      updatedValue: value,
+      faqs,
+    });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 module.exports = {
   upsertFaq,
   getAllFaqs,
   getFaqById,
   deleteFaq,
-  getFaqCount
+  getFaqCount,
+  toggleFaqStatus,
 };
