@@ -16,7 +16,7 @@ const upsertCategory = async (req, res) => {
       }
 
       if (req.file && category.img && !category.img.startsWith("http")) {
-        fs.unlinkSync(path.join(__dirname, "..", category.img)); // Remove old image if not a URL
+        fs.unlinkSync(path.join(__dirname, "..", category.img));
       }
 
       category.title = title;
@@ -109,9 +109,9 @@ const deleteCategory = async (req, res) => {
     if (forceDelete === "true") {
       if (category.img && !category.img.startsWith("http")) {
         try {
-          fs.unlinkSync(path.join(__dirname, "..", category.img)); // Remove image file if it's a local path
+          fs.unlinkSync(path.join(__dirname, "..", category.img));
         } catch (err) {
-          console.error("Error removing file:", err); // Log the error if file removal fails
+          console.error("Error removing file:", err);
         }
       }
       await category.destroy({ force: true });
@@ -129,10 +129,38 @@ const deleteCategory = async (req, res) => {
   }
 };
 
+const toggleCategoryStatus = async (req, res) => {
+  console.log("Request received:", req.body);
+
+  const { id, value } = req.body;
+
+  try {
+    const category = await TblCategory.findByPk(id);
+
+    if (!category) {
+      console.log("Category not found");
+      return res.status(404).json({ message: "Category not found." });
+    }
+
+    category.status = value;
+    await category.save();
+
+    console.log("Category updated successfully:", category);
+    res.status(200).json({
+      message: "Category status updated successfully.",
+      updatedStatus: category.status,
+    });
+  } catch (error) {
+    console.error("Error updating category status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 module.exports = {
   upsertCategory,
   getAllCategories,
   getCategoryById,
   deleteCategory,
-  getCategoryCount
+  getCategoryCount,
+  toggleCategoryStatus,
 };

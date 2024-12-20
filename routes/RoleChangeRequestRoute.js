@@ -6,11 +6,13 @@ const {
   getPendingRoleChangeRequests,
   handleRoleChangeRequest,
   deleteRoleChangeRequest,
+  statusRoleChangeRequest,
 } = require("../controllers/RoleChangeRequest");
 
 router.get("/all", getPendingRoleChangeRequests);
 // router.get('/all', authMiddleware.isAdminOrHost, getPendingRoleChangeRequests);
 router.put("/update/:id", handleRoleChangeRequest);
-router.delete("/delete/:id", adminMiddleware.isAdmin, deleteRoleChangeRequest);
+router.delete("/delete/:id",  deleteRoleChangeRequest);
+router.patch("/status/:id", statusRoleChangeRequest);
 
 module.exports = router;
