@@ -79,3 +79,23 @@ exports.deleteRoleChangeRequest = async (req, res) => {
       .json({ error: "Internal server error", details: error.message });
   }
 };
+
+
+exports.statusRoleChangeRequest = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    const role = await RoleChangeRequest.findByPk(id);
+    if (!role) {
+      return res.status(404).json({ message: "Role change request not found." });
+    }
+
+    role.status = status;
+    await role.save();
+
+    res.status(200).json({ message: "Role change request status updated successfully." });
+  } catch (error) {
+    console.error("Error updating role change request:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+} 

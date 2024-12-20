@@ -183,29 +183,27 @@ async function requestRoleChange(req, res) {
 
   try {
     const newRequest = {
-      id: 1,
       user_id: userId,
       requested_role,
       status: "pending",
     };
 
+    const message = {
+      notification: {
+        title: 'Role Change Request',
+        body: `User ${userId} requested to change role to ${requested_role}`
+      },
+      token: deviceToken
+    };
+
     await admin.messaging().send(message);
 
-      // Emit notification
-      const message={
-        notification:{
-          title:'Role Change Request',
-          body: `User ${userId} requested to change role to ${requested_role}`
-        },
-        token:deviceToken
-      };
-      console.log(message)
-      await admin.messaging().send(message)
+    const roleChangeRequest = await RoleChangeRequest.create(newRequest);
 
-      res.status(201).json({ 
-          message: "Role change request submitted successfully.",
-          request: newRequest, 
-      });
+    res.status(201).json({ 
+      message: "Role change request submitted successfully.",
+      request: roleChangeRequest, 
+    });
 
   } catch (error) {
     console.error("Error sending notification:", error);
