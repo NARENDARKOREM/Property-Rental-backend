@@ -17,5 +17,6 @@ router.delete(
   adminMiddleware.isAdmin,
   propertyController.deleteProperty
 );
+router.patch("/toggle-status", propertyController.togglePropertyStatus);
 
 module.exports = router;
