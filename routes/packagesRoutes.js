@@ -4,7 +4,6 @@ const packagesController = require("../controllers/packagesController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/adminMiddleware");
 
-
 router.post(
   "/upsert",
   // adminMiddleware.isAdmin,
@@ -18,5 +17,6 @@ router.delete(
   adminMiddleware.isAdmin,
   packagesController.deletePackage
 );
+router.patch("/toggle-status", packagesController.togglePackageStatus);
 
 module.exports = router;

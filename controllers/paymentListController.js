@@ -171,25 +171,31 @@ const deletePayment = async (req, res) => {
 };
 
 
-
 const togglePaymentStatus = async (req, res) => {
   const { id, field, value } = req.body;
   try {
+    if (!id || !field || value === undefined) {
+      return res.status(400).json({ message: "Invalid request payload." });
+    }
+    console.log("Updating payment field:", { id, field, value });
     if (!["status", "p_show", "s_show"].includes(field)) {
-      return res.status(400).json({ message: "Invalid field for update. " });
+      console.error(`Invalid field: ${field}`);
+      return res.status(400).json({ message: "Invalid field for update." });
     }
     const payment = await PaymentList.findByPk(id);
     if (!payment) {
-      console.log("Payment list not found");
-      return res.status(404).json({ message: "Payment list not found." });
+      console.error(`Payment with ID ${id} not found`);
+      return res.status(404).json({ message: "Payment not found." });
     }
     payment[field] = value;
     await payment.save();
     console.log("Payment status updated", payment);
+    console.log(await PaymentList.findAll());
     res.status(200).json({
       message: `${field} updated successfully.`,
       updatedField: field,
       updatedValue: value,
+      payment,
     });
   } catch (error) {
     console.error("Error updating status:", error);

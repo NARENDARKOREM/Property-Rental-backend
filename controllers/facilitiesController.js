@@ -2,6 +2,7 @@ const { count } = require("console");
 const TblFacility = require("../models/TblFacility");
 const fs = require("fs");
 const path = require("path");
+const { messaging } = require("firebase-admin");
 
 // Create or Update Facility
 const upsertFacility = async (req, res) => {
@@ -14,8 +15,6 @@ const upsertFacility = async (req, res) => {
       if (!facility) {
         return res.status(404).json({ error: "Facility not found" });
       }
-
-     
 
       facility.title = title;
       facility.status = status;
@@ -72,16 +71,16 @@ const getFacilityById = async (req, res) => {
 };
 
 // Get Facility Count
-const getFacilityCount = async (req, res) =>{
+const getFacilityCount = async (req, res) => {
   try {
     const facilityCount = await TblFacility.count();
-    res.status(200).json({count:facilityCount});
+    res.status(200).json({ count: facilityCount });
   } catch (error) {
     res
-    .status(500)
-    .json({ error: "Internal server error", details: error.message }); 
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
-}
+};
 
 // Delete Facility
 const deleteFacility = async (req, res) => {
@@ -122,34 +121,63 @@ const deleteFacility = async (req, res) => {
   }
 };
 
-
 const getAllFss = async (req, res) => {
   try {
     // Log the incoming search query to check if it's passed correctly
-    const searchQuery = req.query.search ? req.query.search.toLowerCase() : '';  // Make it lowercase for case-insensitive search
-    console.log('Search Query:', searchQuery);  // Debugging line to log the search query
+    const searchQuery = req.query.search ? req.query.search.toLowerCase() : ""; // Make it lowercase for case-insensitive search
+    console.log("Search Query:", searchQuery); // Debugging line to log the search query
 
     // If a search term is provided, filter results where the title contains the search query
     const facilities = await Facility.findAll({
       where: searchQuery
         ? {
             title: {
-              [Op.like]: `%${searchQuery}%`,  // Case-insensitive search by title
+              [Op.like]: `%${searchQuery}%`, // Case-insensitive search by title
             },
           }
-        : {},  // If no search query, return all records
-      order: [['createdAt', 'DESC']],  // Order by createdAt in descending order
+        : {}, // If no search query, return all records
+      order: [["createdAt", "DESC"]], // Order by createdAt in descending order
     });
 
-    console.log('Filtered Facilities:', facilities);  // Debugging line to check the filtered results
-    res.status(200).json(facilities);  // Return the filtered facilities
+    console.log("Filtered Facilities:", facilities); // Debugging line to check the filtered results
+    res.status(200).json(facilities); // Return the filtered facilities
   } catch (error) {
     console.error("Error fetching facilities:", error);
-    res.status(500).json({ message: "Error fetching facilities", error });  // Error handling
+    res.status(500).json({ message: "Error fetching facilities", error }); // Error handling
   }
 };
 
-
+const toggleFacilityStatus = async (req, res) => {
+  const { id, field, value } = req.body;
+  try {
+    if (!id || !field || value === undefined) {
+      return res.status(400).json({ message: "Invalid request payload." });
+    }
+    console.log("Updating facility field:", { id, field, value });
+    if (!["status"].includes(field)) {
+      console.error(`Invalid field: ${field}`);
+      return res.status(400).json({ message: "Invalid field for update." });
+    }
+    const facility = await TblFacility.findByPk(id);
+    if (!facility) {
+      console.error(`facility with ID ${id} not found`);
+      return res.status(404).json({ message: "facility not found." });
+    }
+    facility[field] = value;
+    await facility.save();
+    console.log("Facility status updated", facility);
+    console.log(await TblFacility.findAll());
+    res.status(200).json({
+      message: `${field} updated successfully.`,
+      updatedField: field,
+      updatedValue: value,
+      facility,
+    });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
 
 module.exports = {
   getAllFss,
@@ -157,5 +185,6 @@ module.exports = {
   getAllFacilities,
   getFacilityById,
   deleteFacility,
-  getFacilityCount
+  getFacilityCount,
+  toggleFacilityStatus,
 };

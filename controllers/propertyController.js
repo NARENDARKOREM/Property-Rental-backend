@@ -7,99 +7,167 @@ const TblFacility = require("../models/TblFacility");
 
 // Create or Update Property
 const upsertProperty = async (req, res) => {
-
-    const { id, title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, rules, country_id, plimit, is_sell } = req.body;
-
+  const {
+    id,
+    title,
+    image,
+    price,
+    status,
+    address,
+    facility,
+    description,
+    beds,
+    bathroom,
+    sqrft,
+    rate,
+    ptype,
+    latitude,
+    longtitude,
+    mobile,
+    city,
+    listing_date,
+    add_user_id,
+    rules,
+    country_id,
+    plimit,
+    is_sell,
+  } = req.body;
 
   console.log(req.body, " from property");
 
+  try {
+    if (id) {
+      const property = await Property.findByPk(id);
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+      Object.assign(property, {
+        title,
+        image,
+        price,
+        status,
+        address,
+        facility,
+        description,
+        beds,
+        bathroom,
+        sqrft,
+        rate,
+        ptype,
+        latitude,
+        longtitude,
+        mobile,
+        city,
+        listing_date,
+        add_user_id,
+        rules,
+        country_id,
+        plimit,
+        is_sell,
+      });
 
-    try {
-        if (id) {
-            
-            const property = await Property.findByPk(id);
-            if (!property) {
-                return res.status(404).json({ error: 'Property not found' });
-            }
-            Object.assign(property, {
-                title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, rules, country_id, plimit, is_sell
-            });
-
-            await property.save();
-            res.status(200).json({ message: 'Property updated successfully', property });
-        } else {
-            // Create new property
-            const property = await Property.create({
-                title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, ptype, latitude, longtitude, mobile, city, listing_date, add_user_id, rules, country_id, plimit, is_sell
-            });
-            res.status(201).json({ message: 'Property created successfully', property });
-        }
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error', details: error.message });
-
+      await property.save();
+      res
+        .status(200)
+        .json({ message: "Property updated successfully", property });
+    } else {
+      // Create new property
+      const property = await Property.create({
+        title,
+        image,
+        price,
+        status,
+        address,
+        facility,
+        description,
+        beds,
+        bathroom,
+        sqrft,
+        rate,
+        ptype,
+        latitude,
+        longtitude,
+        mobile,
+        city,
+        listing_date,
+        add_user_id,
+        rules,
+        country_id,
+        plimit,
+        is_sell,
+      });
+      res
+        .status(201)
+        .json({ message: "Property created successfully", property });
     }
-
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
 };
 
 // Get All Properties
 const getAllProperties = async (req, res) => {
-    try {
-      const properties = await Property.findAll({
-        include: [
-          {
-            model: TblCategory,
-            as: "category",
-            attributes: ["title"],
-          },
-          {
-            model: TblCountry,
-            as: "country",
-            attributes: ["title"],
-          },
-        ],
-      });
-  
-      const formattedProperties = await Promise.all(
-        properties.map(async (property) => {
-          const facilityIds = property.facility
-            ? property.facility
-                .split(',')
-                .map((id) => parseInt(id, 10)) 
-                .filter((id) => Number.isInteger(id)) 
-            : [];
-  
-          const facilities = facilityIds.length
-            ? await TblFacility.findAll({
-                where: { id: facilityIds },
-                attributes: ["id", "title"], 
-              })
-            : [];
-  
-          return {
-            ...property.toJSON(),
-            facilities, 
-          };
-        })
-      );
-  
-      res.status(200).json(formattedProperties);
-    } catch (error) {
-      console.error("Error fetching properties:", error);
-      res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-  };
-  
-  
+  try {
+    const properties = await Property.findAll({
+      include: [
+        {
+          model: TblCategory,
+          as: "category",
+          attributes: ["title"],
+        },
+        {
+          model: TblCountry,
+          as: "country",
+          attributes: ["title"],
+        },
+      ],
+    });
+
+    const formattedProperties = await Promise.all(
+      properties.map(async (property) => {
+        const facilityIds = property.facility
+          ? property.facility
+              .split(",")
+              .map((id) => parseInt(id, 10))
+              .filter((id) => Number.isInteger(id))
+          : [];
+
+        const facilities = facilityIds.length
+          ? await TblFacility.findAll({
+              where: { id: facilityIds },
+              attributes: ["id", "title"],
+            })
+          : [];
+
+        return {
+          ...property.toJSON(),
+          facilities,
+        };
+      })
+    );
+
+    res.status(200).json(formattedProperties);
+  } catch (error) {
+    console.error("Error fetching properties:", error);
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
 
 // Get Property Count
-const getPropertyCount = async (req, res) =>{
+const getPropertyCount = async (req, res) => {
   try {
     const propertyCount = await Property.count();
-    res.status(200).json({count:propertyCount});
+    res.status(200).json({ count: propertyCount });
   } catch (error) {
-    res.status(500).json({ error: "Internal server error", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
-}
+};
 
 // Get Single Property by ID
 const getPropertyById = async (req, res) => {
@@ -158,10 +226,43 @@ const deleteProperty = async (req, res) => {
   }
 };
 
+const togglePropertyStatus = async (req, res) => {
+  const { id, field, value } = req.body;
+  try {
+    if (!id || !field || !value === undefined) {
+      return res.status(400).json({ message: "Invalid request paylod" });
+    }
+    console.log("Updating property field:", { id, field, value });
+    if (!["status", "is_sell"].includes(field)) {
+      console.error(`Invalid field: ${field}`);
+      return res.status(400).json({ message: "Invalid field for update " });
+    }
+    const property = await Property.findByPk(id);
+    if (!property) {
+      console.error(`Property with ID ${id} not found`);
+      return res.status(404).json({ message: "Property not found." });
+    }
+    property[field] = value;
+    await property.save();
+    console.log("Payment status updated", property);
+    console.log(await Property.findAll());
+    res.status(200).json({
+      message: `${field} updated successfully.`,
+      updatedField: field,
+      updatedValue: value,
+      property,
+    });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 module.exports = {
   upsertProperty,
   getAllProperties,
   getPropertyById,
   deleteProperty,
-  getPropertyCount
+  getPropertyCount,
+  togglePropertyStatus,
 };
