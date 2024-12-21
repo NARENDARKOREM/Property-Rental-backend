@@ -57,8 +57,8 @@ class Config {
     static const String allCountry = 'u_country.php';
     static const String deletAccount = 'acc_delete.php';***
   
-    static const String subScribeList = 'u_package.php';
-    static const String packagePurchase = 'u_package_purchase.php';
+    // static const String subScribeList = 'u_package.php';
+    // static const String packagePurchase = 'u_package_purchase.php';
     static const String dashboardApi = 'u_dashboard.php';
     static const String propertyList = 'u_property_list.php';
     static const String addPropertyApi = 'u_property_add.php';
@@ -68,14 +68,14 @@ class Config {
     static const String editExtraImage = 'u_extra_edit.php';
     static const String propertyType = 'u_property_type.php';
     static const String facilityList = 'u_facility.php';
-    static const String galleryCatList = 'u_gallery_cat_list.php';
-    static const String addGalleryCat = 'u_gal_cat_add.php';
-    static const String upDateGalleryCat = 'u_gal_cat_edit.php';
-    static const String galleryList = 'gallery_list.php';
-    static const String addGallery = 'add_gallery.php';
-    static const String editGallery = 'update_gallery.php';
+    // static const String galleryCatList = 'u_gallery_cat_list.php';
+    // static const String addGalleryCat = 'u_gal_cat_add.php';
+    // static const String upDateGalleryCat = 'u_gal_cat_edit.php';
+    // static const String galleryList = 'gallery_list.php';
+    // static const String addGallery = 'add_gallery.php';
+    // static const String editGallery = 'update_gallery.php';
     static const String proWiseGalleryCat = 'property_wise_galcat.php';
-    static const String subScribeDetails = 'u_sub_details.php';
+    // static const String subScribeDetails = 'u_sub_details.php';
   
     static const String proBookStatusWise = 'u_my_book.php';
     static const String proBookingDetails = 'my_book_details.php';
