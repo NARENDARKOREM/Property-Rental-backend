@@ -36,5 +36,4 @@ const TblCategory = sequelize.define(
   }
 );
 
-
 module.exports = TblCategory;

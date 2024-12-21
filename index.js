@@ -69,6 +69,8 @@ const payoutRoutes = require("./routes/payoutRoutes");
 
 const faqRoutes = require("./routes/faqsRoutes");
 
+const userFavorites = require("./userRoutes/user_fav_routes");
+
 // Middlewares
 dotEnv.config();
 app.use(express.json());
@@ -78,9 +80,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
-
-    origin: ["https://servostay-flame.vercel.app", "http://localhost:3000","http://localhost:59257"],
-
+    origin: ["https://servostay-flame.vercel.app", "http://localhost:3000"],
     credentials: true,
   })
 );
@@ -126,9 +126,17 @@ app.use("/faqs", faqRoutes);
   /** user Routes */
 }
 
+// User Routes
+const userPropertyRoutes = require("./userRoutes/u_property_add_routes");
+
 app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/users/properties", require("./userRoutes/user_properties_route"));
+
+app.use("/favorites", userFavorites);
+app.use("/user/properties", userPropertyRoutes);
+
 app.use("/u_facility", require("./userRoutes/user_facilities_route"));
+
 
 
 app.get("/", (req, res) => {
@@ -147,6 +155,4 @@ sequelize
 
 app.listen(PORT, () => {
   console.log(`Server is Running on PORT http://localhost:${PORT}`);
-
 });
-
