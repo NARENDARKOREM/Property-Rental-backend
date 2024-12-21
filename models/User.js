@@ -10,27 +10,33 @@ const User = sequelize.define('User', {
     },
     name: {
         type: DataTypes.TEXT,
-        allowNull: false,
+        allowNull: true,
     },
     email: {
         type: DataTypes.TEXT,
-        allowNull: false,
+        allowNull: true,
     },
     ccode: {
         type: DataTypes.TEXT,
-        allowNull: false,
+        allowNull: true,
     },
     mobile: {
         type: DataTypes.TEXT,
         allowNull: false,
     },
+    otp:{
+        type: DataTypes.STRING,
+    },
+    otpExpiresAt:{
+        type: DataTypes.DATE,
+    },
     password: {
         type: DataTypes.TEXT,
-        allowNull: false,
+        allowNull: true,
     },
     refercode: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
     },
     parentcode: {
         type: DataTypes.INTEGER,
@@ -38,7 +44,7 @@ const User = sequelize.define('User', {
     },
     wallet: {
         type: DataTypes.FLOAT,
-        allowNull: false,
+        allowNull: true,
         defaultValue: 0,
     },
     reg_date: {
@@ -51,9 +57,9 @@ const User = sequelize.define('User', {
         defaultValue: 1,
     },
     pro_pic: {
-        type: DataTypes.STRING(500),
+        type: DataTypes.TEXT,
         allowNull: true,
-        defaultValue: 'assets/images/dashboard/profile.png',
+        defaultValue: 'https://thumbs.dreamstime.com/b/profile-placeholder-image-gray-silhouette-no-photo-profile-placeholder-image-gray-silhouette-no-photo-person-avatar-123478438.jpg?w=992',
     },
     start_date: {
         type: DataTypes.DATEONLY,

@@ -25,14 +25,14 @@ class Config {
     static const String reviewlist = 'review_list.php';
     static const String msgotp = 'msg_otp.php';
     static const String twillotp = 'twilio_otp.php';
-    static const String registerUser = 'u_reg_user.php';
+    // static const String registerUser = 'u_reg_user.php';
     static const String mobileChack = 'mobile_check.php';
-    static const String loginApi = 'u_login_user.php';
-    static const String paymentgatewayApi = 'u_paymentgateway.php';
+    // static const String loginApi = 'u_login_user.php';
+    // static const String paymentgatewayApi = 'u_paymentgateway.php';
     static const String pageListApi = 'u_pagelist.php';
     static const String couponlist = 'u_couponlist.php';
     static const String couponCheck = 'u_check_coupon.php';
-    static const String forgetPassword = 'u_forget_password.php';
+    // static const String forgetPassword = 'u_forget_password.php';
     static const String updateProfilePic = 'pro_image.php';
     static const String faqApi = 'u_faq.php';
     static const String editProfileApi = 'u_profile_edit.php';
@@ -56,7 +56,7 @@ class Config {
     static const String seeAllGalery = 'view_gallery.php';
     static const String allCountry = 'u_country.php';
     static const String deletAccount = 'acc_delete.php';
-  
+
     static const String subScribeList = 'u_package.php';
     static const String packagePurchase = 'u_package_purchase.php';
     static const String dashboardApi = 'u_dashboard.php';
