@@ -1,39 +1,43 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../db');
+const { DataTypes } = require("sequelize");
+const sequelize = require("../db");
 
-const RoleChangeRequest = sequelize.define('RoleChangeRequest', {
+const RoleChangeRequest = sequelize.define(
+  "RoleChangeRequest",
+  {
     id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-        allowNull: false,
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
     },
     user_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
     requested_role: {
-        type: DataTypes.ENUM('guest', 'host'),
-        allowNull: false,
+      type: DataTypes.ENUM("guest", "host"),
+      allowNull: false,
     },
     status: {
-        type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-        defaultValue: 'pending',
-        allowNull: false,
+      type: DataTypes.ENUM("pending", "approved", "rejected"),
+      defaultValue: "pending",
+      allowNull: false,
     },
     created_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
     },
     updated_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
     },
-}, {
-    tableName: 'role_change_requests',
+  },
+  {
+    tableName: "role_change_requests",
     timestamps: false,
-});
+  }
+);
 
 module.exports = RoleChangeRequest;

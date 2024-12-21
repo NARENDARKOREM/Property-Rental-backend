@@ -26,6 +26,7 @@ class Config {
     static const String msgotp = 'msg_otp.php';
     static const String twillotp = 'twilio_otp.php';
     // static const String registerUser = 'u_reg_user.php';
+
     static const String mobileChack = 'mobile_check.php';
     // static const String loginApi = 'u_login_user.php';
     // static const String paymentgatewayApi = 'u_paymentgateway.php';
@@ -34,16 +35,17 @@ class Config {
     static const String couponCheck = 'u_check_coupon.php';
     // static const String forgetPassword = 'u_forget_password.php';
     static const String updateProfilePic = 'pro_image.php';
+
     static const String faqApi = 'u_faq.php';
     static const String editProfileApi = 'u_profile_edit.php';
-    static const String walletReportApi = 'u_wallet_report.php';
-    static const String walletUpdateApi = 'u_wallet_up.php';
+    // static const String walletReportApi = 'u_wallet_report.php';
+    // static const String walletUpdateApi = 'u_wallet_up.php';
     static const String referDataGetApi = 'u_getdata.php';
     static const String homeDataApi = 'u_home_data.php';
-    static const String addAndRemoveFavourite = 'u_fav.php';
-    static const String favouriteList = 'u_favlist.php';
-    static const String propertyDetails = 'u_property_details.php';
-    static const String searchApi = 'u_search_property.php';
+    // static const String addAndRemoveFavourite = 'u_fav.php';
+    // static const String favouriteList = 'u_favlist.php';
+    static const String propertyDetails = 'u_property_details.php'; **
+    static const String searchApi = 'u_search_property.php'; ** 
     static const String checDateApi = 'u_check.php';
     static const String bookApi = 'u_book.php';
     static const String statusWiseBook = 'u_book_status_wise.php';
@@ -55,10 +57,12 @@ class Config {
     static const String enquiry = 'u_enquiry.php';
     static const String seeAllGalery = 'view_gallery.php';
     static const String allCountry = 'u_country.php';
+
     static const String deletAccount = 'acc_delete.php';
 
     static const String subScribeList = 'u_package.php';
     static const String packagePurchase = 'u_package_purchase.php';
+
     static const String dashboardApi = 'u_dashboard.php';
     static const String propertyList = 'u_property_list.php';
     static const String addPropertyApi = 'u_property_add.php';
@@ -68,14 +72,14 @@ class Config {
     static const String editExtraImage = 'u_extra_edit.php';
     static const String propertyType = 'u_property_type.php';
     static const String facilityList = 'u_facility.php';
-    static const String galleryCatList = 'u_gallery_cat_list.php';
-    static const String addGalleryCat = 'u_gal_cat_add.php';
-    static const String upDateGalleryCat = 'u_gal_cat_edit.php';
-    static const String galleryList = 'gallery_list.php';
-    static const String addGallery = 'add_gallery.php';
-    static const String editGallery = 'update_gallery.php';
+    // static const String galleryCatList = 'u_gallery_cat_list.php';
+    // static const String addGalleryCat = 'u_gal_cat_add.php';
+    // static const String upDateGalleryCat = 'u_gal_cat_edit.php';
+    // static const String galleryList = 'gallery_list.php';
+    // static const String addGallery = 'add_gallery.php';
+    // static const String editGallery = 'update_gallery.php';
     static const String proWiseGalleryCat = 'property_wise_galcat.php';
-    static const String subScribeDetails = 'u_sub_details.php';
+    // static const String subScribeDetails = 'u_sub_details.php';
   
     static const String proBookStatusWise = 'u_my_book.php';
     static const String proBookingDetails = 'my_book_details.php';

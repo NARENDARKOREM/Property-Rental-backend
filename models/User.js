@@ -1,14 +1,17 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../db');
+const { DataTypes } = require("sequelize");
+const sequelize = require("../db");
 
-const User = sequelize.define('User', {
+const User = sequelize.define(
+  "User",
+  {
     id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-        allowNull: false
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
     },
     name: {
+
         type: DataTypes.TEXT,
         allowNull: true,
     },
@@ -19,10 +22,11 @@ const User = sequelize.define('User', {
     ccode: {
         type: DataTypes.TEXT,
         allowNull: true,
+
     },
     mobile: {
-        type: DataTypes.TEXT,
-        allowNull: false,
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
     otp:{
         type: DataTypes.STRING,
@@ -31,64 +35,72 @@ const User = sequelize.define('User', {
         type: DataTypes.DATE,
     },
     password: {
+
         type: DataTypes.TEXT,
         allowNull: true,
     },
     refercode: {
         type: DataTypes.INTEGER,
         allowNull: true,
+
     },
     parentcode: {
-        type: DataTypes.INTEGER,
-        defaultValue: null,
+      type: DataTypes.INTEGER,
+      defaultValue: null,
     },
     wallet: {
+
         type: DataTypes.FLOAT,
         allowNull: true,
         defaultValue: 0,
+
     },
     reg_date: {
-        type: DataTypes.DATE,
-        allowNull: false,
+      type: DataTypes.DATE,
+      allowNull: false,
     },
     status: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 1,
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
     },
     pro_pic: {
+
         type: DataTypes.TEXT,
         allowNull: true,
         defaultValue: 'https://thumbs.dreamstime.com/b/profile-placeholder-image-gray-silhouette-no-photo-profile-placeholder-image-gray-silhouette-no-photo-person-avatar-123478438.jpg?w=992',
+
     },
     start_date: {
-        type: DataTypes.DATEONLY,
-        allowNull: true,
+      type: DataTypes.DATEONLY,
+      allowNull: true,
     },
     end_date: {
-        type: DataTypes.DATEONLY,
-        allowNull: true,
+      type: DataTypes.DATEONLY,
+      allowNull: true,
     },
     pack_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0,
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
     },
     is_subscribe: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0,
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
     },
     role: {
-        type: DataTypes.ENUM('host', 'guest'),
-        allowNull: false,
-        defaultValue: 'guest',
-    }
-}, {
-    tableName: 'tbl_user',
-    charset: 'latin1',
+      type: DataTypes.ENUM("host", "guest"),
+      allowNull: false,
+      defaultValue: "guest",
+    },
+  },
+  {
+    tableName: "tbl_user",
+    charset: "latin1",
     timestamps: true,
-    paranoid: true
-});
+    paranoid: true,
+  }
+);
 
 module.exports = User;

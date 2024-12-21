@@ -53,6 +53,16 @@ const getAllFacilities = async (req, res) => {
       .json({ error: "Internal server error", details: error.message });
   }
 };
+const getAllFacilitiesbystatus = async (req, res) => {
+  try {
+    const facilities = await TblFacility.findAll({where :{status:1},attributes: ["id", "title", "img"],});
+    res.status(200).json(facilities);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
 
 // Get Single Facility by ID
 const getFacilityById = async (req, res) => {
@@ -187,4 +197,5 @@ module.exports = {
   deleteFacility,
   getFacilityCount,
   toggleFacilityStatus,
+  getAllFacilitiesbystatus
 };
