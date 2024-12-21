@@ -11,37 +11,49 @@ const User = sequelize.define(
       allowNull: false,
     },
     name: {
-      type: DataTypes.TEXT,
-      allowNull: false,
+
+        type: DataTypes.TEXT,
+        allowNull: true,
     },
     email: {
-      type: DataTypes.TEXT,
-      allowNull: false,
+        type: DataTypes.TEXT,
+        allowNull: true,
     },
     ccode: {
-      type: DataTypes.TEXT,
-      allowNull: false,
+        type: DataTypes.TEXT,
+        allowNull: true,
+
     },
     mobile: {
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    otp:{
+        type: DataTypes.STRING,
+    },
+    otpExpiresAt:{
+        type: DataTypes.DATE,
+    },
     password: {
-      type: DataTypes.TEXT,
-      allowNull: false,
+
+        type: DataTypes.TEXT,
+        allowNull: true,
     },
     refercode: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
+        type: DataTypes.INTEGER,
+        allowNull: true,
+
     },
     parentcode: {
       type: DataTypes.INTEGER,
       defaultValue: null,
     },
     wallet: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-      defaultValue: 0,
+
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0,
+
     },
     reg_date: {
       type: DataTypes.DATE,
@@ -53,9 +65,11 @@ const User = sequelize.define(
       defaultValue: 1,
     },
     pro_pic: {
-      type: DataTypes.STRING(500),
-      allowNull: true,
-      defaultValue: "assets/images/dashboard/profile.png",
+
+        type: DataTypes.TEXT,
+        allowNull: true,
+        defaultValue: 'https://thumbs.dreamstime.com/b/profile-placeholder-image-gray-silhouette-no-photo-profile-placeholder-image-gray-silhouette-no-photo-person-avatar-123478438.jpg?w=992',
+
     },
     start_date: {
       type: DataTypes.DATEONLY,

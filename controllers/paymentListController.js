@@ -2,17 +2,38 @@ const PaymentList = require("../models/PaymentList");
 const path = require("path");
 const fs = require("fs");
 const { count } = require("console");
+const { where } = require("sequelize");
 
 // Get all payment methods
 const getAllPayments = async (req, res) => {
   try {
     const payments = await PaymentList.findAll();
-    console.log(payments, "from payyyyyyyyy");
+    
     res.status(200).json(payments);
   } catch (error) {
     res
       .status(500)
       .json({ error: "Internal server error", details: error.message });
+  }
+};
+const getAllPaymentsbystatus = async (req, res) => {
+  try {
+    const payments = await PaymentList.findAll({
+      where: { status: 1 },
+    });
+    
+    res.status(200).json({
+      paymentdata: payments,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Payment Gateway List Founded!",
+    });
+  } catch (error) {
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Failed to retrieve payment gateways.",
+    });
   }
 };
 
@@ -149,6 +170,7 @@ const deletePayment = async (req, res) => {
   }
 };
 
+
 const togglePaymentStatus = async (req, res) => {
   const { id, field, value } = req.body;
   try {
@@ -189,4 +211,5 @@ module.exports = {
   deletePayment,
   getPaymentCount,
   togglePaymentStatus,
+  getAllPaymentsbystatus
 };

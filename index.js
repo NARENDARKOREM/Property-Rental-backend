@@ -131,6 +131,7 @@ const userPropertyRoutes = require("./userRoutes/u_property_add_routes");
 
 app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/users/properties", require("./userRoutes/user_properties_route"));
+app.use("/u_paymentgateway", require('./userRoutes/user_paymentgateway_route'))
 
 app.use("/favorites", userFavorites);
 app.use("/user/properties", userPropertyRoutes);

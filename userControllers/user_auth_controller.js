@@ -15,7 +15,7 @@ function generateToken(user) {
   );
 }
 
-const TWO_FACTOR_API_KEY = 'YOUR_2FACTOR_API_KEY';
+const TWO_FACTOR_API_KEY = '073f2560-f66a-11ee-8cbb-0200cd936042';
 
 function generateRandom() {
   const random = Math.floor(100000 + Math.random() * 900000);
@@ -287,45 +287,72 @@ const googleAuth = async (req, res) => {
 
 
 const otpLogin = async (req, res) => {
-  const { phone } = req.body;
+  const { mobile } = req.body;
 
-  if (!phone) {
-    return res.status(400).json({ message: 'Phone number is required.' });
+  if (!mobile) {
+    return res.status(400).json({ message: 'Mobile number is required.' });
   }
 
-  
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   try {
-   
-    const response = await axios.get(
-      `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${phone}/${otp}`
-    );
+    // Uncomment the following if using an actual OTP service
+    // const response = await axios.get(
+    //   `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${mobile}/${otp}`
+    // );
 
-    if (response.data.Status !== 'Success') {
-      return res.status(500).json({ message: 'Failed to send OTP.' });
-    }
-
-    
+    // Simulate OTP sending success
+    // if (response.data.Status !== 'Success') {
+    //   return res.status(500).json({ message: 'Failed to send OTP.' });
+    // }
+    const timestamp = new Date();
     const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); 
-    const [user] = await User.findOrCreate({
-      where: { phone },
-      defaults: { phone, otp, otpExpiresAt },
+    const [user, created] = await User.findOrCreate({
+      where: { mobile },
+      defaults: { mobile, otp, otpExpiresAt,reg_date:timestamp  },
     });
 
-    
-    if (!user.isNewRecord) {
+    if (!created) {
+      
       await user.update({ otp, otpExpiresAt });
     }
 
-    res.status(200).json({ message: 'OTP sent successfully.' });
+    res.status(200).json({ message: 'OTP sent successfully.', otp }); // Remove `otp` in production
+  } catch (error) {
+    console.error('Error in otpLogin:', error.message);
+    res.status(500).json({ message: 'Error sending OTP.', error: error.message });
+  }
+};
+
+
+
+const verifyOtp =  async (req, res) => {
+  const { mobile, otp } = req.body;
+
+  if (!mobile || !otp) {
+    return res.status(400).json({ message: 'mobile and OTP are required.' });
+  }
+
+  try {
+    
+    const user = await User.findOne({ where: { mobile } });
+    
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }   
+    if (user.otp !== otp || new Date() > new Date(user.otpExpiresAt)) {
+      return res.status(400).json({ message: 'Invalid or expired OTP.' });
+    }
+
+    await user.update({ otp: null, otpExpiresAt: null });
+
+    res.status(200).json({ message: 'OTP verified successfully.', user });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error sending OTP.' });
+    res.status(500).json({ message: 'Error verifying OTP.' });
   }
 }
-
-
 
 
 async function forgotPassword(req, res) {
@@ -487,6 +514,47 @@ const handleToggle = async (req, res) => {
   }
 };
 
+const uploadUserImage = async (req, res) => {
+  const { uid, img } = req.body;
+
+  if (!uid || !img) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Something Went Wrong!",
+    });
+  }
+
+  try {
+
+    const user = await User.findByPk(uid);
+    if (!user) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "User not found!",
+      });
+    }
+
+    user.pro_pic = img;
+    await user.save();
+
+    return res.status(200).json({
+      UserLogin: user,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Profile Image Uploaded Successfully!!",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error!",
+    });
+  }
+}
+
 module.exports = {
   userRegister,
   userLogin,
@@ -499,4 +567,6 @@ module.exports = {
   googleAuth,
   handleToggle,
   otpLogin,
+  verifyOtp,
+  uploadUserImage,
 };
