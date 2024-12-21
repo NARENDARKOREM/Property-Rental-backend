@@ -70,7 +70,7 @@ const loginAdmin = async (req, res) => {
 
     req.session.admin = admin;
 
-    res.status(200).json({ message: "Admin signed in successfully", admin });
+    res.status(200).json({ message: "Admin signed in successfully", admin, token });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
