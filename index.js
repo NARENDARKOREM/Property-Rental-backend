@@ -128,6 +128,8 @@ app.use("/faqs", faqRoutes);
 
 app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/users/properties", require("./userRoutes/user_properties_route"));
+app.use("/u_facility", require("./userRoutes/user_facilities_route"));
+
 
 app.get("/", (req, res) => {
   // const query
