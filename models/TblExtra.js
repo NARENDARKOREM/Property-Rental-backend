@@ -24,7 +24,6 @@ const TblExtra = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
-    
   },
   {
     tableName: "tbl_extra",
