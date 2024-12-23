@@ -76,6 +76,7 @@ class Config {
     // static const String propertyType = 'u_property_type.php';
     // static const String facilityList = 'u_facility.php';
 
+
     // static const String galleryCatList = 'u_gallery_cat_list.php';
     // static const String addGalleryCat = 'u_gal_cat_add.php';
     // static const String upDateGalleryCat = 'u_gal_cat_edit.php';

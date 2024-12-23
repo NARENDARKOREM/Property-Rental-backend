@@ -19,6 +19,10 @@ const User = sequelize.define(
         type: DataTypes.TEXT,
         allowNull: true,
     },
+    gender:{
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     ccode: {
         type: DataTypes.TEXT,
         allowNull: true,

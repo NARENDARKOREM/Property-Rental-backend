@@ -125,7 +125,11 @@ app.use("/faqs", faqRoutes);
 
 
 
-// User Routes
+
+
+app.use("/u_dashboard", require('./userRoutes/user_dashboard_route'))
+
+
 const userPropertyRoutes = require("./userRoutes/u_property_routes");
 const userBookings = require("./userRoutes/u_book_routes");
 const checkInAvailabilityRoutes = require("./userRoutes/user_check_availablity_routes");
@@ -139,6 +143,7 @@ app.use("/favorites", userFavorites);
 app.use("/user/properties", userPropertyRoutes);
 
 app.use("/u_country", usercountryRoutes);
+
 app.use("/u_facility", require("./userRoutes/user_facilities_route"));
 app.use("u_extralist",require("./userRoutes/u_extra_route"))
 app.use("/calender", require("./userRoutes/calender_route"));
