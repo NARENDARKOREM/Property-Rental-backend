@@ -43,14 +43,16 @@ class Config {
     static const String referDataGetApi = 'u_getdata.php';
     static const String homeDataApi = 'u_home_data.php';***
     // static const String addAndRemoveFavourite = 'u_fav.php';
-    // static const String favouriteList = 'u_favlist.php'; 
+
+    // static const String favouriteList = 'u_favlist.php';
+
     // static const String propertyDetails = 'u_property_details.php'; **
     static const String searchApi = 'u_search_property.php'; ** 
     static const String checDateApi = 'u_check.php';
-    static const String bookApi = 'u_book.php';
-    static const String statusWiseBook = 'u_book_status_wise.php';
-    static const String bookingCancle = 'u_book_cancle.php';
-    static const String bookingDetails = 'u_book_details.php';
+    // static const String bookApi = 'u_book.php';
+    // static const String statusWiseBook = 'u_book_status_wise.php';
+    // static const String bookingCancle = 'u_book_cancle.php';
+    // static const String bookingDetails = 'u_book_details.php';
     static const String reviewApi = 'u_rate_update.php';
     // static const String catWiseData = 'u_cat_wise_property.php';
     static const String notification = 'notification.php';
@@ -67,11 +69,13 @@ class Config {
     // static const String propertyList = 'u_property_list.php';
     // static const String addPropertyApi = 'u_property_add.php';
     // static const String editPropertyApi = 'u_property_edit.php';
+
     static const String extraImageList = 'u_extra_list.php';***
     static const String addExtraImage = 'u_add_exra.php';****
     static const String editExtraImage = 'u_extra_edit.php';***
     // static const String propertyType = 'u_property_type.php';
     // static const String facilityList = 'u_facility.php';
+
     // static const String galleryCatList = 'u_gallery_cat_list.php';
     // static const String addGalleryCat = 'u_gal_cat_add.php';
     // static const String upDateGalleryCat = 'u_gal_cat_edit.php';
