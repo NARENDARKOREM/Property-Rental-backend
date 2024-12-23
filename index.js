@@ -127,18 +127,20 @@ app.use("/faqs", faqRoutes);
 }
 
 // User Routes
-const userPropertyRoutes = require("./userRoutes/u_property_add_routes");
+const userPropertyRoutes = require("./userRoutes/u_property_routes");
+const userBookings = require("./userRoutes/u_book_routes");
+const checkInAvailabilityRoutes = require("./userRoutes/user_check_availablity_routes");
 
 app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/users/properties", require("./userRoutes/user_properties_route"));
-app.use("/u_paymentgateway", require('./userRoutes/user_paymentgateway_route'))
+app.use("/u_paymentgateway", require("./userRoutes/user_paymentgateway_route"));
+app.use("/user/bookings", userBookings);
 
 app.use("/favorites", userFavorites);
 app.use("/user/properties", userPropertyRoutes);
+app.use("/check-availability", checkInAvailabilityRoutes);
 
 app.use("/u_facility", require("./userRoutes/user_facilities_route"));
-
-
 
 app.get("/", (req, res) => {
   // const query
