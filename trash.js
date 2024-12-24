@@ -40,15 +40,15 @@ class Config {
     // static const String editProfileApi = 'u_profile_edit.php';
     // static const String walletReportApi = 'u_wallet_report.php';
     // static const String walletUpdateApi = 'u_wallet_up.php';
-    static const String referDataGetApi = 'u_getdata.php';
-    static const String homeDataApi = 'u_home_data.php';***
+    // static const String referDataGetApi = 'u_getdata.php';
+    // static const String homeDataApi = 'u_home_data.php';***
     // static const String addAndRemoveFavourite = 'u_fav.php';
 
     // static const String favouriteList = 'u_favlist.php';
 
     // static const String propertyDetails = 'u_property_details.php'; **
     static const String searchApi = 'u_search_property.php'; ** 
-    static const String checDateApi = 'u_check.php';
+    // static const String checDateApi = 'u_check.php';
     // static const String bookApi = 'u_book.php';
     // static const String statusWiseBook = 'u_book_status_wise.php';
     // static const String bookingCancle = 'u_book_cancle.php';
@@ -70,9 +70,9 @@ class Config {
     // static const String addPropertyApi = 'u_property_add.php';
     // static const String editPropertyApi = 'u_property_edit.php';
 
-    static const String extraImageList = 'u_extra_list.php';***
-    static const String addExtraImage = 'u_add_exra.php';****
-    static const String editExtraImage = 'u_extra_edit.php';***
+    // static const String extraImageList = 'u_extra_list.php';***
+    // static const String addExtraImage = 'u_add_exra.php';****
+    // static const String editExtraImage = 'u_extra_edit.php';***
     // static const String propertyType = 'u_property_type.php';
     // static const String facilityList = 'u_facility.php';
 
@@ -90,9 +90,9 @@ class Config {
     // static const String proBookingDetails = 'my_book_details.php';
     // static const String proBookingCancle = 'u_my_book_cancle.php';
   
-    static const String confirmedBooking = 'u_confim.php';
-    static const String proCheckIN = 'u_check_in.php';
-    static const String proCheckOutConfirmed = 'u_check_out.php';
+    // static const String confirmedBooking = 'u_confim.php';
+    // static const String proCheckIN = 'u_check_in.php';
+    // static const String proCheckOutConfirmed = 'u_check_out.php';
   
     // static const String makeSellProperty = 'u_sale_prop.php';
     // static const String enquiryListApi = 'u_my_enquiry.php';
