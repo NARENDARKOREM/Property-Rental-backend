@@ -13,7 +13,7 @@ const sequelize = require("./db");
 const PORT = process.env.PORT || 5000;
 const morgan = require("morgan");
 const swaggerUi = require('swagger-ui-express');
-const swaggerFile = require('./swagger/swagger_output.json');
+const swaggerFile = require('./swagger-output.json');
 require("./models/index");
 
 // Models
@@ -45,6 +45,7 @@ const Page = require("./models/Page");
 const RoleChangeRequest = require("./models/RoleChangeRequest");
 const foreignKeysetup = require("./models/index");
 
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 // Routes
 const adminRoutes = require("./routes/adminRoutes");
 const countriesRoutes = require("./routes/countriesRoutes");
@@ -99,7 +100,6 @@ app.use(
 );
 
 app.use(morgan("dev"));
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 app.use("/admin", adminRoutes);
 app.use("/rollrequest", require("./routes/RoleChangeRequestRoute"));
 app.use("/countries", countriesRoutes);
@@ -171,4 +171,5 @@ sequelize
 
 app.listen(PORT, () => {
   console.log(`Server is Running on PORT http://localhost:${PORT}`);
+  console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
 });
