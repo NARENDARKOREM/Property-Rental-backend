@@ -40,8 +40,8 @@ class Config {
     // static const String editProfileApi = 'u_profile_edit.php';
     // static const String walletReportApi = 'u_wallet_report.php';
     // static const String walletUpdateApi = 'u_wallet_up.php';
-    static const String referDataGetApi = 'u_getdata.php';
-    static const String homeDataApi = 'u_home_data.php';***
+    // static const String referDataGetApi = 'u_getdata.php';
+    // static const String homeDataApi = 'u_home_data.php';***
     // static const String addAndRemoveFavourite = 'u_fav.php';
 
     // static const String favouriteList = 'u_favlist.php';

@@ -135,7 +135,7 @@ const userBookings = require("./userRoutes/u_book_routes");
 const checkInAvailabilityRoutes = require("./userRoutes/user_check_availablity_routes");
 
 app.use("/users", require("./userRoutes/user_auth_router"));
-app.use("/users/properties", require("./userRoutes/user_properties_route"));
+// app.use("/users/properties", require("./userRoutes/user_properties_route"));
 app.use("/u_paymentgateway", require("./userRoutes/user_paymentgateway_route"));
 app.use("/user/bookings", userBookings);
 
@@ -150,6 +150,7 @@ app.use("/calender", require("./userRoutes/calender_route"));
 app.use("/review", require("./userRoutes/review_list_route"));
 app.use("/coupon", require("./userRoutes/u_couponlist_route"));
 app.use("/faq", require("./userRoutes/u_faq_route"));
+app.use("/u_homedata", require("./userRoutes/u_homedata_route"));
 
 
 app.use("/check-availability", checkInAvailabilityRoutes);
