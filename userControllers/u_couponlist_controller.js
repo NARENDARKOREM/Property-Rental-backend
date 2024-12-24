@@ -2,16 +2,16 @@ const TblCoupon = require("../models/TblCoupon");
 const {Op} =require("sequelize")
 
 const getCoupons = async (req, res) => {
-    const { uid } = req.body;
+    // const { uid } = req.body;
   
-    // Validate the input
-    if (!uid) {
-      return res.status(400).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "Something Went Wrong!",
-      });
-    }
+    // // Validate the input
+    // if (!uid) {
+    //   return res.status(400).json({
+    //     ResponseCode: "401",
+    //     Result: "false",
+    //     ResponseMsg: "Something Went Wrong!",
+    //   });
+    // }
   
     try {
       const currentDate = new Date().toISOString().split("T")[0];

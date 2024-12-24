@@ -2,15 +2,26 @@ const express = require("express");
 const router = express.Router();
 const extraImgController = require("../userControllers/u_extra_controller");
 const authMiddleware = require("../middlewares/authMiddleware");
+const upload = require("../config/multer");
 
-router.get(
-  "/all",
-//   authMiddleware.isAuthenticated,
-  extraImgController.getAllExtraImg
+router.post(
+  "/add-extra",
+  authMiddleware.isAuthenticated,
+  upload.array("img"),
+  extraImgController.addExtraImages
 );
-router.post("/upsert",
-    // authMiddleware.isAuthenticated,
-    extraImgController.addEditExtraImg
-)
+
+router.put(
+  "/update/:extra_id",
+  authMiddleware.isAuthenticated,
+  upload.array("img"),
+  extraImgController.editExtraImages
+);
+
+router.post(
+  "/extra-images",
+  authMiddleware.isAuthenticated,
+  extraImgController.getExtraImages
+);
 
 module.exports = router;

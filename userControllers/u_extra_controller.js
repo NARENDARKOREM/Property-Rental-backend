@@ -1,138 +1,233 @@
-const TblExtra=require("../models/TblExtra")
-const Property=require("../models/Property")
-const {Op} =require("sequelize")
+const TblExtra = require("../models/TblExtra");
+const Property = require("../models/Property");
+const { Op } = require("sequelize");
+const upload = require("../config/multer");
+const AWS = require("aws-sdk");
+const dotEnv = require("dotenv");
+const TblExtraImage = require("../models/TableExtraImages");
+dotEnv.config();
 
-const getAllExtraImg=  async (req, res) => {
-    const { uid } = req.body;
-  
-    if (!uid) {
-      return res.json({
-        ResponseCode: '401',
-        Result: 'false',
-        ResponseMsg: 'Something Went Wrong!',
-      });
-    }
-  
-    try {
-      const extraImg = await TblExtra.findAll({
-        where: { status: 1 },
-        attributes: ['id', 'title',"img"], 
-      });
-  
-      if (extraImg.length === 0) {
-        return res.json({
-          CountryData: [],
-          ResponseCode: '200',
-          Result: 'false',
-          ResponseMsg: 'Country List Not Found!',
-        });
-      }
-  
-      const extraimgData = extraImg.map((extraimg) => ({
-        id: extraimg.id,
-        title: extraimg.title,
-        img: extraimg.img,
-      }));
-  
-      res.json({
-        CountryData: extraimgData,
-        ResponseCode: '200',
-        Result: 'true',
-        ResponseMsg: 'Country List Get Successfully!!',
-      });
-    } catch (error) {
-      console.error('Error fetching country list:', error.message);
-  
-      res.status(500).json({
-        ResponseCode: '500',
-        Result: 'false',
-        ResponseMsg: 'Internal Server Error',
-      });
-    }
-  };
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION,
+});
 
-const addEditExtraImg = async (req, res) => {
-    try {
-        const { status, prop_id, uid, record_id,img } = req.body;
-  
-      // Validate incoming data
-      if (!status || !prop_id || !uid || !record_id ) {
-        return res.status(400).json({
-          ResponseCode: "401",
-          Result: "false",
-          ResponseMsg: "Missing required fields!"
-        });
-      }
-  
-      // Check if the user owns the property
-      const property = await Property.findOne({
-        where: {
-          id: prop_id,
-          add_user_id: uid
-        }
-      });
-  
-      if (!property) {
-        return res.status(401).json({
-          ResponseCode: "401",
-          Result: "false",
-          ResponseMsg: "Property not found or you're not the owner!"
-        });
-      }
-  
-      // Check if the record exists
-      const extraRecord = await TblExtra.findOne({
-        where: {
-          id: record_id,
-          pid: prop_id,
-          add_user_id: uid
-        }
-      });
-  
-      if (!extraRecord) {
-        return res.status(401).json({
-          ResponseCode: "401",
-          Result: "false",
-          ResponseMsg: "Extra Image record not found!"
-        });
-      }
-  
-      // Handle image upload or base64 decoding
-      let imagePath = null;
-      if (img !== '0') {
-        const imgBuffer = Buffer.from(img.replace(/^data:image\/png;base64,/, '').replace(/\s/g, '+'), 'base64');
-        const imageFileName = `${Date.now()}.png`;
-        const uploadPath = path.join(__dirname, '../public/images/property', imageFileName);
-  
-        // Save image to the server
-        fs.writeFileSync(uploadPath, imgBuffer);
-        imagePath = `/images/property/${imageFileName}`;
-      }
-  
-      // Update the record in tbl_extra
-      const updatedData = {
-        status,
-        pano: is_panorama,
-        img: imagePath || extraRecord.img // Keep the original image if no new image is provided
+const addExtraImages = async (req, res) => {
+  const { status, prop_id, uid, is_panorama } = req.body;
+  const images = req.files;
+  // Validate required fields
+  if (
+    !status ||
+    !prop_id ||
+    !uid ||
+    !is_panorama ||
+    !images ||
+    images.length === 0
+  ) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Missing Required Fields!",
+    });
+  }
+
+  try {
+    const newExtra = await TblExtra.create({
+      pid: prop_id,
+      status: status,
+      add_user_id: uid,
+    });
+
+    const uploadedImages = [];
+
+    for (const img of images) {
+      const key = `property/${Date.now()}-${img.originalname}`;
+      const params = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: key,
+        Body: img.buffer,
+        ContentType: img.mimetype,
       };
-  
-      await TblExtra.update(updatedData, {
-        where: { id: record_id }
-      });
-  
-      res.status(200).json({
-        ResponseCode: "200",
-        Result: "true",
-        ResponseMsg: "Extra Image updated successfully!"
-      });
-    } catch (error) {
-      console.error('Error in addEditExtraImg:', error);
-      res.status(500).json({
-        ResponseCode: "500",
+
+      const { Location } = await s3.upload(params).promise();
+      uploadedImages.push(Location);
+    }
+
+    const newImageEntries = uploadedImages.map((url) => ({
+      extra_id: newExtra.id,
+      status,
+      prop_id,
+      uid,
+      is_panorama,
+      url,
+    }));
+
+    await TblExtraImage.bulkCreate(newImageEntries);
+
+    res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Extra Images Added Successfully",
+      uploadedImages,
+    });
+  } catch (err) {
+    console.error("Error uploading images to S3:", err);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Failed to Upload Images",
+    });
+  }
+};
+
+// Controller to edit extra images for a specific TblExtra entry
+const editExtraImages = async (req, res) => {
+  const { extra_id } = req.params; // Extract extra_id from request parameters
+  const { status, prop_id, uid, is_panorama } = req.body;
+  const images = req.files; // Extract multiple files from form-data
+
+  // Validate required fields
+  if (
+    !extra_id ||
+    !status ||
+    !prop_id ||
+    !uid ||
+    !is_panorama ||
+    !images ||
+    images.length === 0
+  ) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Missing Required Fields!",
+    });
+  }
+
+  try {
+    // Find the extra entry for the given extra_id
+    const extra = await TblExtra.findByPk(extra_id);
+    if (!extra) {
+      return res.status(404).json({
+        ResponseCode: "404",
         Result: "false",
-        ResponseMsg: "Internal server error!"
+        ResponseMsg: "Extra entry not found",
       });
     }
-  };
 
-module.exports={getAllExtraImg ,addEditExtraImg }  
+    // Update the extra entry properties
+    extra.status = status;
+    extra.pid = prop_id;
+    extra.add_user_id = uid;
+    await extra.save();
+
+    // Delete existing images associated with the extra_id
+    await TblExtraImage.destroy({ where: { extra_id } });
+
+    // Upload new images and save them to the database
+    const uploadedImages = [];
+    for (const img of images) {
+      const key = `property/${Date.now()}-${img.originalname}`;
+      const params = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: key,
+        Body: img.buffer,
+        ContentType: img.mimetype,
+      };
+
+      const { Location } = await s3.upload(params).promise();
+      uploadedImages.push(Location);
+    }
+
+    const newImageEntries = uploadedImages.map((url) => ({
+      extra_id,
+      status,
+      prop_id,
+      uid,
+      is_panorama,
+      url,
+    }));
+
+    await TblExtraImage.bulkCreate(newImageEntries);
+
+    res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Extra Images Updated Successfully",
+      uploadedImages,
+    });
+  } catch (err) {
+    console.error("Error updating extra images:", err);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Failed to Update Images",
+    });
+  }
+};
+
+// Controller to get all extra images for a specific user (based on uid)
+const getExtraImages = async (req, res) => {
+  const { uid } = req.body;
+
+  if (!uid) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Something Went Wrong! UID is missing",
+    });
+  }
+
+  try {
+    const extras = await TblExtra.findAll({
+      where: { add_user_id: uid },
+      include: [
+        {
+          model: Property,
+          as: "properties", // Use the alias defined in the association
+          attributes: ["title"], // Fetch the title attribute from Property
+        },
+        {
+          model: TblExtraImage,
+          as: "images",
+          attributes: ["url"],
+        },
+      ],
+    });
+
+    if (!extras || extras.length === 0) {
+      return res.status(200).json({
+        extralist: [],
+        ResponseCode: "200",
+        Result: "false",
+        ResponseMsg: "Extra Image List Not Founded!",
+      });
+    }
+
+    const extraImages = extras.map((extra) => {
+      return {
+        id: extra.id,
+        property_title: extra.property ? extra.property.title : null,
+        property_id: extra.pid,
+        image: extra.images,
+        status: extra.status,
+      };
+    });
+
+    res.status(200).json({
+      extralist: extraImages,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Extra Image List Founded!",
+    });
+  } catch (err) {
+    console.error("Error fetching extra images:", err);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Failed to Retrieve Images",
+    });
+  }
+};
+
+module.exports = { editExtraImages, addExtraImages, getExtraImages };
