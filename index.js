@@ -135,7 +135,6 @@ const userBookings = require("./userRoutes/u_book_routes");
 const checkInAvailabilityRoutes = require("./userRoutes/user_check_availablity_routes");
 
 app.use("/users", require("./userRoutes/user_auth_router"));
-app.use("/users/properties", require("./userRoutes/user_properties_route"));
 app.use("/u_paymentgateway", require("./userRoutes/user_paymentgateway_route"));
 app.use("/user/bookings", userBookings);
 
