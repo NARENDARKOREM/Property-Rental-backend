@@ -569,7 +569,8 @@ const uploadUserImage = async (req, res) => {
 
     console.log(imageUrl, "image uploaded");
 
-    const user = await User.findByPk(req.user.id);
+    const user = await User.findByPk(3);
+    // const user = await User.findByPk(req.user.id);
     if (!user) {
       return res.status(404).json({
         ResponseCode: "404",
