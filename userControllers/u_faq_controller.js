@@ -3,16 +3,7 @@ const TblFaq = require("../models/TblFaq");
 
 // Fetch FAQ List
 const faqList= async (req, res) => {
-  const { uid } = req.body;
-
-  // Validate UID
-  if (!uid) {
-    return res.status(400).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "Something Went Wrong!",
-    });
-  }
+ 
 
   try {
     // Fetch FAQs with active status

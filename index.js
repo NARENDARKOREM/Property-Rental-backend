@@ -12,6 +12,8 @@ const path = require("path");
 const sequelize = require("./db");
 const PORT = process.env.PORT || 5000;
 const morgan = require("morgan");
+const swaggerUi = require('swagger-ui-express');
+const swaggerFile = require('./swagger/swagger_output.json');
 require("./models/index");
 
 // Models
@@ -96,6 +98,7 @@ app.use(
 );
 
 app.use(morgan("dev"));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 app.use("/admin", adminRoutes);
 app.use("/rollrequest", require("./routes/RoleChangeRequestRoute"));
 app.use("/countries", countriesRoutes);

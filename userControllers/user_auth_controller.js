@@ -176,6 +176,7 @@ async function userLogin(req, res) {
 async function requestRoleChange(req, res) {
   const { requested_role, userId, deviceToken } = req.body;
 
+  // Validate input
   if (!requested_role || !["guest", "host"].includes(requested_role)) {
     return res.status(400).json({ message: "Invalid role requested." });
   }
@@ -185,34 +186,45 @@ async function requestRoleChange(req, res) {
       .json({ message: "User ID and device token are required." });
   }
 
-  try {
-    const newRequest = {
-      user_id: userId,
-      requested_role,
-      status: "pending",
-    };
+ try {
+    // Check if a role change request already exists for the user
+    let roleChangeRequest = await RoleChangeRequest.findOne({ where: { user_id: userId } });
 
+    if (roleChangeRequest) {
+      // Update the existing request
+      roleChangeRequest.requested_role = requested_role;
+      roleChangeRequest.status = "pending"; // Reset status to pending for updated request
+      await roleChangeRequest.save();
+    } else {
+      // Create a new request if none exists
+      roleChangeRequest = await RoleChangeRequest.create({
+        user_id: userId,
+        requested_role,
+        status: "pending",
+      });
+    }
+
+    // Send notification
     const message = {
       notification: {
         title: "Role Change Request",
-        body: `User ${userId} requested to change role to ${requested_role}`,
+        body: User ${userId} requested to change role to ${requested_role},
       },
       token: deviceToken,
     };
 
     await admin.messaging().send(message);
 
-    const roleChangeRequest = await RoleChangeRequest.create(newRequest);
-
-    res.status(201).json({
-      message: "Role change request submitted successfully.",
+    // Respond with success message and request details
+    res.status(200).json({
+      message: "Role change request processed successfully.",
       request: roleChangeRequest,
     });
   } catch (error) {
-    console.error("Error sending notification:", error);
+    console.error("Error processing role change request:", error);
     res.status(500).json({ message: "Failed to process role change request." });
   }
-}
+
 
 const googleAuth = async (req, res) => {
   const { name, email, refercode, pro_pic } = req.body;
