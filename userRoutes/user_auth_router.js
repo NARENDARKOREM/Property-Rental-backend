@@ -14,6 +14,8 @@ const {
   verifyOtp,
   uploadUserImage,
 } = require("../userControllers/user_auth_controller");
+
+const upload = require("../config/multer");
 const router = express.Router();
 
 router.post("/user/signup", userRegister);
@@ -25,9 +27,9 @@ router.post("/user/changerole", requestRoleChange);
 router.put("/user/forgotpassword", forgotPassword);
 router.get("/user/getalluser", getAllusers);
 router.get("/user/count", getUsersCount);
-router.put("/user/update/:id", updateUser);
+router.put("/user/update", updateUser);
 router.delete("/user/delete/:id", deleteUser);
 router.patch("/user/toggle-update", handleToggle);
-router.post("/user/pro_image", uploadUserImage);
+router.post("/user/pro_image", upload.single("image"), uploadUserImage);
 
 module.exports = router;

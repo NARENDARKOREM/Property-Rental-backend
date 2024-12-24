@@ -1,6 +1,5 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../db");
-const Property = require("./Property");
 
 const TblCategory = sequelize.define(
   "TblCategory",

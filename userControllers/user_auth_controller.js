@@ -6,6 +6,8 @@ const WalletReport = require("../models/WalletReport");
 const RoleChangeRequest = require("../models/RoleChangeRequest");
 const { Op } = require("sequelize");
 const admin = require("../config/firebase-config");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
+const s3 = require("../config/awss3Config");
 
 function generateToken(user) {
   return jwt.sign(
@@ -435,30 +437,54 @@ const getUsersCount = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const { id } = req.params; // Get user ID from request parameters
-    const updateData = req.body; // Data to update, sent in the request body
+    const { name, gender, email, uid } = req.body;
 
-    // Check if user exists
-    const user = await User.findByPk(id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    
+    if (!uid) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "User ID (uid) is required!",
+      });
     }
 
-    // Update user details
+    
+    const user = await User.findByPk(uid); 
+    if (!user) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "User not found!",
+      });
+    }
+
+    
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (gender) updateData.gender = gender;
+    if (email) updateData.email = email;
+
+    
     await user.update(updateData);
 
+    
     return res.status(200).json({
-      message: "User updated successfully",
-      user,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "User updated successfully!",
+      user, 
     });
   } catch (error) {
     console.error("Error updating user:", error);
     return res.status(500).json({
-      message: "Failed to update user",
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Failed to update user!",
       error: error.message,
     });
   }
 };
+
 
 const deleteUser = async (req, res) => {
   const { id } = req.params; // Get user ID from request parameters
@@ -527,19 +553,22 @@ const handleToggle = async (req, res) => {
 };
 
 const uploadUserImage = async (req, res) => {
-  const { uid, img } = req.body;
-
-  if (!uid || !img) {
-    return res.status(400).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "Something Went Wrong!",
-    });
-  }
 
   try {
 
-    const user = await User.findByPk(uid);
+    const params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: `uploads/${Date.now()}-${req.file.originalname}`,
+      Body: req.file.buffer,
+    };
+
+    const command = new PutObjectCommand(params);
+    const result = await s3.send(command);
+      const imageUrl = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+
+console.log(imageUrl, "image uploaded");
+
+    const user = await User.findByPk(req.user.id);
     if (!user) {
       return res.status(404).json({
         ResponseCode: "404",
@@ -547,12 +576,12 @@ const uploadUserImage = async (req, res) => {
         ResponseMsg: "User not found!",
       });
     }
-
-    user.pro_pic = img;
+    
+    user.pro_pic = imageUrl;
     await user.save();
 
     return res.status(200).json({
-      UserLogin: user,
+      userDetails: user,
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Profile Image Uploaded Successfully!!",
