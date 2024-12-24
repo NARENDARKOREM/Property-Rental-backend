@@ -44,12 +44,12 @@ const dashboardData = async (req, res) => {
 
     
     const reportData = [
-      { title: "My Property", report_data: totalPropertyCount, url: "images/dashboard/property.png" },
-      { title: "My Extra Images", report_data: totalExtraImageCount, url: "images/dashboard/extra_images.png" },
-      { title: "My Booking", report_data: totalBookingCount, url: "images/dashboard/my-booking.png" },
-      { title: "My Earning", report_data: finalEarnings, url: "images/dashboard/my-earning.png" },
-      { title: "Total Review", report_data: totalReviewCount, url: "images/dashboard/review.png" },
-      { title: "userdetails", report_data: userData, url: "images/dashboard/review.png" },
+      { title: "My Property", report_data: totalPropertyCount,  },
+      { title: "My Extra Images", report_data: totalExtraImageCount, },
+      { title: "My Booking", report_data: totalBookingCount,  },
+      { title: "My Earning", report_data: finalEarnings,  },
+      { title: "Total Review", report_data: totalReviewCount,  },
+      { title: "userdetails", report_data: userData,  },
     ];
 
     // Respond with data
@@ -69,7 +69,7 @@ const dashboardData = async (req, res) => {
   }
 };
 
-module.exports = { dashboardData };
+
 
 
 

@@ -17,7 +17,7 @@ function generateToken(user) {
   );
 }
 
-const TWO_FACTOR_API_KEY = '073f2560-f66a-11ee-8cbb-0200cd936042';
+const TWO_FACTOR_API_KEY = "073f2560-f66a-11ee-8cbb-0200cd936042";
 
 function generateRandom() {
   const random = Math.floor(100000 + Math.random() * 900000);
@@ -176,7 +176,6 @@ async function userLogin(req, res) {
 async function requestRoleChange(req, res) {
   const { requested_role, userId, deviceToken } = req.body;
 
-  // Validate input
   if (!requested_role || !["guest", "host"].includes(requested_role)) {
     return res.status(400).json({ message: "Invalid role requested." });
   }
@@ -187,24 +186,12 @@ async function requestRoleChange(req, res) {
   }
 
   try {
-    // Check if a role change request already exists for the user
-    let roleChangeRequest = await RoleChangeRequest.findOne({ where: { user_id: userId } });
+    const newRequest = {
+      user_id: userId,
+      requested_role,
+      status: "pending",
+    };
 
-    if (roleChangeRequest) {
-      // Update the existing request
-      roleChangeRequest.requested_role = requested_role;
-      roleChangeRequest.status = "pending"; // Reset status to pending for updated request
-      await roleChangeRequest.save();
-    } else {
-      // Create a new request if none exists
-      roleChangeRequest = await RoleChangeRequest.create({
-        user_id: userId,
-        requested_role,
-        status: "pending",
-      });
-    }
-
-    // Send notification
     const message = {
       notification: {
         title: "Role Change Request",
@@ -215,17 +202,17 @@ async function requestRoleChange(req, res) {
 
     await admin.messaging().send(message);
 
-    // Respond with success message and request details
-    res.status(200).json({
-      message: "Role change request processed successfully.",
+    const roleChangeRequest = await RoleChangeRequest.create(newRequest);
+
+    res.status(201).json({
+      message: "Role change request submitted successfully.",
       request: roleChangeRequest,
     });
   } catch (error) {
-    console.error("Error processing role change request:", error);
+    console.error("Error sending notification:", error);
     res.status(500).json({ message: "Failed to process role change request." });
   }
 }
-
 
 const googleAuth = async (req, res) => {
   const { name, email, refercode, pro_pic } = req.body;
@@ -239,7 +226,6 @@ const googleAuth = async (req, res) => {
   }
 
   try {
-    
     const existingUserByEmail = await User.findOne({ where: { email } });
 
     if (existingUserByEmail) {
@@ -299,12 +285,11 @@ const googleAuth = async (req, res) => {
   }
 };
 
-
 const otpLogin = async (req, res) => {
   const { mobile } = req.body;
 
   if (!mobile) {
-    return res.status(400).json({ message: 'Mobile number is required.' });
+    return res.status(400).json({ message: "Mobile number is required." });
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -320,54 +305,66 @@ const otpLogin = async (req, res) => {
     //   return res.status(500).json({ message: 'Failed to send OTP.' });
     // }
     const timestamp = new Date();
-    const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); 
+    const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const [user, created] = await User.findOrCreate({
       where: { mobile },
-      defaults: { mobile, otp, otpExpiresAt,reg_date:timestamp  },
+      defaults: { mobile, otp, otpExpiresAt, reg_date: timestamp },
     });
 
     if (!created) {
-      
       await user.update({ otp, otpExpiresAt });
     }
 
-    res.status(200).json({ message: 'OTP sent successfully.', otp }); // Remove `otp` in production
+    res.status(200).json({ message: "OTP sent successfully.", otp }); // Remove `otp` in production
   } catch (error) {
-    console.error('Error in otpLogin:', error.message);
-    res.status(500).json({ message: 'Error sending OTP.', error: error.message });
+    console.error("Error in otpLogin:", error.message);
+    res
+      .status(500)
+      .json({ message: "Error sending OTP.", error: error.message });
   }
 };
 
-
-
-const verifyOtp =  async (req, res) => {
+const verifyOtp = async (req, res) => {
   const { mobile, otp } = req.body;
 
   if (!mobile || !otp) {
-    return res.status(400).json({ message: 'mobile and OTP are required.' });
+    return res.status(400).json({ message: "mobile and OTP are required." });
   }
 
   try {
-    
     const user = await User.findOne({ where: { mobile } });
-    
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
-    }   
-    if (user.otp !== otp || new Date() > new Date(user.otpExpiresAt)) {
-      return res.status(400).json({ message: 'Invalid or expired OTP.' });
+      return res.status(404).json({ message: "User not found." });
     }
+    if (user.otp !== otp || new Date() > new Date(user.otpExpiresAt)) {
+      return res.status(400).json({ message: "Invalid or expired OTP." });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, mobile: user.mobile },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
 
     await user.update({ otp: null, otpExpiresAt: null });
 
-    res.status(200).json({ message: 'OTP verified successfully.', user });
+    res.status(200).json({
+      message: "OTP verified successfully.",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile,
+      },
+    });
+    
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error verifying OTP.' });
+    res.status(500).json({ message: "Error verifying OTP." });
   }
-}
-
+};
 
 async function forgotPassword(req, res) {
   const { mobile, password, ccode } = req.body;
@@ -439,7 +436,6 @@ const updateUser = async (req, res) => {
   try {
     const { name, gender, email, uid } = req.body;
 
-    
     if (!uid) {
       return res.status(400).json({
         ResponseCode: "400",
@@ -448,8 +444,7 @@ const updateUser = async (req, res) => {
       });
     }
 
-    
-    const user = await User.findByPk(uid); 
+    const user = await User.findByPk(uid);
     if (!user) {
       return res.status(404).json({
         ResponseCode: "404",
@@ -458,21 +453,18 @@ const updateUser = async (req, res) => {
       });
     }
 
-    
     const updateData = {};
     if (name) updateData.name = name;
     if (gender) updateData.gender = gender;
     if (email) updateData.email = email;
 
-    
     await user.update(updateData);
 
-    
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "User updated successfully!",
-      user, 
+      user,
     });
   } catch (error) {
     console.error("Error updating user:", error);
@@ -484,7 +476,6 @@ const updateUser = async (req, res) => {
     });
   }
 };
-
 
 const deleteUser = async (req, res) => {
   const { id } = req.params; // Get user ID from request parameters
@@ -553,9 +544,7 @@ const handleToggle = async (req, res) => {
 };
 
 const uploadUserImage = async (req, res) => {
-
   try {
-
     const params = {
       Bucket: process.env.S3_BUCKET_NAME,
       Key: `uploads/${Date.now()}-${req.file.originalname}`,
@@ -564,9 +553,9 @@ const uploadUserImage = async (req, res) => {
 
     const command = new PutObjectCommand(params);
     const result = await s3.send(command);
-      const imageUrl = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+    const imageUrl = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
 
-console.log(imageUrl, "image uploaded");
+    console.log(imageUrl, "image uploaded");
 
     const user = await User.findByPk(req.user.id);
     if (!user) {
@@ -576,7 +565,7 @@ console.log(imageUrl, "image uploaded");
         ResponseMsg: "User not found!",
       });
     }
-    
+
     user.pro_pic = imageUrl;
     await user.save();
 
@@ -594,7 +583,7 @@ console.log(imageUrl, "image uploaded");
       ResponseMsg: "Internal Server Error!",
     });
   }
-}
+};
 
 module.exports = {
   userRegister,

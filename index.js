@@ -72,9 +72,8 @@ const payoutRoutes = require("./routes/payoutRoutes");
 const faqRoutes = require("./routes/faqsRoutes");
 const userFavorites = require("./userRoutes/user_fav_routes");
 
-
 // for user
-const usercountryRoutes=require("./userRoutes/u_country_route")
+const usercountryRoutes = require("./userRoutes/u_country_route");
 // Middlewares
 dotEnv.config();
 app.use(express.json());
@@ -126,12 +125,7 @@ app.use("/payout-settings", payoutRoutes);
 
 app.use("/faqs", faqRoutes);
 
-
-
-
-
-app.use("/u_dashboard", require('./userRoutes/user_dashboard_route'))
-
+app.use("/u_dashboard", require("./userRoutes/user_dashboard_route"));
 
 const userPropertyRoutes = require("./userRoutes/u_property_routes");
 const userBookings = require("./userRoutes/u_book_routes");
@@ -147,11 +141,12 @@ app.use("/user/properties", userPropertyRoutes);
 app.use("/u_country", usercountryRoutes);
 
 app.use("/u_facility", require("./userRoutes/user_facilities_route"));
-app.use("u_extralist",require("./userRoutes/u_extra_route"))
+app.use("/u_extralist", require("./userRoutes/u_extra_route"));
 app.use("/calender", require("./userRoutes/calender_route"));
 app.use("/review", require("./userRoutes/review_list_route"));
 app.use("/coupon", require("./userRoutes/u_couponlist_route"));
 app.use("/faq", require("./userRoutes/u_faq_route"));
+app.use("/u_homedata", require("./userRoutes/u_homedata_route"));
 
 app.use("/check-availability", checkInAvailabilityRoutes);
 
