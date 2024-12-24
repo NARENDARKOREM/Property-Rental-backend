@@ -29,6 +29,8 @@
     "sequelize": "^6.37.5",
     "session": "^0.1.0",
     "set-cookie-parser": "^2.7.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "swagger-autogen": "^2.23.7",
+    "swagger-ui-express": "^5.0.1"
   }
 }
