@@ -12,7 +12,7 @@ exports.isAuthenticated = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findByPk(decoded.id);
+    const user = await User.findByPk(decoded.userId);
     console.log("User  found:", user); // Log the user
 
     if (!user) {
@@ -23,7 +23,9 @@ exports.isAuthenticated = async (req, res, next) => {
     next();
   } catch (err) {
     console.error("Authentication error:", err.message);
-    return res.status(401).json({ error: "Unauthorized: Authentication failed" });
+    return res
+      .status(401)
+      .json({ error: "Unauthorized: Authentication failed" });
   }
 };
 

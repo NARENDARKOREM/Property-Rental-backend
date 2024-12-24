@@ -34,6 +34,7 @@ const addProperty = async (req, res) => {
   } = req.body;
 
   const add_user_id = req.user.id; // Assuming user ID is available in req.user.id
+  console.log(add_user_id);
 
   // Validate the necessary fields
   if (
@@ -416,7 +417,6 @@ const getPropertyTypes = async (req, res) => {
   }
 };
 
-
 // Search Property
 const searchProperty = async (req, res) => {
   const { keyword, uid, country_id } = req.body;
@@ -700,7 +700,7 @@ const getPropertyDetails = async (req, res) => {
 
 const getAllProperties = async (req, res) => {
   try {
-    const properties = await Property.findAll({where: { status: 1 }});
+    const properties = await Property.findAll({ where: { status: 1 } });
 
     if (!properties || properties.length === 0) {
       return res.status(404).json({
@@ -734,5 +734,5 @@ module.exports = {
   getPropertyTypes,
   searchProperty,
   getPropertyDetails,
-  getAllProperties
+  getAllProperties,
 };
