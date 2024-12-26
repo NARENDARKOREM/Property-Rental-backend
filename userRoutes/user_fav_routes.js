@@ -5,12 +5,12 @@ const authMiddleware = require("../middlewares/authMiddleware");
 
 router.post(
   "/toggle-favorite",
-  authMiddleware.isAuthenticated,
+
   favoritesController.toggleFavorite
 );
 router.post(
   "/get-favorite-list",
-  authMiddleware.isAuthenticated,
+
   favoritesController.getFavoriteList
 );
 

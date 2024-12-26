@@ -4,7 +4,7 @@ const Admin = require("../models/Admin");
 
 exports.isAuthenticated = async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
-  console.log("Token received:", token); // Log the token
+  console.log("Token received:", token); 
 
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: No token provided" });

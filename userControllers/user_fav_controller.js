@@ -51,7 +51,7 @@ const toggleFavorite = async (req, res) => {
 // Get favorite properties list
 const getFavoriteList = async (req, res) => {
   const { property_type, country_id } = req.body;
-  const uid = req.user.id; // Get the logged-in user's ID
+  const uid = req.user.id; 
 
   if (!uid || !property_type || !country_id) {
     return res.status(400).json({

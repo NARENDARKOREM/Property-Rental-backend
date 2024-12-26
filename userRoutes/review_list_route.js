@@ -5,8 +5,13 @@ const authMiddleware = require("../middlewares/authMiddleware");
 
 router.get(
   "/all",
-//   authMiddleware.isAuthenticated,
+  authMiddleware.isAuthenticated,
     reviewController.getReviews
+);
+router.put(
+  "/update",
+  authMiddleware.isAuthenticated,
+    reviewController.updateRating
 );
 
 module.exports = router;

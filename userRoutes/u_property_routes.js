@@ -21,7 +21,7 @@ router.get(
 
 router.get(
   "/types",
-  // authMiddleware.isAuthenticated,
+
   userPropertyController.getPropertyTypes
 );
 

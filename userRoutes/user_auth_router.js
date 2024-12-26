@@ -13,6 +13,7 @@ const {
   otpLogin,
   verifyOtp,
   uploadUserImage,
+  deleteUserAccount,
 } = require("../userControllers/user_auth_controller");
 
 const upload = require("../config/multer");
@@ -31,5 +32,6 @@ router.put("/user/update", updateUser);
 router.delete("/user/delete/:id", deleteUser);
 router.patch("/user/toggle-update", handleToggle);
 router.post("/user/pro_image", upload.single("image"), uploadUserImage);
+router.put("/user/delete", deleteUserAccount);
 
 module.exports = router;

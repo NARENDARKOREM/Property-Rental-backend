@@ -53,5 +53,61 @@ const getReviews = async (req, res) => {
     }
 };
 
+const updateRating = async (req, res) => {
+  const { uid, book_id, total_rate, rate_text } = req.body;
 
-module.exports={getReviews}  
+  
+  if (!uid || !book_id || !total_rate || !rate_text) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Something Went Wrong!",
+    });
+  }
+
+  try {
+    
+    const updated = await TblBook.update(
+      {
+        total_rate,
+        rate_text,
+        is_rate: 1, 
+      },
+      {
+        where: {
+          id: book_id,
+          uid,
+        },
+      }
+    );
+
+    
+    if (updated[0] === 0) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "Booking not found or already rated!",
+      });
+    }
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Rate Updated Successfully!!!",
+    });
+  } catch (error) {
+    console.error("Error updating rating:", error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+    });
+  }
+};
+
+
+
+module.exports={
+  getReviews,
+  updateRating
+}  
