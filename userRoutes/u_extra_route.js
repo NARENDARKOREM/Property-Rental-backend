@@ -18,9 +18,9 @@ router.put(
   extraImgController.editExtraImages
 );
 
-router.post(
-  "/extra-images",
-  authMiddleware.isAuthenticated,
+router.get(
+  "/extra-images/{uid}",
+  // authMiddleware.isAuthenticated,
   extraImgController.getExtraImages
 );
 
