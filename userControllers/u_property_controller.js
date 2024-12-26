@@ -142,10 +142,10 @@ const editProperty = async (req, res) => {
     plimit,
     country_id,
     is_sell,
-    image, // Base64 encoded image string or '0'
+    image,
   } = req.body;
 
-  const user_id = req.user.id; // Get the user ID from the authenticated user
+  const user_id = req.user.id;
 
   // Validate the necessary fields
   if (
@@ -181,7 +181,7 @@ const editProperty = async (req, res) => {
   }
 
   try {
-    // Check if country_id exists in TblCountry
+    // Validate country
     const country = await TblCountry.findByPk(country_id);
     if (!country) {
       return res.status(404).json({
@@ -191,7 +191,7 @@ const editProperty = async (req, res) => {
       });
     }
 
-    // Check if the property belongs to the user
+    // Validate property ownership
     const property = await Property.findOne({
       where: { id: prop_id, add_user_id: user_id },
     });
@@ -203,7 +203,9 @@ const editProperty = async (req, res) => {
       });
     }
 
-    let updatedFields = {
+    // Log the fields being updated
+    console.log("Property found:", property);
+    console.log("Updating fields:", {
       is_sell,
       country_id,
       plimit,
@@ -225,11 +227,32 @@ const editProperty = async (req, res) => {
       city: ccount,
       listing_date,
       image,
-      country_name,
-    };
+    });
 
-    // Update the property
-    await property.update(updatedFields);
+    // Perform update
+    await property.update({
+      is_sell,
+      country_id,
+      plimit,
+      status,
+      title,
+      price,
+      address,
+      facility,
+      description,
+      beds,
+      bathroom,
+      sqrft: sqft,
+      rate,
+      rules,
+      ptype,
+      latitude,
+      longtitude,
+      mobile,
+      city: ccount,
+      listing_date,
+      image,
+    });
 
     return res.status(200).json({
       ResponseCode: "200",
@@ -238,7 +261,7 @@ const editProperty = async (req, res) => {
       property,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error occurred:", error.message, error.stack);
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
@@ -247,76 +270,80 @@ const editProperty = async (req, res) => {
   }
 };
 
-// Property List
 const getPropertyList = async (req, res) => {
-  const { uid } = req.body; 
+
+  const { uid } = req.query;
+
 
   if (!uid) {
     return res.status(400).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "Something Went Wrong!",
+      ResponseMsg: "User ID not provided",
     });
   }
 
   try {
-    
+
+    console.log("Fetching properties for user ID:", uid);
+
+    // Fetch properties
+
     const properties = await Property.findAll({
       where: { add_user_id: uid },
       include: [
-        {
-          model: TblCategory,
-          as: "category",
-          attributes: ["title"],
-        },
-        {
-          model: TblFacility,
-          as: "facilities", // Assuming you have a facilities association
-          attributes: ["title"],
-        },
-        {
-          model: TblCountry,
-          as: "country",
-          attributes: ["title"],
-        },
+        { model: TblCategory, as: "category", attributes: ["title"] },
+        { model: TblFacility, as: "facilities", attributes: ["title"] },
+        { model: TblCountry, as: "country", attributes: ["title"] },
       ],
     });
 
+    console.log("Fetched properties:", properties);
+
     const propertyList = await Promise.all(
       properties.map(async (property) => {
+        console.log("Processing property:", property);
+
+        const facilityIds = property.facility
+          ? property.facility.split(",")
+          : [];
+        console.log("Facility IDs:", facilityIds);
+
         const facilityTitles = await TblFacility.findAll({
-          where: { id: property.facility }, 
+
+          where: { id: { [Op.in]: facilityIds } },
+
           attributes: ["title"],
         });
 
-        const facilitySelect = facilityTitles
-          .map((facility) => facility.title)
-          .join(", ");
+        console.log("Facility titles:", facilityTitles);
 
-        // Calculate the average rating if there are completed bookings
         const completedBookings = await TblBook.findAll({
           where: {
             prop_id: property.id,
             book_status: "Completed",
-            total_rate: { [Op.ne]: 0 }, 
+
+            total_rate: { [Op.ne]: 0 },
+
           },
         });
 
-        let rate;
-        if (completedBookings.length > 0) {
-          const totalRate = completedBookings.reduce(
-            (sum, booking) => sum + booking.total_rate,
-            0
-          );
-          rate = (totalRate / completedBookings.length).toFixed(0); // Average rating
-        } else {
-          rate = property.rate; // Default rate if no completed bookings
-        }
+        console.log("Completed bookings:", completedBookings);
+
+        const rate =
+          completedBookings.length > 0
+            ? (
+                completedBookings.reduce(
+                  (sum, booking) => sum + booking.total_rate,
+                  0
+                ) / completedBookings.length
+              ).toFixed(0)
+            : property.rate;
 
         return {
           id: property.id,
           title: property.title,
-          property_type: property.category.title,
+          property_type: property.category?.title || "Unknown",
           property_type_id: property.ptype,
           image: property.image,
           price: property.price,
@@ -325,18 +352,17 @@ const getPropertyList = async (req, res) => {
           bathroom: property.bathroom,
           sqrft: property.sqrft,
           is_sell: property.is_sell,
-          facility_select: facilitySelect,
+          facility_select: facilityTitles.map((f) => f.title),
           rules: property.rules,
           status: property.status,
           latitude: property.latitude,
-          longtitude: property.longtitude,
+          longitude: property.longitude,
           mobile: property.mobile,
-          is_sell: property.is_sell,
           city: property.city,
           rate: rate,
           description: property.description,
           address: property.address,
-          country_name: property.country.title,
+          country_name: property.country?.title || "Unknown",
         };
       })
     );
@@ -346,7 +372,7 @@ const getPropertyList = async (req, res) => {
         proplist: [],
         ResponseCode: "200",
         Result: "false",
-        ResponseMsg: "Property List Not Found!",
+        ResponseMsg: "No properties found",
       });
     }
 
@@ -354,15 +380,15 @@ const getPropertyList = async (req, res) => {
       proplist: propertyList,
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: "Property List Found!",
+      ResponseMsg: "Properties found",
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching property list:", error);
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
       ResponseMsg: "Internal Server Error",
-      error,
+      error: error.message || "Unknown error",
     });
   }
 };
@@ -417,127 +443,6 @@ const getPropertyTypes = async (req, res) => {
   }
 };
 
-// Search Property
-const searchProperty = async (req, res) => {
-  const { keyword, uid, country_id } = req.body;
-
-  if (!keyword || !uid || !country_id) {
-    return res.status(400).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "Something Went Wrong!",
-    });
-  }
-
-  try {
-    console.log(
-      "Searching for properties with keyword:",
-      keyword,
-      "uid:",
-      uid,
-      "country_id:",
-      country_id
-    );
-
-    let properties;
-
-    if (uid == 0) {
-      properties = await Property.findAll({
-        where: {
-          title: { [Op.like]: `%${keyword}%` },
-          country_id: country_id,
-          status: 1,
-          is_sell: 0,
-        },
-      });
-    } else {
-      properties = await Property.findAll({
-        where: {
-          title: { [Op.like]: `%${keyword}%` },
-          country_id: country_id,
-          add_user_id: { [Op.ne]: uid },
-          status: 1,
-          is_sell: 0,
-        },
-      });
-    }
-
-    console.log("Fetched Properties:", properties);
-
-    if (properties.length === 0) {
-      return res.status(200).json({
-        search_property: [],
-        ResponseCode: "200",
-        Result: "false",
-        ResponseMsg: "Search Property Not Found!",
-      });
-    }
-
-    const searchResults = await Promise.all(
-      properties.map(async (property) => {
-        // Calculate the average rating if there are completed bookings
-        const completedBookings = await TblBook.findAll({
-          where: {
-            prop_id: property.id,
-            book_status: "Completed",
-            total_rate: { [Op.ne]: 0 },
-          },
-        });
-
-        console.log("Completed Bookings:", completedBookings);
-
-        let rate;
-        if (completedBookings.length > 0) {
-          const totalRate = completedBookings.reduce(
-            (sum, booking) => sum + booking.total_rate,
-            0
-          );
-          rate = (totalRate / completedBookings.length).toFixed(0); // Average rating
-        } else {
-          rate = property.rate; // Default rate if no completed bookings
-        }
-
-        // Check if the property is a favorite for the user
-        const isFavorite = await TblFav.count({
-          where: {
-            uid: uid,
-            property_id: property.id,
-          },
-        });
-
-        console.log("Is Favorite:", isFavorite);
-
-        return {
-          id: property.id,
-          title: property.title,
-          rate: rate,
-          buyorrent: property.is_sell,
-          plimit: property.plimit,
-          city: property.city,
-          image: property.image,
-          property_type: property.ptype,
-          price: property.price,
-          IS_FAVOURITE: isFavorite > 0 ? 1 : 0,
-        };
-      })
-    );
-
-    res.status(200).json({
-      search_property: searchResults,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Property List Found!",
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      ResponseCode: "500",
-      Result: "false",
-      ResponseMsg: "Internal Server Error",
-      error: error.message,
-    });
-  }
-};
 
 const getPropertyDetails = async (req, res) => {
   const { pro_id, uid } = req.body; // Get data from request body
@@ -727,12 +632,90 @@ const getAllProperties = async (req, res) => {
   }
 };
 
+
+const searchPropertyByLocationAndDate = async (req, res) => {
+  try {
+    const { location, check_in, check_out } = req.query;
+
+    if (!location && (!check_in || !check_out)) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "City or Date range is required.",
+      });
+    }
+
+    // Query for properties
+    let propertyFilter = { status: 1 }; // Only active properties
+    if (location) {
+      propertyFilter.city = { [Op.like]: `%${location}%` }; // Using 'city' with Op.like
+    }
+
+    let properties = await Property.findAll({
+      where: propertyFilter,
+    });
+
+    if (check_in && check_out) {
+      // Filter properties by availability based on booking dates
+      const availablePropertyIds = [];
+      for (const property of properties) {
+        const bookings = await TblBook.findAll({
+          where: {
+            prop_id: property.id,
+            book_status: { [Op.ne]: "Cancelled" },
+            [Op.or]: [
+              {
+                check_in: { [Op.between]: [check_in, check_out] },
+              },
+              {
+                check_out: { [Op.between]: [check_in, check_out] },
+              },
+            ],
+          },
+        });
+
+        if (bookings.length === 0) {
+          availablePropertyIds.push(property.id);
+        }
+      }
+
+      // Filter properties based on availability
+      properties = properties.filter((property) =>
+        availablePropertyIds.includes(property.id)
+      );
+    }
+
+    if (!properties.length) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "No properties found for the given criteria.",
+      });
+    }
+
+    return res.status(200).json({
+      properties,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Properties fetched successfully!",
+    });
+  } catch (error) {
+    console.error("Error in searchPropertyByLocationAndDate:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   addProperty,
   editProperty,
   getPropertyList,
   getPropertyTypes,
-  searchProperty,
   getPropertyDetails,
   getAllProperties,
+  searchPropertyByLocationAndDate,
 };

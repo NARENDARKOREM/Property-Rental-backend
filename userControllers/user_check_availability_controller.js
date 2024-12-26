@@ -62,7 +62,7 @@ const checkDateAvailability = async (req, res) => {
 // Confirm Booking
 const confirmBooking = async (req, res) => {
   const { uid, book_id } = req.body;
-
+console.log("User Details: ",uid,book_id)
   if (!uid || !book_id) {
     return res.status(401).json({
       ResponseCode: "401",
@@ -134,156 +134,153 @@ const confirmBooking = async (req, res) => {
   }
 };
 
-
 // Check-In Controller
 const checkIn = async (req, res) => {
-    const { uid, book_id } = req.body;
-  
-    if (!uid || !book_id) {
-      return res.status(401).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "Something Went Wrong!",
-      });
-    }
-  
-    try {
-      const booking = await TblBook.findOne({
-        where: {
-          id: book_id,
-          add_user_id: uid,
-          book_status: "Confirmed",
-        },
-      });
-  
-      if (!booking) {
-        return res.status(401).json({
-          ResponseCode: "401",
-          Result: "false",
-          ResponseMsg: "Property Confirmed First Required!!",
-        });
-      }
-  
-      booking.book_status = "Check_in";
-      booking.check_intime = new Date();
-      await booking.save();
-  
-      // Fetch user details
-      const user = await User.findByPk(booking.add_user_id);
-  
-      // Send Firebase Notification
-      const message = {
-        notification: {
-          title: "Check In Successfully!!",
-          body: `${user.name}, Your Booking #${book_id} Has Been Check In Successfully.`,
-        },
-        data: {
-          order_id: `${book_id}`,
-          type: "normal",
-        },
-        topic: `user_${uid}`, // Use topic-based messaging for specific users
-      };
-  
-      await admin.messaging().send(message);
-  
-      // Log notification in the database
-      await TblNotification.create({
-        uid,
-        datetime: new Date(),
-        title: "Check In Successfully!!",
-        description: `Booking #${book_id} Has Been Check In Successfully.`,
-      });
-  
-      return res.status(200).json({
-        ResponseCode: "200",
-        Result: "true",
-        ResponseMsg: "Property Check In Successfully!",
-      });
-    } catch (error) {
-      console.error("Error during check-in:", error);
-      return res.status(500).json({
-        ResponseCode: "500",
-        Result: "false",
-        ResponseMsg: "Internal Server Error!",
-      });
-    }
-  };
-    
+  const { uid, book_id } = req.body;
 
-  const checkOut = async (req, res) => {
-    const { uid, book_id } = req.body;
-  
-    if (!uid || !book_id) {
+  if (!uid || !book_id) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Something Went Wrong!",
+    });
+  }
+
+  try {
+    const booking = await TblBook.findOne({
+      where: {
+        id: book_id,
+        add_user_id: uid,
+        book_status: "Confirmed",
+      },
+    });
+
+    if (!booking) {
       return res.status(401).json({
         ResponseCode: "401",
         Result: "false",
-        ResponseMsg: "Something Went Wrong!",
+        ResponseMsg: "Property Confirmed First Required!!",
       });
     }
-  
-    try {
-      // Check if booking exists with status 'Check_in'
-      const booking = await TblBook.findOne({
-        where: {
-          id: book_id,
-          add_user_id: uid,
-          book_status: "Check_in",
-        },
-      });
-  
-      if (!booking) {
-        return res.status(401).json({
-          ResponseCode: "401",
-          Result: "false",
-          ResponseMsg: "Property Check In First Required!!",
-        });
-      }
-  
-      // Update booking status to 'Completed' and set check-out time
-      booking.book_status = "Completed";
-      booking.check_outtime = new Date();
-      await booking.save();
-  
-      // Fetch user and booking details
-      const user = await User.findByPk(uid);
-  
-      // Send OneSignal Notification (via Firebase Admin SDK)
-      const message = {
-        notification: {
-          title: "Check Out Successfully!!",
-          body: `${user.name}, Your Booking #${book_id} Has Been Check Out Successfully.`,
-        },
-        data: {
-          order_id: `${book_id}`,
-          type: "normal",
-        },
-        topic: `user_${uid}`,
-      };
-  
-      await admin.messaging().send(message);
-  
-      // Log notification in the database
-      await TblNotification.create({
-        uid,
-        datetime: new Date(),
-        title: "Check Out Successfully!!",
-        description: `Booking #${book_id} Has Been Check Out Successfully.`,
-      });
-  
-      return res.status(200).json({
-        ResponseCode: "200",
-        Result: "true",
-        ResponseMsg: "Property Check Out Successfully!",
-      });
-    } catch (error) {
-      console.error("Error during check-out:", error);
-      return res.status(500).json({
-        ResponseCode: "500",
+
+    booking.book_status = "Check_in";
+    booking.check_intime = new Date();
+    await booking.save();
+
+    // Fetch user details
+    const user = await User.findByPk(booking.add_user_id);
+
+    // Send Firebase Notification
+    const message = {
+      notification: {
+        title: "Check In Successfully!!",
+        body: `${user.name}, Your Booking #${book_id} Has Been Check In Successfully.`,
+      },
+      data: {
+        order_id: `${book_id}`,
+        type: "normal",
+      },
+      topic: `user_${uid}`, // Use topic-based messaging for specific users
+    };
+
+    await admin.messaging().send(message);
+
+    // Log notification in the database
+    await TblNotification.create({
+      uid,
+      datetime: new Date(),
+      title: "Check In Successfully!!",
+      description: `Booking #${book_id} Has Been Check In Successfully.`,
+    });
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Property Check In Successfully!",
+    });
+  } catch (error) {
+    console.error("Error during check-in:", error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error!",
+    });
+  }
+};
+
+const checkOut = async (req, res) => {
+  const { uid, book_id } = req.body;
+
+  if (!uid || !book_id) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Something Went Wrong!",
+    });
+  }
+
+  try {
+    // Check if booking exists with status 'Check_in'
+    const booking = await TblBook.findOne({
+      where: {
+        id: book_id,
+        add_user_id: uid,
+        book_status: "Check_in",
+      },
+    });
+
+    if (!booking) {
+      return res.status(401).json({
+        ResponseCode: "401",
         Result: "false",
-        ResponseMsg: "Internal Server Error!",
+        ResponseMsg: "Property Check In First Required!!",
       });
     }
-  };
-  
+
+    // Update booking status to 'Completed' and set check-out time
+    booking.book_status = "Completed";
+    booking.check_outtime = new Date();
+    await booking.save();
+
+    // Fetch user and booking details
+    const user = await User.findByPk(uid);
+
+    // Send OneSignal Notification (via Firebase Admin SDK)
+    const message = {
+      notification: {
+        title: "Check Out Successfully!!",
+        body: `${user.name}, Your Booking #${book_id} Has Been Check Out Successfully.`,
+      },
+      data: {
+        order_id: `${book_id}`,
+        type: "normal",
+      },
+      topic: `user_${uid}`,
+    };
+
+    await admin.messaging().send(message);
+
+    // Log notification in the database
+    await TblNotification.create({
+      uid,
+      datetime: new Date(),
+      title: "Check Out Successfully!!",
+      description: `Booking #${book_id} Has Been Check Out Successfully.`,
+    });
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Property Check Out Successfully!",
+    });
+  } catch (error) {
+    console.error("Error during check-out:", error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error!",
+    });
+  }
+};
 
 module.exports = { checkDateAvailability, confirmBooking, checkIn, checkOut };
