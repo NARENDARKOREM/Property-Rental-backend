@@ -110,7 +110,7 @@ const getCouponById = async (req, res) => {
 const deleteCoupon = async (req, res) => {
   const { id } = req.params;
   const { forceDelete } = req.query;
-
+  console.log(id + " " + forceDelete)
   try {
     const coupon = await TblCoupon.findOne({ where: { id }, paranoid: false });
     if (!coupon) {

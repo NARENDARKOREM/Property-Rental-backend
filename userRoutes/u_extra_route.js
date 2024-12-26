@@ -19,8 +19,10 @@ router.put(
 );
 
 router.get(
+
   "/extra-images/:uid",
   authMiddleware.isAuthenticated,
+
   extraImgController.getExtraImages
 );
 

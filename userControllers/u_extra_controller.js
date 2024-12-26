@@ -170,6 +170,7 @@ const editExtraImages = async (req, res) => {
 const getExtraImages = async (req, res) => {
   const { uid } = req.params;
 
+
   if (!uid) {
     return res.status(400).json({
       ResponseCode: "401",

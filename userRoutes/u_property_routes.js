@@ -10,18 +10,18 @@ router.post(
 );
 router.post(
   "/edit",
-  authMiddleware.isAuthenticated,
+  // authMiddleware.isAuthenticated,
   userPropertyController.editProperty
 );
 router.get(
   "/list",
-  authMiddleware.isAuthenticated,
+  // authMiddleware.isAuthenticated,
   userPropertyController.getPropertyList
 );
 
 router.get(
   "/types",
-  authMiddleware.isAuthenticated,
+  // authMiddleware.isAuthenticated,
   userPropertyController.getPropertyTypes
 );
 

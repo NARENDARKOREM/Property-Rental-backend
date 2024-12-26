@@ -113,3 +113,61 @@ class Config {
   
     static const String changeRole = 'users/user/changerole';
   }
+
+
+
+  
+//   in coupon 
+// =========
+// -> in coupon list page expiredDate sorting not working
+// -> using swagger coupon delete both (soft  and forceDelete) not working.
+// ->in coupon table expiredDate showing date with time instead of date only
+
+// in facility
+// ===========
+// -> search api not working
+
+// in settings
+// ===========
+// -> setting update is not working
+// -> setting create not tested
+
+// in property
+// ==========
+// -> in property  page showing datetime
+// -> property delete not working
+// -> property adding not worked
+
+// in extra images
+// ===============
+// -> create and update extra image not working
+// -> extra-image toggle status not working
+
+// in bookings
+// ==========
+// -> booking count is not working and shown wrong msg
+// -> http://localhost:5000/bookings/myBookings/all (pending)
+
+
+
+// in user api
+// =============
+// check-availability/check-availability (worked)
+// faq/all (worked)
+// coupon/applyCoupon (worked)
+// coupon/all (worked)
+// u_facility/all (worked)
+// u_country/all(worked)
+// user/properties/all-properties(worked)
+// user/properties/list (worked)
+
+
+
+// review/all(============> not worked)
+// calender/all(===========> not worked)
+// u_extralist/extra-images/{uid}(===========> pending)
+// u_extralist/upsert(===========> not tested)
+// properties/u_property_details(=========> not worked)
+// user/properties/search(=========> not worked)
+// user/properties/types(=========> pending)
+// user/properties/edit(=========> pending)
