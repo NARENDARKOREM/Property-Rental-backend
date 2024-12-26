@@ -99,6 +99,10 @@ const Setting = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    admin_tax:{
+      type:DataTypes.FLOAT,
+      allowNull:false
+    }
   },
   {
     tableName: "tbl_setting",

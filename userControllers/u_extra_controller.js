@@ -168,13 +168,13 @@ const editExtraImages = async (req, res) => {
 
 // Controller to get all extra images for a specific user (based on uid)
 const getExtraImages = async (req, res) => {
-  const { uid } = req.body;
+  const { uid } = req.params;
 
   if (!uid) {
     return res.status(400).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "Something Went Wrong! UID is missing",
+      ResponseMsg: "Something went wrong! UID is missing",
     });
   }
 
@@ -184,8 +184,8 @@ const getExtraImages = async (req, res) => {
       include: [
         {
           model: Property,
-          as: "properties", // Use the alias defined in the association
-          attributes: ["title"], // Fetch the title attribute from Property
+          as: "properties", 
+          attributes: ["title"],
         },
         {
           model: TblExtraImage,
@@ -200,32 +200,31 @@ const getExtraImages = async (req, res) => {
         extralist: [],
         ResponseCode: "200",
         Result: "false",
-        ResponseMsg: "Extra Image List Not Founded!",
+        ResponseMsg: "Extra image list not found!",
       });
     }
 
-    const extraImages = extras.map((extra) => {
-      return {
-        id: extra.id,
-        property_title: extra.property ? extra.property.title : null,
-        property_id: extra.pid,
-        image: extra.images,
-        status: extra.status,
-      };
-    });
+    const extraImages = extras.map((extra) => ({
+      id: extra.id,
+      property_title: extra.properties ? extra.properties.title : null,
+      property_id: extra.pid,
+      images: extra.images.map((image) => image.url),
+      status: extra.status,
+    }));
 
-    res.status(200).json({
+    return res.status(200).json({
       extralist: extraImages,
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: "Extra Image List Founded!",
+      ResponseMsg: "Extra image list found!",
     });
   } catch (err) {
     console.error("Error fetching extra images:", err);
-    res.status(500).json({
+
+    return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
-      ResponseMsg: "Failed to Retrieve Images",
+      ResponseMsg: "Failed to retrieve images",
     });
   }
 };
