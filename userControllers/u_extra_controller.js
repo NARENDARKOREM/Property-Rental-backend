@@ -168,7 +168,8 @@ const editExtraImages = async (req, res) => {
 
 // Controller to get all extra images for a specific user (based on uid)
 const getExtraImages = async (req, res) => {
-  const { uid } = req.body;
+  const { uid } = req.params;
+  console.log(uid)
 
   if (!uid) {
     return res.status(400).json({

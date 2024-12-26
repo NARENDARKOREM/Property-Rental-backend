@@ -1,24 +1,18 @@
-const swaggerAutogen = require("swagger-autogen")();
+const swaggerAutogen = require('swagger-autogen')();
 
 const doc = {
     info: {
-        title: "ServoStay API Test",
-        description: "API documentation for ServoStay",
+        title: 'E-commerce API',
+        description: 'API documentation for an E-commerce platform',
     },
-    host: "localhost:5000/", // Update if deploying to a production server
-    schemes: ["http"],      // Update to "https" if required
+    host: 'localhost:5000',
+    schemes: ['http'],
 };
 
-const outputFile = "./swagger/swagger_output.json"; // Path to save generated JSON
-const endpointsFiles = ["./routes/**/*.js", "./userRoutes/**/*.js"]; // All routes
+const outputFile = './swagger/swagger_output.json';
+const endpointsFiles = ['./routes/*.js']; 
 
-console.log("Executing swaggerConfig.js...");
-console.log("Expected outputFile path:", outputFile);
-console.log("Scanning these files for endpoints:", endpointsFiles);
-
-
-// Generate Swagger output
-swaggerAutogen(outputFile, endpointsFiles, doc).then(() => {
-    console.log("Swagger documentation successfully generated!");
-    require("../index.js"); // Ensure this points to your main entry file
+swaggerAutogen(outputFile, endpointsFiles).then(() => {
+    require('../server');  
 });
+// swaggerAutogen(outputFile, endpointsFiles,doc);

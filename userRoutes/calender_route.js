@@ -3,6 +3,12 @@ const router = express.Router();
 const calenderController = require("../userControllers/calender_controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 
+/**
+ * @route GET /users
+ * @description Get all users
+ * @returns {Array} List of users
+ */
+
 router.get(
   "/all",
 //   authMiddleware.isAuthenticated,
