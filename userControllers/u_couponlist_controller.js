@@ -79,7 +79,7 @@ const getCoupons = async (req, res) => {
 const applyCoupon = async (req, res) => {
     const { uid, cid } = req.body;
   
-    // Validate inputs
+    
     if (!uid || !cid) {
       return res.status(400).json({
         ResponseCode: "401",
@@ -89,7 +89,7 @@ const applyCoupon = async (req, res) => {
     }
   
     try {
-      // Check if the coupon exists
+      
       const coupon = await TblCoupon.findOne({
         where: { id: cid },
       });
@@ -116,5 +116,8 @@ const applyCoupon = async (req, res) => {
       });
     }
   };
+
+
+  
 
 module.exports={getCoupons,applyCoupon}

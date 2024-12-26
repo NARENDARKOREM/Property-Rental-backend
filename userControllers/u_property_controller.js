@@ -249,7 +249,7 @@ const editProperty = async (req, res) => {
 
 // Property List
 const getPropertyList = async (req, res) => {
-  const { uid } = req.query; // Get uid from query parameters
+  const { uid } = req.body; 
 
   if (!uid) {
     return res.status(400).json({
@@ -260,7 +260,7 @@ const getPropertyList = async (req, res) => {
   }
 
   try {
-    // Fetch properties for the given user ID
+    
     const properties = await Property.findAll({
       where: { add_user_id: uid },
       include: [
@@ -285,7 +285,7 @@ const getPropertyList = async (req, res) => {
     const propertyList = await Promise.all(
       properties.map(async (property) => {
         const facilityTitles = await TblFacility.findAll({
-          where: { id: property.facility }, // Assuming facility is a comma-separated string of IDs
+          where: { id: property.facility }, 
           attributes: ["title"],
         });
 
@@ -298,7 +298,7 @@ const getPropertyList = async (req, res) => {
           where: {
             prop_id: property.id,
             book_status: "Completed",
-            total_rate: { [Op.ne]: 0 }, // Assuming you are using Sequelize's Op for not equal
+            total_rate: { [Op.ne]: 0 }, 
           },
         });
 

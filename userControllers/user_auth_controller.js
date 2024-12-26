@@ -215,7 +215,7 @@ async function requestRoleChange(req, res) {
 }
 
 const googleAuth = async (req, res) => {
-  const { name, email, refercode, pro_pic } = req.body;
+  const { name, email, pro_pic } = req.body;
 
   if (!name || !email) {
     return res.status(400).json({
@@ -229,31 +229,18 @@ const googleAuth = async (req, res) => {
     const existingUserByEmail = await User.findOne({ where: { email } });
 
     if (existingUserByEmail) {
-      return res.status(400).json({
-        ResponseCode: "400",
+      return res.status(401).json({
+        ResponseCode: "401",
         Result: "false",
         ResponseMsg: "Email Address Already Used!",
       });
     }
 
-    // Validate refer code if provided
-    let parentcode = null;
-    if (refercode) {
-      const referredUser = await User.findOne({ where: { refercode } });
-      if (referredUser) {
-        parentcode = refercode;
-      } else {
-        return res.status(400).json({
-          ResponseCode: "400",
-          Result: "false",
-          ResponseMsg: "Invalid Refer Code!",
-        });
-      }
-    }
+   
 
-    // Generate a random refer code
+   
     const timestamp = new Date();
-    const refercodeGenerated = generateRandom();
+    
 
     // Create a new user
     const newUser = await User.create({
@@ -261,9 +248,6 @@ const googleAuth = async (req, res) => {
       email,
       pro_pic,
       reg_date: timestamp,
-      refercode: refercodeGenerated,
-      parentcode,
-      password: "0",
     });
 
     // Generate a token for the user
@@ -315,7 +299,7 @@ const otpLogin = async (req, res) => {
       await user.update({ otp, otpExpiresAt });
     }
 
-    res.status(200).json({ message: "OTP sent successfully.", otp }); // Remove `otp` in production
+    res.status(200).json({ message: "OTP sent successfully.", otp }); 
   } catch (error) {
     console.error("Error in otpLogin:", error.message);
     res
@@ -338,7 +322,7 @@ const verifyOtp = async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
     if (user.otp !== otp || new Date() > new Date(user.otpExpiresAt)) {
-      return res.status(400).json({ message: "Invalid or expired OTP." });
+      return res.status(401).json({ message: "Invalid or expired OTP." });
     }
 
     const token = jwt.sign(
@@ -478,8 +462,8 @@ const updateUser = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
-  const { id } = req.params; // Get user ID from request parameters
-  const { forceDelete } = req.query; // Check query parameter for hard delete
+  const { id } = req.params; 
+  const { forceDelete } = req.query; 
 
   try {
     const user = await User.findOne({
@@ -516,6 +500,47 @@ const deleteUser = async (req, res) => {
     });
   }
 };
+
+const deleteUserAccount = async (req, res) => {
+  const { uid } = req.body;
+
+  if (!uid) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Something Went Wrong!",
+    });
+  }
+
+  try {
+    const user = await User.findByPk(uid);
+
+    if (!user) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "User Not Found!",
+      });
+    }
+
+    
+    await user.update({ status: 0 });
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Account Deleted Successfully!",
+    });
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+    });
+  }
+};
+
 
 const handleToggle = async (req, res) => {
   const { id, field, value } = req.body;
@@ -599,4 +624,5 @@ module.exports = {
   otpLogin,
   verifyOtp,
   uploadUserImage,
+  deleteUserAccount
 };

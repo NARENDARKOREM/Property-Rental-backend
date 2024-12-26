@@ -2,15 +2,7 @@ const TblCountry=require("../models/TblCountry")
 const {Op} =require("sequelize")
 
 const getAllCountry=  async (req, res) => {
-    // const { uid } = req.body;
-  
-    // if (!uid) {
-    //   return res.json({
-    //     ResponseCode: '401',
-    //     Result: 'false',
-    //     ResponseMsg: 'Something Went Wrong!',
-    //   });
-    // }
+    
   
     try {
       const countries = await TblCountry.findAll({

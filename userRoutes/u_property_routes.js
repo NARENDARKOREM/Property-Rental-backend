@@ -15,13 +15,13 @@ router.post(
 );
 router.get(
   "/list",
-  authMiddleware.isAuthenticated,
+  // authMiddleware.isAuthenticated,
   userPropertyController.getPropertyList
 );
 
 router.get(
   "/types",
-  authMiddleware.isAuthenticated,
+
   userPropertyController.getPropertyTypes
 );
 
