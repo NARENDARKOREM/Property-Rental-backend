@@ -7,20 +7,22 @@ const upload = require("../config/multer");
 router.post(
   "/add-extra",
   authMiddleware.isAuthenticated,
-  upload.array("img"),
+  upload.array("images"),
   extraImgController.addExtraImages
 );
 
 router.put(
   "/update/:extra_id",
   authMiddleware.isAuthenticated,
-  upload.array("img"),
+  upload.array("images"),
   extraImgController.editExtraImages
 );
 
 router.get(
-  "/extra-images/{uid}",
-  // authMiddleware.isAuthenticated,
+
+  "/extra-images/:uid",
+  authMiddleware.isAuthenticated,
+
   extraImgController.getExtraImages
 );
 

@@ -26,16 +26,12 @@ router.get(
 );
 
 router.post(
-  "/search",
-  authMiddleware.isAuthenticated,
-  userPropertyController.searchProperty
-); // Is not working need to implement
-router.post(
   "/u_property_details",
   authMiddleware.isAuthenticated,
   userPropertyController.getPropertyDetails
 );
 
 router.get("/all-properties", userPropertyController.getAllProperties);
+router.get("/search", userPropertyController.searchPropertyByLocationAndDate);
 
 module.exports = router;

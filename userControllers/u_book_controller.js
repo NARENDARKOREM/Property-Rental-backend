@@ -90,7 +90,7 @@ const createBooking = async (req, res) => {
       return sendResponse(res, 401, "false", "Property Not Found!");
     }
 
-    // Create booking
+    // Create booking with status as 'Confirmed'
     const booking = await TblBook.create({
       prop_id,
       uid,
@@ -112,8 +112,10 @@ const createBooking = async (req, res) => {
       prop_img: property.image,
       add_user_id: property.add_user_id,
       noguest,
+      book_status: "Confirmed", // Set status to Confirmed
     });
 
+    // If booking is for another person, save their details
     if (book_for === "other") {
       await PersonRecord.create({
         fname,
@@ -127,8 +129,11 @@ const createBooking = async (req, res) => {
       });
     }
 
+    // Return booking details along with the property details
     return sendResponse(res, 200, "true", "Booking Confirmed Successfully!!!", {
       book_id: booking.id,
+      booking_details: booking,
+      property_details: property,
     });
   } catch (error) {
     console.error("Error creating booking:", error);
