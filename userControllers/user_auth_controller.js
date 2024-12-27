@@ -186,33 +186,38 @@ async function requestRoleChange(req, res) {
   }
 
   try {
-    const newRequest = {
-      user_id: userId,
-      requested_role,
-      status: "pending",
-    };
+    const existingRequest = await RoleChangeRequest.findOne({ where: { user_id: userId } });
 
-    const message = {
-      notification: {
-        title: "Role Change Request",
-        body: `User ${userId} requested to change role to ${requested_role}`,
-      },
-      token: deviceToken,
-    };
+    if (existingRequest) {
+      existingRequest.requested_role = requested_role;
+      existingRequest.status = "pending";
+      await existingRequest.save();
 
-    await admin.messaging().send(message);
+      const message = {
+        notification: {
+          title: "Role Change Request Updated",
+          body: `User ${userId} updated the role change request to ${requested_role}`,
+        },
+        token: deviceToken,
+      };
 
-    const roleChangeRequest = await RoleChangeRequest.create(newRequest);
+      await admin.messaging().send(message);
 
-    res.status(201).json({
-      message: "Role change request submitted successfully.",
-      request: roleChangeRequest,
-    });
+      return res.status(200).json({
+        message: "Role change request updated successfully.",
+        request: existingRequest,
+      });
+    } else {
+      return res.status(404).json({
+        message: "No existing role change request found for this user.",
+      });
+    }
   } catch (error) {
-    console.error("Error sending notification:", error);
+    console.error("Error processing role change request:", error);
     res.status(500).json({ message: "Failed to process role change request." });
   }
 }
+
 
 const googleAuth = async (req, res) => {
   const { name, email, pro_pic } = req.body;

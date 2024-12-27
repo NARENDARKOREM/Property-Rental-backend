@@ -7,8 +7,7 @@ const { Op } = require("sequelize"); // Import Sequelize operators
 
 // Toggle favorite property
 const toggleFavorite = async (req, res) => {
-  const { pid, property_type } = req.body;
-  const uid = req.user.id; // Get the logged-in user's ID
+  const { pid, property_type,uid } = req.body;
 
   if (!uid || !pid || !property_type) {
     return res.status(400).json({
