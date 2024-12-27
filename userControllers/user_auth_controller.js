@@ -186,7 +186,9 @@ async function requestRoleChange(req, res) {
   }
 
   try {
-    const existingRequest = await RoleChangeRequest.findOne({ where: { user_id: userId } });
+    const existingRequest = await RoleChangeRequest.findOne({
+      where: { user_id: userId },
+    });
 
     if (existingRequest) {
       existingRequest.requested_role = requested_role;
@@ -217,7 +219,6 @@ async function requestRoleChange(req, res) {
     res.status(500).json({ message: "Failed to process role change request." });
   }
 }
-
 
 const googleAuth = async (req, res) => {
   const { name, email, pro_pic } = req.body;
@@ -418,7 +419,7 @@ const getUsersCount = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const uid = req.params.uid;
+    const uid = req.user.id;
 
     if (!uid) {
       return res.status(400).json({
