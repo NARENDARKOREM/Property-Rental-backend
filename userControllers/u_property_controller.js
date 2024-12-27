@@ -271,9 +271,7 @@ const editProperty = async (req, res) => {
 };
 
 const getPropertyList = async (req, res) => {
-
   const { uid } = req.query;
-
 
   if (!uid) {
     return res.status(400).json({
@@ -284,7 +282,6 @@ const getPropertyList = async (req, res) => {
   }
 
   try {
-
     console.log("Fetching properties for user ID:", uid);
 
     // Fetch properties
@@ -310,7 +307,6 @@ const getPropertyList = async (req, res) => {
         console.log("Facility IDs:", facilityIds);
 
         const facilityTitles = await TblFacility.findAll({
-
           where: { id: { [Op.in]: facilityIds } },
 
           attributes: ["title"],
@@ -324,7 +320,6 @@ const getPropertyList = async (req, res) => {
             book_status: "Completed",
 
             total_rate: { [Op.ne]: 0 },
-
           },
         });
 
@@ -443,10 +438,9 @@ const getPropertyTypes = async (req, res) => {
   }
 };
 
-
 const getPropertyDetails = async (req, res) => {
   const { pro_id, uid } = req.body; // Get data from request body
-
+  console.log(pro_id, uid);
   if (!pro_id || !uid) {
     return res.status(400).json({
       ResponseCode: "401",
@@ -631,7 +625,6 @@ const getAllProperties = async (req, res) => {
     });
   }
 };
-
 
 const searchPropertyByLocationAndDate = async (req, res) => {
   try {

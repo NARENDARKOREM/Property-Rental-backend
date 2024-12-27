@@ -241,11 +241,7 @@ const googleAuth = async (req, res) => {
       });
     }
 
-   
-
-   
     const timestamp = new Date();
-    
 
     // Create a new user
     const newUser = await User.create({
@@ -275,7 +271,7 @@ const googleAuth = async (req, res) => {
 };
 
 const otpLogin = async (req, res) => {
-  const {ccode, mobile } = req.body;
+  const { ccode, mobile } = req.body;
 
   if (!mobile) {
     return res.status(400).json({ message: "Mobile number is required." });
@@ -304,7 +300,7 @@ const otpLogin = async (req, res) => {
       await user.update({ otp, otpExpiresAt });
     }
 
-    res.status(200).json({ message: "OTP sent successfully.", otp }); 
+    res.status(200).json({ message: "OTP sent successfully.", otp });
   } catch (error) {
     console.error("Error in otpLogin:", error.message);
     res
@@ -348,7 +344,6 @@ const verifyOtp = async (req, res) => {
         mobile: user.mobile,
       },
     });
-    
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error verifying OTP." });
@@ -423,13 +418,21 @@ const getUsersCount = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const { name, gender, email, uid, ccode } = req.body;
+    const uid = req.params.uid;
 
     if (!uid) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
         ResponseMsg: "User ID (uid) is required!",
+      });
+    }
+
+    if (req.user.id !== parseInt(uid, 10)) {
+      return res.status(403).json({
+        ResponseCode: "403",
+        Result: "false",
+        ResponseMsg: "You are not authorized to update this user's details!",
       });
     }
 
@@ -442,13 +445,15 @@ const updateUser = async (req, res) => {
       });
     }
 
-    const updateData = {};
-    if (name) updateData.name = name;
-    if (gender) updateData.gender = gender;
-    if (email) updateData.email = email;
-    if (ccode) updateData.ccode = ccode;
-    
+    const { name, gender, email, ccode } = req.body;
 
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (gender !== undefined) updateData.gender = gender;
+    if (email !== undefined) updateData.email = email;
+    if (ccode !== undefined) updateData.ccode = ccode;
+
+    // Update user with new data
     await user.update(updateData);
 
     return res.status(200).json({
@@ -469,8 +474,8 @@ const updateUser = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
-  const { id } = req.params; 
-  const { forceDelete } = req.query; 
+  const { id } = req.params;
+  const { forceDelete } = req.query;
 
   try {
     const user = await User.findOne({
@@ -530,7 +535,6 @@ const deleteUserAccount = async (req, res) => {
       });
     }
 
-    
     await user.update({ status: 0 });
 
     return res.status(200).json({
@@ -547,7 +551,6 @@ const deleteUserAccount = async (req, res) => {
     });
   }
 };
-
 
 const handleToggle = async (req, res) => {
   const { id, field, value } = req.body;
@@ -631,5 +634,5 @@ module.exports = {
   otpLogin,
   verifyOtp,
   uploadUserImage,
-  deleteUserAccount
+  deleteUserAccount,
 };

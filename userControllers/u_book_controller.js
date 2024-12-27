@@ -266,7 +266,7 @@ const cancelBooking = async (req, res) => {
 
   try {
     const booking = await TblBook.findOne({
-      where: { id: book_id, uid: uid, book_status: "Booked" },
+      where: { id: book_id, uid: uid, book_status: "Confirmed" },
     });
 
     if (!booking) {
