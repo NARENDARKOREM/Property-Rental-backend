@@ -3,6 +3,7 @@ const {Op} =require("sequelize")
 
 const getReviews = async (req, res) => {
     const { orag_id } = req.body;
+    clg
   
     if (!orag_id) {
       return res.status(400).json({
