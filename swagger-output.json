@@ -5,7 +5,7 @@
     "title": "REST API",
     "description": "ServoStay API Test"
   },
-  "host": "https://property-rental-backend-6.onrender.com",
+  "host": "property-rental-backend-6.onrender.com",
   "basePath": "/",
   "schemes": [
     "https"
@@ -32,13 +32,13 @@
               "type": "object",
               "properties": {
                 "username": {
-                  "example": "any"
+                  "example": "suresh"
                 },
                 "password": {
-                  "example": "any"
+                  "example": "12345678"
                 },
                 "userType": {
-                  "example": "any"
+                  "example": "admin"
                 }
               }
             }
