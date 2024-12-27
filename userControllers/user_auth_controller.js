@@ -270,7 +270,7 @@ const googleAuth = async (req, res) => {
 };
 
 const otpLogin = async (req, res) => {
-  const { mobile } = req.body;
+  const {ccode, mobile } = req.body;
 
   if (!mobile) {
     return res.status(400).json({ message: "Mobile number is required." });
@@ -418,7 +418,7 @@ const getUsersCount = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const { name, gender, email, uid } = req.body;
+    const { name, gender, email, uid, ccode } = req.body;
 
     if (!uid) {
       return res.status(400).json({
@@ -441,6 +441,8 @@ const updateUser = async (req, res) => {
     if (name) updateData.name = name;
     if (gender) updateData.gender = gender;
     if (email) updateData.email = email;
+    if (ccode) updateData.ccode = ccode;
+    
 
     await user.update(updateData);
 
