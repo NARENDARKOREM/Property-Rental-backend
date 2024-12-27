@@ -89,6 +89,8 @@ const getCountryById = async (req, res) => {
 const deleteCountry = async (req, res) => {
   const { id } = req.params;
   const { forceDelete } = req.query;
+  console.log(id);
+  // https://res.cloudinary.com/dhr4xnftl/image/upload/v1734800998/g2yqiwrgkzravn98cec5.jpg
 
   try {
     const country = await TblCountry.findOne({
@@ -104,9 +106,9 @@ const deleteCountry = async (req, res) => {
     }
 
     if (forceDelete === "true") {
-      if (country.img && !country.img.startsWith("http")) {
-        fs.unlinkSync(path.join(__dirname, "..", country.img)); // Remove image file if it's a local path
-      }
+      // if (country.img && !country.img.startsWith("http")) {
+      //   fs.unlinkSync(path.join(__dirname, "..", country.img)); // Remove image file if it's a local path
+      // }
       await country.destroy({ force: true });
       res
         .status(200)

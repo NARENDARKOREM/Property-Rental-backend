@@ -5156,7 +5156,7 @@
         }
       }
     },
-    "/u_extralist/upsert": {
+    "/u_extralist/add-extra": {
       "post": {
         "description": "Adds a new coupon or updates an existing coupon based on the provided coupon ID.",
         "parameters": [
