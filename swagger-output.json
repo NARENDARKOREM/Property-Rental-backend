@@ -5,7 +5,7 @@
     "title": "REST API",
     "description": "ServoStay API Test"
   },
-  "host": "property-rental-backend-6.onrender.com",
+  "host": "property-rental-backend-6.oxnrender.com",
   "basePath": "/",
   "schemes": [
     "https"
@@ -3938,6 +3938,20 @@
     "/u_dashboard/all": {
       "get": {
         "description": "",
+        "parameters":[
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "uid": {
+                  "example": "1"
+                }
+              }
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -4672,10 +4686,13 @@
               "type": "object",
               "properties": {
                 "pid": {
-                  "example": "any"
+                  "example": "1"
                 },
                 "property_type": {
-                  "example": "any"
+                  "example": "Villas"
+                },
+                "uid": {
+                  "example": "1"
                 }
               }
             }
@@ -5004,25 +5021,32 @@
           {
             "name": "authorization",
             "in": "header",
-            "type": "string"
+            "type": "string",
+            "required": true,
+            "description": "Bearer token for authorization."
           },
           {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "keyword": {
-                  "example": "any"
-                },
-                "uid": {
-                  "example": "any"
-                },
-                "country_id": {
-                  "example": "any"
-                }
-              }
-            }
+            "name": "location",
+            "in": "query",
+            "type": "string",
+            "required": true,
+            "description": "The location to search for properties."
+          },
+          {
+            "name": "check_in",
+            "in": "query",
+            "type": "string",
+            "required": true,
+            "format": "date",
+            "description": "The check-in date in YYYY-MM-DD format."
+          },
+          {
+            "name": "check_out",
+            "in": "query",
+            "type": "string",
+            "required": true,
+            "format": "date",
+            "description": "The check-out date in YYYY-MM-DD format."
           }
         ],
         "responses": {
@@ -5057,10 +5081,10 @@
               "type": "object",
               "properties": {
                 "pro_id": {
-                  "example": "any"
+                  "example": "12"
                 },
                 "uid": {
-                  "example": "any"
+                  "example": "1"
                 }
               }
             }
@@ -5204,6 +5228,28 @@
     "/calender/all": {
       "get": {
         "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "pro_id": {
+                  "example": "12"
+                },
+                "uid": {
+                  "example": "1"
+                }
+              }
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -5220,6 +5266,26 @@
     "/review/all": {
       "get": {
         "description": "",
+        "parameters":[
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "orag_id": {
+                  "example": "12",
+                  "description": "Reviewer ID"
+                }
+              }
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
