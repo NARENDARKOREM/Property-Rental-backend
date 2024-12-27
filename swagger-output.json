@@ -5,7 +5,7 @@
     "title": "REST API",
     "description": "ServoStay API Test"
   },
-  "host": "property-rental-backend-6.oxnrender.com",
+  "host": "property-rental-backend-6.onrender.com",
   "basePath": "/",
   "schemes": [
     "https"
