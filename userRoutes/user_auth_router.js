@@ -32,7 +32,12 @@ router.get("/user/count", getUsersCount);
 router.put("/user/basic-info", authMiddleware.isAuthenticated, updateUser);
 router.delete("/user/delete/:id", deleteUser);
 router.patch("/user/toggle-update", handleToggle);
-router.post("/user/pro_image", upload.single("image"), uploadUserImage);
+router.post(
+  "/user/pro_image",
+  authMiddleware.isAuthenticated,
+  upload.single("image"),
+  uploadUserImage
+);
 router.put("/user/delete", deleteUserAccount);
 
 module.exports = router;
