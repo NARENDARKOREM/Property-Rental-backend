@@ -562,7 +562,7 @@ const deleteUserAccount = async (req, res) => {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "User not found!",
+      ResponseMsg: "Something Went Wrong!",
     });
   }
 
