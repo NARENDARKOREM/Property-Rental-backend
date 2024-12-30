@@ -16,7 +16,7 @@ router.post(
 router.get(
   "/list",
   authMiddleware.isAuthenticated,
-  userPropertyController.getPropertyList
+  userPropertyController.getPropertyList  
 );
 
 router.get(
