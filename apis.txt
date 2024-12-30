@@ -75,5 +75,15 @@ RESPONSE:-{
     ]
 }
 
+https://property-rental-backend-6.onrender.com/users/user/toggle-update (PATCH)
+REQUEST(BODY):-id, field(status), value(1 or 0)
+RESPONSE:- {
+    "message": "status updated successfully.",
+    "updatedField": "status",
+    "updatedValue": 1
+}
+
+
+
 
 
