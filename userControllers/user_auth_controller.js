@@ -293,7 +293,7 @@ const otpLogin = async (req, res) => {
     const timestamp = new Date();
     const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const [user, created] = await User.findOrCreate({
-      where: { mobile },
+      where: { mobile, ccode },
       defaults: { mobile, otp, otpExpiresAt, reg_date: timestamp },
     });
 
@@ -311,9 +311,9 @@ const otpLogin = async (req, res) => {
 };
 
 const verifyOtp = async (req, res) => {
-  const { mobile, otp } = req.body;
+  const { mobile, otp, ccode } = req.body;
 
-  if (!mobile || !otp) {
+  if (!mobile || !otp || !ccode) {
     return res.status(400).json({ message: "mobile and OTP are required." });
   }
 

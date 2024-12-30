@@ -14,17 +14,19 @@ const s3 = new AWS.S3({
 });
 
 const addExtraImages = async (req, res) => {
-  const { status, prop_id, uid, is_panorama } = req.body;
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Something went wrong! UID is missing",
+    });
+  }
+
+  const { status, prop_id, is_panorama } = req.body;
   const images = req.files;
   // Validate required fields
-  if (
-    !status ||
-    !prop_id ||
-    !uid ||
-    !is_panorama ||
-    !images ||
-    images.length === 0
-  ) {
+  if (!status || !prop_id || !is_panorama || !images || images.length === 0) {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
@@ -69,6 +71,7 @@ const addExtraImages = async (req, res) => {
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Extra Images Added Successfully",
+      newImageEntries,
       uploadedImages,
     });
   } catch (err) {
@@ -83,20 +86,35 @@ const addExtraImages = async (req, res) => {
 
 // Controller to edit extra images for a specific TblExtra entry
 const editExtraImages = async (req, res) => {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Something went wrong! UID is missing",
+    });
+  }
+
   const { extra_id } = req.params; // Extract extra_id from request parameters
-  const { status, prop_id, uid, is_panorama } = req.body;
+  if (!extra_id) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Missing Required Fields! Extra ID is missing",
+    });
+  } else if (!req.files || req.files.length === 0) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Missing Required Fields! No images found",
+    });
+  }
+
+  const { status, prop_id, is_panorama } = req.body;
   const images = req.files; // Extract multiple files from form-data
 
   // Validate required fields
-  if (
-    !extra_id ||
-    !status ||
-    !prop_id ||
-    !uid ||
-    !is_panorama ||
-    !images ||
-    images.length === 0
-  ) {
+  if (!status || !prop_id || !is_panorama || !images || images.length === 0) {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
@@ -168,9 +186,7 @@ const editExtraImages = async (req, res) => {
 
 // Controller to get all extra images for a specific user (based on uid)
 const getExtraImages = async (req, res) => {
-  const { uid } = req.params;
-
-
+  const uid = req.user.id;
   if (!uid) {
     return res.status(400).json({
       ResponseCode: "401",
@@ -185,7 +201,7 @@ const getExtraImages = async (req, res) => {
       include: [
         {
           model: Property,
-          as: "properties", 
+          as: "properties",
           attributes: ["title"],
         },
         {

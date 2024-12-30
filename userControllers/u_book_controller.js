@@ -16,9 +16,9 @@ const sendResponse = (res, code, result, msg, additionalData = {}) => {
 };
 
 const createBooking = async (req, res) => {
+  const uid = req.user.id;
   const {
     prop_id,
-    uid,
     check_in,
     check_out,
     subtotal,
@@ -45,7 +45,6 @@ const createBooking = async (req, res) => {
   // Validation
   if (
     !prop_id ||
-    !uid ||
     !check_in ||
     !check_out ||
     !subtotal ||
@@ -143,7 +142,11 @@ const createBooking = async (req, res) => {
 
 // Get Booking Details (both self)
 const getBookingDetails = async (req, res) => {
-  const { book_id, uid } = req.body;
+  const uid = req.user.id;
+  if (!uid) {
+    return sendResponse(res, 401, "false", "User Not Found!");
+  }
+  const { book_id } = req.body;
 
   const user = await User.findByPk(uid);
   if (!user) {
@@ -151,8 +154,8 @@ const getBookingDetails = async (req, res) => {
   }
 
   // Validation
-  if (!book_id || !uid) {
-    return sendResponse(res, 401, "false", "Something Went Wrong!");
+  if (!book_id) {
+    return sendResponse(res, 401, "false", "book_id is Required!");
   }
 
   try {
@@ -253,7 +256,11 @@ const getBookingDetails = async (req, res) => {
 
 // Cancel Booking
 const cancelBooking = async (req, res) => {
-  const { book_id, uid, cancle_reason } = req.body;
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).json({ message: "User Not Found!" });
+  }
+  const { book_id, cancle_reason } = req.body;
 
   if (!book_id || !uid) {
     return sendResponse(res, 401, "false", "Something Went Wrong!");
@@ -292,7 +299,11 @@ const cancelBooking = async (req, res) => {
 
 // Get Bookings By its Status
 const getBookingsByStatus = async (req, res) => {
-  const { uid, status } = req.body;
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).json({ message: "User Not Found!" });
+  }
+  const { status } = req.body;
 
   const user = await User.findByPk(uid);
   if (!user) {
@@ -373,9 +384,13 @@ const getBookingsByStatus = async (req, res) => {
 
 // After Becoming Host
 const getMyUserBookings = async (req, res) => {
-  const { uid, status } = req.body;
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).json({ message: "User Not Found!" });
+  }
+  const { status } = req.body;
 
-  if (!uid || !status) {
+  if (!status) {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
@@ -470,17 +485,23 @@ const getMyUserBookings = async (req, res) => {
 // Get Booking Details (self & Others)
 const getMyUserBookingDetails = async (req, res) => {
   try {
-    const { book_id, uid } = req.body;
+    const uid = req.user.id;
+    if (!uid) {
+      return sendResponse(res, 401, "false", "User Not Found!");
+    }
 
     const user = await User.findByPk(uid);
     if (!user) {
       return sendResponse(res, 401, "false", "User Not Found!");
     }
-    if (!book_id || !uid) {
+
+    const { book_id } = req.query;
+
+    if (!book_id) {
       return res.status(401).json({
         ResponseCode: "401",
         Result: "false",
-        ResponseMsg: "Something Went Wrong!",
+        ResponseMsg: "Missing book_id in the query!!",
       });
     }
 
@@ -576,10 +597,14 @@ const getMyUserBookingDetails = async (req, res) => {
 
 // Cancel a Booking
 const myUserCancelBookings = async (req, res) => {
-  const { book_id, uid, cancle_reason } = req.body;
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).json({ message: "User Not Found!" });
+  }
+  const { book_id, cancle_reason } = req.body;
 
   // Validate input
-  if (!book_id || !uid) {
+  if (!book_id) {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",

@@ -14,9 +14,17 @@ const getDatesFromRange = (start, end) => {
 };
 
 const getBookedDates = async (req, res) => {
-  const { uid, property_id } = req.body;
+  const uid = req.user.id;
+  if(!uid){
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "User not found!",
+    });
+  }
+  const  {property_id } = req.body;
 
-  if (!uid || !property_id) {
+  if (!property_id) {
     return res.status(400).json({
       ResponseCode: "401",
       Result: "false",
