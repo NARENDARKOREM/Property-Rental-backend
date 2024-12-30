@@ -33,12 +33,19 @@ const addProperty = async (req, res) => {
     is_sell,
   } = req.body;
 
-  const add_user_id = req.user.id; // Assuming user ID is available in req.user.id
+  const add_user_id = req.user.id;
+  if (!add_user_id) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "User ID not provided",
+    });
+  }
+
   console.log(add_user_id);
 
   // Validate the necessary fields
   if (
-    !add_user_id ||
     !is_sell ||
     !country_id ||
     !plimit ||
@@ -146,6 +153,13 @@ const editProperty = async (req, res) => {
   } = req.body;
 
   const user_id = req.user.id;
+  if (!user_id) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "User ID not provided",
+    });
+  }
 
   // Validate the necessary fields
   if (
@@ -271,17 +285,17 @@ const editProperty = async (req, res) => {
 };
 
 const getPropertyList = async (req, res) => {
-  const { uid } = req.query;
-
-  if (!uid) {
-    return res.status(400).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "User ID not provided",
-    });
-  }
-
   try {
+    const uid = req.user.id;
+
+    if (!uid) {
+      return res.status(400).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "User ID not provided",
+      });
+    }
+
     console.log("Fetching properties for user ID:", uid);
 
     // Fetch properties
@@ -408,6 +422,23 @@ const getPropertyTypes = async (req, res) => {
         ptype: ptype,
         status: 1,
       },
+      include: [
+        {
+          model: TblCategory,
+          as: "category",
+          attributes: ["title"],
+        },
+        {
+          model: TblFacility,
+          as: "facilities",
+          attributes: ["title"],
+        },
+        {
+          model: TblCountry,
+          as: "country",
+          attributes: ["title"],
+        },
+      ],
     });
 
     // Check if any types are found
@@ -439,9 +470,17 @@ const getPropertyTypes = async (req, res) => {
 };
 
 const getPropertyDetails = async (req, res) => {
-  const { pro_id, uid } = req.body; // Get data from request body
-  console.log(pro_id, uid);
-  if (!pro_id || !uid) {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "User ID not provided",
+    });
+  }
+  const { pro_id } = req.body; // Get data from request body
+  console.log(pro_id);
+  if (!pro_id) {
     return res.status(400).json({
       ResponseCode: "401",
       Result: "false",
