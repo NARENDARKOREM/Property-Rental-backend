@@ -93,6 +93,225 @@ REQUEST:-{
     "ResponseMsg": "Account Deleted Successfully!"
 }
 
+https://property-rental-backend-6.onrender.com/u_homedata (POST)
+REQUEST(BODY):- uid, country_id
+RESPONSE:- {
+    "ResponseCode": "200",
+    "Result": "true",
+    "ResponseMsg": "Home Data Get Successfully!",
+    "HomeData": {
+        "Catlist": [
+            {
+                "id": 0,
+                "title": "All",
+                "img": "images/category/grid-circle.png",
+                "status": 1
+            },
+            {
+                "id": 1,
+                "title": "Apartments",
+                "img": "https://res.cloudinary.com/dhr4xnftl/image/upload/v1734800901/qftoiyv9ypvsvlebbcoj.jpg",
+                "status": 1
+            },
+            {
+                "id": 2,
+                "title": "Villas",
+                "img": "https://res.cloudinary.com/dhr4xnftl/image/upload/v1734800924/osscf8mcynooyl5dggc2.jpg",
+                "status": 1
+            },
+            {
+                "id": 3,
+                "title": "Bungalow",
+                "img": "https://res.cloudinary.com/dhr4xnftl/image/upload/v1734800944/kwji0hcwgiry3uynwbiu.jpg",
+                "status": 1
+            }
+        ],
+        "Featured_Property": [
+            {
+                "id": 6,
+                "title": "Beautiful 3BHK Apartment",
+                "latitude": "12.9715987",
+                "longtitude": "77.5945627",
+                "plimit": 2,
+                "rate": 5000,
+                "city": "Cityville",
+                "property_type": 1,
+                "beds": 3,
+                "bathroom": 2,
+                "sqrft": 1500,
+                "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA... (base64 encoded image data)",
+                "price": 7500000,
+                "IS_FAVOURITE": 0
+            },
+            {
+                "id": 5,
+                "title": "Beautiful 3BHK Apartment",
+                "latitude": "12.9715987",
+                "longtitude": "77.5945627",
+                "plimit": 2,
+                "rate": 5000,
+                "city": "Cityville",
+                "property_type": 1,
+                "beds": 3,
+                "bathroom": 2,
+                "sqrft": 1500,
+                "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA... (base64 encoded image data)",
+                "price": 7500000,
+                "IS_FAVOURITE": 0
+            },
+            {
+                "id": 4,
+                "title": "3BHK Apartment",
+                "latitude": "12.9715987",
+                "longtitude": "77.5945627",
+                "plimit": 2,
+                "rate": 5000,
+                "city": "Cityville",
+                "property_type": 1,
+                "beds": 3,
+                "bathroom": 2,
+                "sqrft": 1500,
+                "image": "https://res.cloudinary.com/dhr4xnftl/image/upload/v1734801418/d4xr8vw1day5kpswkqzc.jpg",
+                "price": 7500000,
+                "IS_FAVOURITE": 0
+            },
+            {
+                "id": 3,
+                "title": " Single Family 3BHK Apartment",
+                "latitude": "12.9715987",
+                "longtitude": "77.5945627",
+                "plimit": 2,
+                "rate": 5500,
+                "city": "Cityville",
+                "property_type": 2,
+                "beds": 3,
+                "bathroom": 2,
+                "sqrft": 1600,
+                "image": "0",
+                "price": 8000000,
+                "IS_FAVOURITE": 0
+            },
+            {
+                "id": 1,
+                "title": " New 3BHK Apartment",
+                "latitude": "12.9715987",
+                "longtitude": "77.5945627",
+                "plimit": 2,
+                "rate": 5500,
+                "city": "Cityville",
+                "property_type": 2,
+                "beds": 3,
+                "bathroom": 2,
+                "sqrft": 1600,
+                "image": "0",
+                "price": 8000000,
+                "IS_FAVOURITE": 1
+            }
+        ],
+        "cate_wise_property": [
+            {
+                "id": 1,
+                "title": " New 3BHK Apartment",
+                "latitude": "12.9715987",
+                "longtitude": "77.5945627",
+                "plimit": 2,
+                "rate": 5500,
+                "city": "Cityville",
+                "beds": 3,
+                "bathroom": 2,
+                "sqrft": 1600,
+                "property_type": 2,
+                "image": "0",
+                "price": 8000000,
+                "IS_FAVOURITE": 1
+            },
+            {
+                "id": 3,
+                "title": " Single Family 3BHK Apartment",
+                "latitude": "12.9715987",
+                "longtitude": "77.5945627",
+                "plimit": 2,
+                "rate": 5500,
+                "city": "Cityville",
+                "beds": 3,
+                "bathroom": 2,
+                "sqrft": 1600,
+                "property_type": 2,
+                "image": "0",
+                "price": 8000000,
+                "IS_FAVOURITE": 0
+            },
+            {
+                "id": 4,
+                "title": "3BHK Apartment",
+                "latitude": "12.9715987",
+                "longtitude": "77.5945627",
+                "plimit": 2,
+                "rate": 5000,
+                "city": "Cityville",
+                "beds": 3,
+                "bathroom": 2,
+                "sqrft": 1500,
+                "property_type": 1,
+                "image": "https://res.cloudinary.com/dhr4xnftl/image/upload/v1734801418/d4xr8vw1day5kpswkqzc.jpg",
+                "price": 7500000,
+                "IS_FAVOURITE": 0
+            },
+            {
+                "id": 5,
+                "title": "Beautiful 3BHK Apartment",
+                "latitude": "12.9715987",
+                "longtitude": "77.5945627",
+                "plimit": 2,
+                "rate": 5000,
+                "city": "Cityville",
+                "beds": 3,
+                "bathroom": 2,
+                "sqrft": 1500,
+                "property_type": 1,
+                "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA... (base64 encoded image data)",
+                "price": 7500000,
+                "IS_FAVOURITE": 0
+            },
+            {
+                "id": 6,
+                "title": "Beautiful 3BHK Apartment",
+                "latitude": "12.9715987",
+                "longtitude": "77.5945627",
+                "plimit": 2,
+                "rate": 5000,
+                "city": "Cityville",
+                "beds": 3,
+                "bathroom": 2,
+                "sqrft": 1500,
+                "property_type": 1,
+                "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA... (base64 encoded image data)",
+                "price": 7500000,
+                "IS_FAVOURITE": 0
+            }
+        ],
+        "show_add_property": true
+    }
+}
+
+https://property-rental-backend-6.onrender.com/users/user/changerole (POST);
+Authorization: Bearer <token>
+REQUEST(BODY):- requested_role,deviceToken
+RESPONSE:-{
+    "message": "Role change request updated successfully.",
+    "request": {
+        "id": 2,
+        "user_id": 2,
+        "requested_role": "host",
+        "status": "pending",
+        "created_at": null,
+        "updated_at": null
+    }
+}
+
+
+
+
 
 
 
