@@ -84,7 +84,7 @@ const addProperty = async (req, res) => {
         ResponseMsg: "Country not found!",
       });
     }
-
+    
     // Create new property
     const newProperty = await Property.create({
       title,
@@ -161,7 +161,6 @@ const editProperty = async (req, res) => {
     });
   }
 
-  // Validate the necessary fields
   if (
     !prop_id ||
     !is_sell ||
@@ -195,7 +194,6 @@ const editProperty = async (req, res) => {
   }
 
   try {
-    // Validate country
     const country = await TblCountry.findByPk(country_id);
     if (!country) {
       return res.status(404).json({
@@ -205,7 +203,6 @@ const editProperty = async (req, res) => {
       });
     }
 
-    // Validate property ownership
     const property = await Property.findOne({
       where: { id: prop_id, add_user_id: user_id },
     });
@@ -217,33 +214,9 @@ const editProperty = async (req, res) => {
       });
     }
 
-    // Log the fields being updated
-    console.log("Property found:", property);
-    console.log("Updating fields:", {
-      is_sell,
-      country_id,
-      plimit,
-      status,
-      title,
-      price,
-      address,
-      facility,
-      description,
-      beds,
-      bathroom,
-      sqrft: sqft,
-      rate,
-      rules,
-      ptype,
-      latitude,
-      longtitude,
-      mobile,
-      city: ccount,
-      listing_date,
-      image,
-    });
+    const parsedFacility = JSON.parse(facility || "[]");
+    const parsedRules = JSON.parse(rules || "[]");
 
-    // Perform update
     await property.update({
       is_sell,
       country_id,
@@ -252,13 +225,13 @@ const editProperty = async (req, res) => {
       title,
       price,
       address,
-      facility,
+      facility: JSON.stringify(parsedFacility),
       description,
       beds,
       bathroom,
       sqrft: sqft,
       rate,
-      rules,
+      rules: JSON.stringify(parsedRules),
       ptype,
       latitude,
       longtitude,
