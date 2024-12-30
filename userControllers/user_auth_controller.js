@@ -301,6 +301,7 @@ const otpLogin = async (req, res) => {
       await user.update({ otp, otpExpiresAt });
     }
 
+    await user.update({ status: 1 });
     res.status(200).json({ message: "OTP sent successfully.", otp });
   } catch (error) {
     console.error("Error in otpLogin:", error.message);
@@ -333,7 +334,7 @@ const verifyOtp = async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    await user.update({ otp: null, otpExpiresAt: null });
+    await user.update({ status: 1, otp: null, otpExpiresAt: null });
 
     res.status(200).json({
       message: "OTP verified successfully.",
@@ -343,6 +344,8 @@ const verifyOtp = async (req, res) => {
         name: user.name,
         email: user.email,
         mobile: user.mobile,
+        ccode: user.ccode,
+        role: user.role,
       },
     });
   } catch (error) {
