@@ -24,7 +24,8 @@ RESPONSE:- {
 }
 
 https://property-rental-backend-6.onrender.com/users/user/basic-info (PUT)
-REQUEST(BODY):- name, email, gender, ccode, country_id
+Authorization:- Bearer <token>
+REQUEST(BODY):- name, email, gender, ccode, country_id,mobile
 RESPONSE:-{
     "ResponseCode": "200",
     "Result": "true",
@@ -76,11 +77,20 @@ RESPONSE:-{
 }
 
 https://property-rental-backend-6.onrender.com/users/user/toggle-update (PATCH)
+Authorization:- Bearer <token>
 REQUEST(BODY):-id, field(status), value(1 or 0)
 RESPONSE:- {
     "message": "status updated successfully.",
     "updatedField": "status",
     "updatedValue": 1
+}
+
+https://property-rental-backend-6.onrender.com/users/user/delete (PUT)
+Authorization:- Bearer <token>
+REQUEST:-{
+    "ResponseCode": "200",
+    "Result": "true",
+    "ResponseMsg": "Account Deleted Successfully!"
 }
 
 

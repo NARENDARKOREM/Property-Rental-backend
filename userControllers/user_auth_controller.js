@@ -175,15 +175,19 @@ async function userLogin(req, res) {
 //Role change controller
 
 async function requestRoleChange(req, res) {
-  const { requested_role, userId, deviceToken } = req.body;
+  const userId = req.user.id;
+  if (!userId) {
+    return res.status(400).json({ message: "User not found!" });
+  }
+  const { requested_role, deviceToken } = req.body;
 
   if (!requested_role || !["guest", "host"].includes(requested_role)) {
     return res.status(400).json({ message: "Invalid role requested." });
   }
-  if (!userId || !deviceToken) {
+  if (!deviceToken) {
     return res
       .status(400)
-      .json({ message: "User ID and device token are required." });
+      .json({ message: "User device token are required." });
   }
 
   try {
@@ -461,7 +465,7 @@ const updateUser = async (req, res) => {
       });
     }
 
-    const { name, gender, email, ccode, country_id,mobile } = req.body;
+    const { name, gender, email, ccode, country_id, mobile } = req.body;
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
@@ -562,7 +566,7 @@ const deleteUserAccount = async (req, res) => {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "Something Went Wrong!",
+      ResponseMsg: "User not found!",
     });
   }
 
