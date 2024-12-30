@@ -310,6 +310,41 @@ RESPONSE:-{
 }
 
 
+https://property-rental-backend-6.onrender.com/user/properties/add (POST)
+REQUEST(BODY):- title, image, price, status, address, facility, description, beds, bathroom, sqrft, rate, rules, ptype, latitude, longitude, mobile, city, listing_date, add_user_id, country_id, plimit, is_sell
+RESPONSE:-{
+    "ResponseCode": "200",
+    "Result": "true",
+    "ResponseMsg": "Property Add Successfully",
+    "newProperty": {
+        "id": 21,
+        "title": "Commercial Flat",
+        "image": "villa.jpg",
+        "price": 450000,
+        "status": "Available",
+        "address": "123 Palm Beach Road, Beverly Hills",
+        "facility": "\"[\\\"Swimming Pool\\\", \\\"Gym\\\", \\\"Garden\\\"]\"",
+        "description": "A beautiful villa with modern amenities and stunning views.",
+        "beds": 5,
+        "bathroom": 4,
+        "sqrft": 3500,
+        "rate": 250,
+        "rules": "\"[\\\"No Smoking\\\", \\\"No Pets\\\"]\"",
+        "ptype": "Villa",
+        "latitude": "34.1030032",
+        "longtitude": "-118.4104684",
+        "mobile": "+1234567890",
+        "city": "Beverly Hills",
+        "listing_date": "2024-12-30T13:22:43.442Z",
+        "add_user_id": 2,
+        "country_id": 1,
+        "plimit": 5,
+        "is_sell": true,
+        "updatedAt": "2024-12-30T13:22:43.443Z",
+        "createdAt": "2024-12-30T13:22:43.443Z"
+    }
+}
+
 
 
 
