@@ -1,0 +1,79 @@
+USER APIS
+
+https://property-rental-backend-6.onrender.com/users/user/otplogin (POST)
+REQUEST(BODY):- mobile,ccode
+RESPONSE:- {
+    "message": "OTP sent successfully.",
+    "otp": "277803"
+}
+
+https://property-rental-backend-6.onrender.com/users/user/verifyotp (POST)
+REQUEST(BODY):- mobile, otp, ccode
+RESPONSE:- {
+    "message": "OTP verified successfully.",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYsIm1vYmlsZSI6Ijg3NjU0MzIxOTAiLCJpYXQiOjE3MzU1NTQ3NTYsImV4cCI6MTczNTY0MTE1Nn0.xHvAzbUeDZstxJzkaUzWlxYi4rjlzB29CUdtW0gCT2Y",
+    "user": {
+        "id": 6,
+        "name": "Rajesh",
+        "email": "rajesh@gmail.com",
+        "mobile": "8765432190",
+        "ccode": "91",
+        "role": "guest",
+        "country_id": 1
+    }
+}
+
+https://property-rental-backend-6.onrender.com/users/user/basic-info (PUT)
+REQUEST(BODY):- name, email, gender, ccode, country_id
+RESPONSE:-{
+    "ResponseCode": "200",
+    "Result": "true",
+    "ResponseMsg": "User updated successfully!",
+    "user": {
+        "id": 6,
+        "name": "Rajesh",
+        "email": "rajesh@gmail.com",
+        "gender": "male",
+        "ccode": "91",
+        "mobile": "8765432190",
+        "otp": null,
+        "otpExpiresAt": null,
+        "password": null,
+        "refercode": null,
+        "parentcode": null,
+        "wallet": 0,
+        "reg_date": "2024-12-30T09:46:18.000Z",
+        "status": 1,
+        "pro_pic": "https://thumbs.dreamstime.com/b/profile-placeholder-image-gray-silhouette-no-photo-profile-placeholder-image-gray-silhouette-no-photo-person-avatar-123478438.jpg?w=992",
+        "start_date": null,
+        "end_date": null,
+        "pack_id": 0,
+        "is_subscribe": 0,
+        "role": "guest",
+        "currency": "INR",
+        "country_id": 1,
+        "createdAt": "2024-12-30T09:46:19.000Z",
+        "updatedAt": "2024-12-30T10:32:36.000Z",
+        "deletedAt": null
+    },
+    "availableCountries": [
+        {
+            "id": 1,
+            "title": "India",
+            "currency": "INR"
+        },
+        {
+            "id": 6,
+            "title": "Berlin",
+            "currency": "BRL"
+        },
+        {
+            "id": 7,
+            "title": "America",
+            "currency": "USD"
+        }
+    ]
+}
+
+
+
