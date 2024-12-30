@@ -38,6 +38,6 @@ router.post(
   upload.single("image"),
   uploadUserImage
 );
-router.put("/user/delete", deleteUserAccount);
+router.put("/user/delete", authMiddleware.isAuthenticated, deleteUserAccount);
 
 module.exports = router;
