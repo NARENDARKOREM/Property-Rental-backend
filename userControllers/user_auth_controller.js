@@ -8,6 +8,7 @@ const { Op } = require("sequelize");
 const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
+const { TblCountry } = require("../models");
 
 function generateToken(user) {
   return jwt.sign(
@@ -278,6 +279,10 @@ const otpLogin = async (req, res) => {
     return res.status(400).json({ message: "Mobile number is required." });
   }
 
+  if (!ccode) {
+    return res.status(400).json({ message: "Country code is required." });
+  }
+
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   try {
@@ -314,8 +319,14 @@ const otpLogin = async (req, res) => {
 const verifyOtp = async (req, res) => {
   const { mobile, otp, ccode } = req.body;
 
-  if (!mobile || !otp || !ccode) {
-    return res.status(400).json({ message: "mobile and OTP are required." });
+  if (!mobile) {
+    return res.status(400).json({ message: "Mobile number is required." });
+  }
+  if (!otp) {
+    return res.status(400).json({ message: "OTP is required." });
+  }
+  if (!ccode) {
+    return res.status(400).json({ message: "Country code is required." });
   }
 
   try {
@@ -346,6 +357,7 @@ const verifyOtp = async (req, res) => {
         mobile: user.mobile,
         ccode: user.ccode,
         role: user.role,
+        country_id: user.country_id,
       },
     });
   } catch (error) {
@@ -449,22 +461,47 @@ const updateUser = async (req, res) => {
       });
     }
 
-    const { name, gender, email, ccode } = req.body;
+    const { name, gender, email, ccode, country_id } = req.body;
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (gender !== undefined) updateData.gender = gender;
     if (email !== undefined) updateData.email = email;
     if (ccode !== undefined) updateData.ccode = ccode;
+    if (country_id !== undefined) updateData.country_id = country_id;
+
+    // Fetch country and currency details if country_id is updated
+    if (country_id) {
+      const countryData = await TblCountry.findOne({
+        where: { id: country_id, status: 1 }, // Match country ID
+      });
+
+      if (!countryData) {
+        return res.status(404).json({
+          ResponseCode: "404",
+          Result: "false",
+          ResponseMsg: "Selected country is not valid or inactive!",
+        });
+      }
+
+      updateData.currency = countryData.currency; // Update currency based on the country
+    }
 
     // Update user with new data
     await user.update(updateData);
+
+    // Fetch the list of available countries for response
+    const availableCountries = await TblCountry.findAll({
+      where: { status: 1 },
+      attributes: ["id", "title", "currency"], // Fetch id, title, and currency
+    });
 
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "User updated successfully!",
       user,
+      availableCountries, // Send country list in response
     });
   } catch (error) {
     console.error("Error updating user:", error);
