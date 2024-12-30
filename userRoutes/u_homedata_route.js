@@ -3,6 +3,6 @@ const { homeDataApi } = require('../userControllers/u_homedata_controller');
 
 const router  = express.Router();
 
-router.get("/", homeDataApi);
+router.post("/", homeDataApi);
 
 module.exports = router;
