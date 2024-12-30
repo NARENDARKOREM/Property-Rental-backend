@@ -667,7 +667,7 @@ const getAllProperties = async (req, res) => {
 
 const searchPropertyByLocationAndDate = async (req, res) => {
   try {
-    const { location, check_in, check_out } = req.query;
+    const { location, check_in, check_out } = req.body;
 
     if (!location && (!check_in || !check_out)) {
       return res.status(400).json({
