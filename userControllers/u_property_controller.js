@@ -84,7 +84,7 @@ const addProperty = async (req, res) => {
         ResponseMsg: "Country not found!",
       });
     }
-    
+
     // Create new property
     const newProperty = await Property.create({
       title,
@@ -127,73 +127,93 @@ const addProperty = async (req, res) => {
 };
 
 const editProperty = async (req, res) => {
-  const {
-    status,
-    title,
-    address,
-    description,
-    ccount,
-    facility,
-    ptype,
-    beds,
-    bathroom,
-    sqft,
-    rate,
-    rules,
-    latitude,
-    longtitude,
-    mobile,
-    listing_date,
-    price,
-    prop_id,
-    plimit,
-    country_id,
-    is_sell,
-    image,
-  } = req.body;
-
-  const user_id = req.user.id;
-  if (!user_id) {
-    return res.status(401).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "User ID not provided",
-    });
-  }
-
-  if (
-    !prop_id ||
-    !is_sell ||
-    !country_id ||
-    !plimit ||
-    !user_id ||
-    !status ||
-    !title ||
-    !address ||
-    !description ||
-    !ccount ||
-    !facility ||
-    !ptype ||
-    !beds ||
-    !rules ||
-    !bathroom ||
-    !sqft ||
-    !rate ||
-    !latitude ||
-    !longtitude ||
-    !mobile ||
-    !listing_date ||
-    !price ||
-    !image
-  ) {
-    return res.status(401).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "Something Went Wrong!",
-    });
-  }
-
   try {
+    // Destructure and log the request body
+    const {
+      status,
+      title,
+      address,
+      description,
+      ccount,
+      facility,
+      ptype,
+      beds,
+      bathroom,
+      sqft,
+      rate,
+      rules,
+      latitude,
+      longtitude,
+      mobile,
+      listing_date,
+      price,
+      prop_id,
+      plimit,
+      country_id,
+      is_sell,
+      image,
+    } = req.body;
+
+    console.log("Request Body:", req.body);
+
+    // Check if the user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "Authorization failed: User ID missing",
+      });
+    }
+
+    const user_id = req.user.id;
+
+    // Validate required fields
+    if (
+      !prop_id ||
+      !status ||
+      !title ||
+      !address ||
+      !description ||
+      !ccount ||
+      !facility ||
+      !ptype ||
+      !beds ||
+      !bathroom ||
+      !sqft ||
+      !rate ||
+      !rules ||
+      !latitude ||
+      !longtitude ||
+      !mobile ||
+      !listing_date ||
+      !price ||
+      !image ||
+      !plimit ||
+      !country_id ||
+      is_sell === undefined // Ensure boolean is not `undefined`
+    ) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Missing or invalid fields",
+      });
+    }
+
+    // Validate JSON parsing for `facility` and `rules`
+    let parsedFacility;
+    let parsedRules;
+    try {
+      parsedFacility = JSON.parse(facility);
+      parsedRules = JSON.parse(rules);
+    } catch (err) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid JSON format in facility or rules",
+      });
+    }
+
+    // Check if the country exists
     const country = await TblCountry.findByPk(country_id);
     if (!country) {
       return res.status(404).json({
@@ -203,20 +223,19 @@ const editProperty = async (req, res) => {
       });
     }
 
+    // Check if the property exists and belongs to the user
     const property = await Property.findOne({
       where: { id: prop_id, add_user_id: user_id },
     });
     if (!property) {
-      return res.status(401).json({
-        ResponseCode: "401",
+      return res.status(403).json({
+        ResponseCode: "403",
         Result: "false",
-        ResponseMsg: "Edit Your Own Property!",
+        ResponseMsg: "You can only edit your own properties",
       });
     }
 
-    const parsedFacility = JSON.parse(facility || "[]");
-    const parsedRules = JSON.parse(rules || "[]");
-
+    // Update the property
     await property.update({
       is_sell,
       country_id,
@@ -241,6 +260,7 @@ const editProperty = async (req, res) => {
       image,
     });
 
+    // Return success response
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
@@ -249,7 +269,7 @@ const editProperty = async (req, res) => {
     });
   } catch (error) {
     console.error("Error occurred:", error.message, error.stack);
-    res.status(500).json({
+    return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
       ResponseMsg: "Internal Server Error",
