@@ -257,6 +257,57 @@ const togglePropertyStatus = async (req, res) => {
   }
 };
 
+const fetchPropertiesByCountries= async (req, res) => { 
+  try {
+    const { country_id } = req.body;
+    const properties = await Property.findAll({
+      where: { country_id },
+      include: [
+        {
+          model: TblCategory,
+          as: "category",
+          attributes: ["title"],
+        },
+        {
+          model: TblCountry,
+          as: "country",
+          attributes: ["title"],
+        },
+      ],
+    });
+
+    const formattedProperties = await Promise.all(
+      properties.map(async (property) => {
+        const facilityIds = property.facility
+          ? property.facility
+              .split(",")
+              .map((id) => parseInt(id, 10))
+              .filter((id) => Number.isInteger(id))
+          : [];
+
+        const facilities = facilityIds.length
+          ? await TblFacility.findAll({
+              where: { id: facilityIds },
+              attributes: ["id", "title"],
+            })
+          : [];
+
+        return {
+          ...property.toJSON(),
+          facilities,
+        };
+      })
+    );
+
+    res.status(200).json(formattedProperties);
+  } catch (error) {
+    console.error("Error fetching properties:", error);
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+}
+
 module.exports = {
   upsertProperty,
   getAllProperties,
@@ -264,4 +315,5 @@ module.exports = {
   deleteProperty,
   getPropertyCount,
   togglePropertyStatus,
+  fetchPropertiesByCountries,
 };

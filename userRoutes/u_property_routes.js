@@ -19,12 +19,12 @@ router.get(
   userPropertyController.getPropertyList  
 );
 
-router.get(
+router.post(
   "/types",
   userPropertyController.getPropertyTypes
 );
 
-router.get(
+router.post(
   "/u_property_details",
   authMiddleware.isAuthenticated,
   userPropertyController.getPropertyDetails
