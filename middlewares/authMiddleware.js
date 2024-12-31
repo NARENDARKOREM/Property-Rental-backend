@@ -29,6 +29,33 @@ exports.isAuthenticated = async (req, res, next) => {
   }
 };
 
+exports.optionalAuth = async (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findByPk(decoded.userId);
+
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized: User not found" });
+      }
+
+      req.user = user; 
+    } catch (err) {
+      console.error("Authentication error:", err.message);
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: Invalid or expired token" });
+    }
+  }
+  else{
+    req.user = null;
+  }
+
+  next();
+};
+
 exports.authenticateToken = (req, res, next) => {
   const token = req.cookies.token;
   if (!token) {
