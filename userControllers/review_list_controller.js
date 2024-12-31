@@ -2,24 +2,22 @@ const TblBook = require("../models/TblBook");
 const { Op } = require("sequelize");
 
 const getReviews = async (req, res) => {
-  // const orag_id  = req.user.id;
+  const orag_id = req.user.id;
   console.log("UID", req.user.id);
 
-  // if (!orag_id) {
-  //   return res.status(400).json({
-  //     ResponseCode: "401",
-  //     Result: "false",
-  //     ResponseMsg: "Something Went Wrong!",
-  //   });
-  // }
-
-  
+  if (!orag_id) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "User not found!",
+    });
+  }
 
   try {
     // Fetch reviews from the database
     const reviews = await TblBook.findAll({
       where: {
-        add_user_id: req.user.id,
+        add_user_id: orag_id,
         is_rate: 1,
       },
       attributes: ["total_rate", "rate_text"],

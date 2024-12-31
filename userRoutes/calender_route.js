@@ -9,7 +9,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
  * @returns {Array} List of users
  */
 
-router.get(
+router.post(
   "/all",
   authMiddleware.isAuthenticated,
 calenderController.getBookedDates
