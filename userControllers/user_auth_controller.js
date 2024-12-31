@@ -240,10 +240,12 @@ const googleAuth = async (req, res) => {
     const existingUserByEmail = await User.findOne({ where: { email } });
 
     if (existingUserByEmail) {
-      return res.status(401).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "Email Address Already Used!",
+      const token = generateToken(existingUserByEmail);
+      return res.status(200).json({
+        token,
+        ResponseCode: "200",
+        Result: "true",
+        ResponseMsg: "Login Successfully!",
       });
     }
 
@@ -260,7 +262,6 @@ const googleAuth = async (req, res) => {
     // Generate a token for the user
     const token = generateToken(newUser);
     return res.status(201).json({
-      UserLogin: newUser,
       token,
       ResponseCode: "200",
       Result: "true",
