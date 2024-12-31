@@ -185,9 +185,7 @@ async function requestRoleChange(req, res) {
     return res.status(400).json({ message: "Invalid role requested." });
   }
   if (!deviceToken) {
-    return res
-      .status(400)
-      .json({ message: "User device token are required." });
+    return res.status(400).json({ message: "User device token are required." });
   }
 
   try {
@@ -627,19 +625,41 @@ const handleToggle = async (req, res) => {
 
 const uploadUserImage = async (req, res) => {
   try {
+    // Validate user authorization
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "Unauthorized user!",
+      });
+    }
+
+    // Validate file upload
+    if (!req.file) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "No file uploaded!",
+      });
+    }
+
     const params = {
       Bucket: process.env.S3_BUCKET_NAME,
       Key: `uploads/${Date.now()}-${req.file.originalname}`,
       Body: req.file.buffer,
     };
 
+    console.log("Uploading to S3 with params:", params);
+
+    // Upload to S3
     const command = new PutObjectCommand(params);
     const result = await s3.send(command);
+
     const imageUrl = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+    console.log("Image uploaded to S3:", imageUrl);
 
-    console.log(imageUrl, "image uploaded");
-
-    const user = await User.findByPk(req.user?.id);
+    // Update user profile
+    const user = await User.findByPk(req.user.id);
     if (!user) {
       return res.status(404).json({
         ResponseCode: "404",
@@ -658,7 +678,7 @@ const uploadUserImage = async (req, res) => {
       ResponseMsg: "Profile Image Uploaded Successfully!!",
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error uploading user image:", error.message, error.stack);
     return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
