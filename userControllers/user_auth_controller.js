@@ -280,14 +280,14 @@ const otpLogin = async (req, res) => {
 
   try {
     // Uncomment the following if using an actual OTP service
-    // const response = await axios.get(
-    //   `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${mobile}/${otp}`
-    // );
+    const response = await axios.get(
+      `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${mobile}/${otp}`
+    );
 
-    // Simulate OTP sending success
-    // if (response.data.Status !== 'Success') {
-    //   return res.status(500).json({ message: 'Failed to send OTP.' });
-    // }
+    
+    if (response.data.Status !== 'Success') {
+      return res.status(500).json({ message: 'Failed to send OTP.' });
+    }
     const timestamp = new Date();
     const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const [user, created] = await User.findOrCreate({

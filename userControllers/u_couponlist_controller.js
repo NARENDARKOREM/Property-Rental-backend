@@ -78,7 +78,6 @@ const getCoupons = async (req, res) => {
 
 const applyCoupon = async (req, res) => {
     const { uid, cid } = req.body;
-  
     
     if (!uid || !cid) {
       return res.status(400).json({
