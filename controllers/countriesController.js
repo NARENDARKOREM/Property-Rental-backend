@@ -7,7 +7,7 @@ const { count } = require("console");
 
 // Create or Update Country
 const upsertCountry = async (req, res) => {
-  const { id, title, status, img } = req.body;
+  const { id, title, status, img, currency } = req.body;
   console.log(req.body);
 
   try {
@@ -21,6 +21,7 @@ const upsertCountry = async (req, res) => {
       country.title = title;
       country.img = img;
       country.status = status;
+      country.currency = currency;
 
       await country.save();
       res
@@ -33,6 +34,7 @@ const upsertCountry = async (req, res) => {
         img,
         status,
         d_con: 0,
+        currency: currency || "INR",
       });
       res
         .status(201)
@@ -89,6 +91,8 @@ const getCountryById = async (req, res) => {
 const deleteCountry = async (req, res) => {
   const { id } = req.params;
   const { forceDelete } = req.query;
+  console.log(id);
+  // https://res.cloudinary.com/dhr4xnftl/image/upload/v1734800998/g2yqiwrgkzravn98cec5.jpg
 
   try {
     const country = await TblCountry.findOne({
@@ -104,9 +108,9 @@ const deleteCountry = async (req, res) => {
     }
 
     if (forceDelete === "true") {
-      if (country.img && !country.img.startsWith("http")) {
-        fs.unlinkSync(path.join(__dirname, "..", country.img)); // Remove image file if it's a local path
-      }
+      // if (country.img && !country.img.startsWith("http")) {
+      //   fs.unlinkSync(path.join(__dirname, "..", country.img)); // Remove image file if it's a local path
+      // }
       await country.destroy({ force: true });
       res
         .status(200)

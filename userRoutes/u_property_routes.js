@@ -8,20 +8,19 @@ router.post(
   authMiddleware.isAuthenticated,
   userPropertyController.addProperty
 );
-router.post(
+router.patch(
   "/edit",
-  // authMiddleware.isAuthenticated,
+  authMiddleware.isAuthenticated,
   userPropertyController.editProperty
 );
 router.get(
   "/list",
-  // authMiddleware.isAuthenticated,
-  userPropertyController.getPropertyList
+  authMiddleware.isAuthenticated,
+  userPropertyController.getPropertyList  
 );
 
-router.get(
+router.post(
   "/types",
-
   userPropertyController.getPropertyTypes
 );
 

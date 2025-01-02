@@ -1,6 +1,6 @@
 const { Op } = require("sequelize");
 const TblBook = require("../models/TblBook");
-const { User } = require("../models");
+const { User, Property } = require("../models");
 const admin = require("firebase-admin"); // Import Firebase Admin SDK
 const TblNotification = require("../models/TblNotification");
 
@@ -13,7 +13,7 @@ const checkDateAvailability = async (req, res) => {
       return res.status(401).json({
         ResponseCode: "401",
         Result: "false",
-        ResponseMsg: "Something Went Wrong!",
+        ResponseMsg: "Invalid Fields!",
       });
     }
 
@@ -34,13 +34,47 @@ const checkDateAvailability = async (req, res) => {
           },
         ],
       },
+      include: [
+        {
+          model: Property,
+          as: "properties",
+          attributes: [
+            "id",
+            "title",
+            "facility",
+            "ptype",
+            "price",
+            "address",
+            "rate",
+          ],
+        },
+      ],
     });
+
+    const property = await Property.findAll({
+      where: { id: pro_id },
+    });
+
+    if (!property) {
+      return res.status(401).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "Property Not Found!",
+      });
+    }
 
     if (existingBookings.length > 0) {
       return res.status(401).json({
         ResponseCode: "401",
         Result: "false",
         ResponseMsg: "That Date Range Already Booked!",
+        // existingBookings: existingBookings.map((booking) => ({
+        //   bookingId: booking.id,
+        //   check_in: booking.check_in,
+        //   check_out: booking.check_out,
+        //   book_status: booking.book_status,
+        //   property: booking.properties,
+        // })),
       });
     }
 
@@ -48,6 +82,7 @@ const checkDateAvailability = async (req, res) => {
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "That Date Range Available!",
+      property: property,
     });
   } catch (error) {
     console.error("Error checking date availability:", error);
@@ -62,7 +97,7 @@ const checkDateAvailability = async (req, res) => {
 // Confirm Booking
 const confirmBooking = async (req, res) => {
   const { uid, book_id } = req.body;
-console.log("User Details: ",uid,book_id)
+  console.log("User Details: ", uid, book_id);
   if (!uid || !book_id) {
     return res.status(401).json({
       ResponseCode: "401",
@@ -136,23 +171,49 @@ console.log("User Details: ",uid,book_id)
 
 // Check-In Controller
 const checkIn = async (req, res) => {
-  const { uid, book_id } = req.body;
+  const uid = req.user.id;
 
-  if (!uid || !book_id) {
+  if (!uid) {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "Something Went Wrong!",
+      ResponseMsg: "User Not Found!",
+    });
+  }
+
+  const { book_id } = req.body;
+
+  if (!book_id) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Booking Not Found!",
     });
   }
 
   try {
+    // Find the booking with the provided details
     const booking = await TblBook.findOne({
       where: {
         id: book_id,
         add_user_id: uid,
         book_status: "Confirmed",
       },
+      include: [
+        {
+          model: Property,
+          as: "properties",
+          attributes: [
+            "id",
+            "title",
+            "facility",
+            "ptype",
+            "price",
+            "address",
+            "rate",
+          ],
+        },
+      ],
     });
 
     if (!booking) {
@@ -163,6 +224,7 @@ const checkIn = async (req, res) => {
       });
     }
 
+    // Update booking status to "Check_in" and set the check-in time
     booking.book_status = "Check_in";
     booking.check_intime = new Date();
     await booking.save();
@@ -193,10 +255,19 @@ const checkIn = async (req, res) => {
       description: `Booking #${book_id} Has Been Check In Successfully.`,
     });
 
+    // Return booking and property details
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Property Check In Successfully!",
+      booking: {
+        id: booking.id,
+        check_in: booking.check_in,
+        check_out: booking.check_out,
+        book_status: booking.book_status,
+        check_intime: booking.check_intime,
+        property: booking.properties,
+      },
     });
   } catch (error) {
     console.error("Error during check-in:", error);
@@ -209,13 +280,23 @@ const checkIn = async (req, res) => {
 };
 
 const checkOut = async (req, res) => {
-  const { uid, book_id } = req.body;
+  const uid = req.user.id;
 
-  if (!uid || !book_id) {
+  if (!uid) {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "Something Went Wrong!",
+      ResponseMsg: "User Not Found!",
+    });
+  }
+
+  const { book_id } = req.body;
+
+  if (!book_id) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Booking Not Found!",
     });
   }
 
@@ -227,6 +308,21 @@ const checkOut = async (req, res) => {
         add_user_id: uid,
         book_status: "Check_in",
       },
+      include: [
+        {
+          model: Property,
+          as: "properties",
+          attributes: [
+            "id",
+            "title",
+            "facility",
+            "ptype",
+            "price",
+            "address",
+            "rate",
+          ],
+        },
+      ],
     });
 
     if (!booking) {
@@ -242,14 +338,14 @@ const checkOut = async (req, res) => {
     booking.check_outtime = new Date();
     await booking.save();
 
-    // Fetch user and booking details
+    // Fetch user details
     const user = await User.findByPk(uid);
 
-    // Send OneSignal Notification (via Firebase Admin SDK)
+    // Send Firebase Notification
     const message = {
       notification: {
         title: "Check Out Successfully!!",
-        body: `${user.name}, Your Booking #${book_id} Has Been Check Out Successfully.`,
+        body: `${user.name}, Your Booking #${book_id} Has Been Checked Out Successfully.`,
       },
       data: {
         order_id: `${book_id}`,
@@ -265,13 +361,22 @@ const checkOut = async (req, res) => {
       uid,
       datetime: new Date(),
       title: "Check Out Successfully!!",
-      description: `Booking #${book_id} Has Been Check Out Successfully.`,
+      description: `Booking #${book_id} Has Been Checked Out Successfully.`,
     });
 
+    // Return booking and property details
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Property Check Out Successfully!",
+      booking: {
+        id: booking.id,
+        check_in: booking.check_in,
+        check_out: booking.check_out,
+        book_status: booking.book_status,
+        check_outtime: booking.check_outtime,
+        property: booking.properties, // Include property details
+      },
     });
   } catch (error) {
     console.error("Error during check-out:", error);

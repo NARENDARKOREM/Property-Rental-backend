@@ -31,14 +31,25 @@ const addProperty = async (req, res) => {
     country_id,
     plimit,
     is_sell,
+    adults,
+    children,
+    infants,
+    pets,
   } = req.body;
 
-  const add_user_id = req.user.id; // Assuming user ID is available in req.user.id
+  const add_user_id = req.user.id;
+  if (!add_user_id) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "User ID not provided",
+    });
+  }
+
   console.log(add_user_id);
 
   // Validate the necessary fields
   if (
-    !add_user_id ||
     !is_sell ||
     !country_id ||
     !plimit ||
@@ -85,13 +96,13 @@ const addProperty = async (req, res) => {
       price,
       status,
       address,
-      facility,
+      facility: JSON.stringify(facility),
       description,
       beds,
       bathroom,
       sqrft,
       rate,
-      rules,
+      rules: JSON.stringify(rules),
       ptype,
       latitude,
       longtitude,
@@ -102,6 +113,10 @@ const addProperty = async (req, res) => {
       country_id,
       plimit,
       is_sell,
+      adults,
+      children,
+      infants,
+      pets,
     });
     res.status(201).json({
       ResponseCode: "200",
@@ -120,68 +135,93 @@ const addProperty = async (req, res) => {
 };
 
 const editProperty = async (req, res) => {
-  const {
-    status,
-    title,
-    address,
-    description,
-    ccount,
-    facility,
-    ptype,
-    beds,
-    bathroom,
-    sqft,
-    rate,
-    rules,
-    latitude,
-    longtitude,
-    mobile,
-    listing_date,
-    price,
-    prop_id,
-    plimit,
-    country_id,
-    is_sell,
-    image,
-  } = req.body;
-
-  const user_id = req.user.id;
-
-  // Validate the necessary fields
-  if (
-    !prop_id ||
-    !is_sell ||
-    !country_id ||
-    !plimit ||
-    !user_id ||
-    !status ||
-    !title ||
-    !address ||
-    !description ||
-    !ccount ||
-    !facility ||
-    !ptype ||
-    !beds ||
-    !rules ||
-    !bathroom ||
-    !sqft ||
-    !rate ||
-    !latitude ||
-    !longtitude ||
-    !mobile ||
-    !listing_date ||
-    !price ||
-    !image
-  ) {
-    return res.status(401).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "Something Went Wrong!",
-    });
-  }
-
   try {
-    // Validate country
+    // Destructure and log the request body
+    const {
+      status,
+      title,
+      address,
+      description,
+      ccount,
+      facility,
+      ptype,
+      beds,
+      bathroom,
+      sqft,
+      rate,
+      rules,
+      latitude,
+      longtitude,
+      mobile,
+      listing_date,
+      price,
+      prop_id,
+      plimit,
+      country_id,
+      is_sell,
+      image,
+    } = req.body;
+
+    console.log("Request Body:", req.body);
+
+    // Check if the user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "Authorization failed: User ID missing",
+      });
+    }
+
+    const user_id = req.user.id;
+
+    // Validate required fields
+    if (
+      !prop_id ||
+      !status ||
+      !title ||
+      !address ||
+      !description ||
+      !ccount ||
+      !facility ||
+      !ptype ||
+      !beds ||
+      !bathroom ||
+      !sqft ||
+      !rate ||
+      !rules ||
+      !latitude ||
+      !longtitude ||
+      !mobile ||
+      !listing_date ||
+      !price ||
+      !image ||
+      !plimit ||
+      !country_id ||
+      is_sell === undefined // Ensure boolean is not `undefined`
+    ) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Missing or invalid fields",
+      });
+    }
+
+    // Validate JSON parsing for `facility` and `rules`
+    let parsedFacility;
+    let parsedRules;
+    try {
+      parsedFacility = JSON.parse(facility);
+      parsedRules = JSON.parse(rules);
+    } catch (err) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid JSON format in facility or rules",
+      });
+    }
+
+    // Check if the country exists
     const country = await TblCountry.findByPk(country_id);
     if (!country) {
       return res.status(404).json({
@@ -191,45 +231,19 @@ const editProperty = async (req, res) => {
       });
     }
 
-    // Validate property ownership
+    // Check if the property exists and belongs to the user
     const property = await Property.findOne({
       where: { id: prop_id, add_user_id: user_id },
     });
     if (!property) {
-      return res.status(401).json({
-        ResponseCode: "401",
+      return res.status(403).json({
+        ResponseCode: "403",
         Result: "false",
-        ResponseMsg: "Edit Your Own Property!",
+        ResponseMsg: "You can only edit your own properties",
       });
     }
 
-    // Log the fields being updated
-    console.log("Property found:", property);
-    console.log("Updating fields:", {
-      is_sell,
-      country_id,
-      plimit,
-      status,
-      title,
-      price,
-      address,
-      facility,
-      description,
-      beds,
-      bathroom,
-      sqrft: sqft,
-      rate,
-      rules,
-      ptype,
-      latitude,
-      longtitude,
-      mobile,
-      city: ccount,
-      listing_date,
-      image,
-    });
-
-    // Perform update
+    // Update the property
     await property.update({
       is_sell,
       country_id,
@@ -238,13 +252,13 @@ const editProperty = async (req, res) => {
       title,
       price,
       address,
-      facility,
+      facility: JSON.stringify(parsedFacility),
       description,
       beds,
       bathroom,
       sqrft: sqft,
       rate,
-      rules,
+      rules: JSON.stringify(parsedRules),
       ptype,
       latitude,
       longtitude,
@@ -254,6 +268,7 @@ const editProperty = async (req, res) => {
       image,
     });
 
+    // Return success response
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
@@ -262,7 +277,7 @@ const editProperty = async (req, res) => {
     });
   } catch (error) {
     console.error("Error occurred:", error.message, error.stack);
-    res.status(500).json({
+    return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
       ResponseMsg: "Internal Server Error",
@@ -271,19 +286,16 @@ const editProperty = async (req, res) => {
 };
 
 const getPropertyList = async (req, res) => {
-
-  const { uid } = req.query;
-
-
-  if (!uid) {
-    return res.status(400).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "User ID not provided",
-    });
-  }
-
   try {
+    const uid = req.user.id;
+
+    if (!uid) {
+      return res.status(400).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "User ID not provided",
+      });
+    }
 
     console.log("Fetching properties for user ID:", uid);
 
@@ -310,7 +322,6 @@ const getPropertyList = async (req, res) => {
         console.log("Facility IDs:", facilityIds);
 
         const facilityTitles = await TblFacility.findAll({
-
           where: { id: { [Op.in]: facilityIds } },
 
           attributes: ["title"],
@@ -324,7 +335,6 @@ const getPropertyList = async (req, res) => {
             book_status: "Completed",
 
             total_rate: { [Op.ne]: 0 },
-
           },
         });
 
@@ -413,6 +423,23 @@ const getPropertyTypes = async (req, res) => {
         ptype: ptype,
         status: 1,
       },
+      include: [
+        {
+          model: TblCategory,
+          as: "category",
+          attributes: ["title"],
+        },
+        {
+          model: TblFacility,
+          as: "facilities",
+          attributes: ["title"],
+        },
+        {
+          model: TblCountry,
+          as: "country",
+          attributes: ["title"],
+        },
+      ],
     });
 
     // Check if any types are found
@@ -425,9 +452,33 @@ const getPropertyTypes = async (req, res) => {
       });
     }
 
+
+    const formattedProperties = await Promise.all(
+      typeList.map(async (property) => {
+        const facilityIds = property.facility
+          ? property.facility
+              .split(",")
+              .map((id) => parseInt(id, 10))
+              .filter((id) => Number.isInteger(id))
+          : [];
+
+        const facilities = facilityIds.length
+          ? await TblFacility.findAll({
+              where: { id: facilityIds },
+              attributes: ["id", "title"],
+            })
+          : [];
+
+        return {
+          ...property.toJSON(),
+          facilities,
+        };
+      })
+    );
+
     // Success response
     res.status(200).json({
-      typelist: typeList,
+      typelist: formattedProperties,
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Property Type List Found!",
@@ -443,11 +494,18 @@ const getPropertyTypes = async (req, res) => {
   }
 };
 
-
 const getPropertyDetails = async (req, res) => {
-  const { pro_id, uid } = req.body; // Get data from request body
-
-  if (!pro_id || !uid) {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "User ID not provided",
+    });
+  }
+  const { pro_id } = req.body; // Get data from request body
+  console.log(pro_id);
+  if (!pro_id) {
     return res.status(400).json({
       ResponseCode: "401",
       Result: "false",
@@ -632,10 +690,9 @@ const getAllProperties = async (req, res) => {
   }
 };
 
-
 const searchPropertyByLocationAndDate = async (req, res) => {
   try {
-    const { location, check_in, check_out } = req.query;
+    const { location, check_in, check_out } = req.body;
 
     if (!location && (!check_in || !check_out)) {
       return res.status(400).json({
@@ -710,6 +767,76 @@ const searchPropertyByLocationAndDate = async (req, res) => {
   }
 };
 
+const searchPropertiesForWhereWhenWhooseComing = async (req, res) => {
+  try {
+    const { location, check_in, check_out, guests } = req.body;
+    if (!location) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Location is required",
+      });
+    }
+    let propertyFilter = { status: 1 };
+    if (location) {
+      propertyFilter.city = { [Op.like]: `%${location}%` };
+    }
+    let properties = await Property.findAll({
+      where: propertyFilter,
+    });
+    if (check_in && check_out) {
+      const availablePropertyIds = [];
+      for (const property of properties) {
+        const bookings = await TblBook.findAll({
+          where: {
+            prop_id: property.id,
+            book_status: { [Op.ne]: "Cancelled" },
+            [Op.or]: [
+              {
+                check_in: { [Op.between]: [check_in, check_out] },
+              },
+              {
+                check_out: { [Op.between]: [check_in, check_out] },
+              },
+            ],
+          },
+        });
+        if (bookings.length === 0) {
+          availablePropertyIds.push(property.id);
+        }
+      }
+      properties = properties.filter((property) =>
+        availablePropertyIds.includes(property.id)
+      );
+    }
+    if (!properties.length) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "No properties found for the given criteria.",
+      });
+    }
+    return res.status(200).json({
+      properties,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Properties fetched successfully!",
+    });
+  } catch (error) {
+    {
+      console.error(
+        "Error in searchPropertiesForWhereWhenWhooseComing:",
+        error
+      );
+      res.status(500).json({
+        ResponseCode: "500",
+        Result: "false",
+        ResponseMsg: "Internal Server Error",
+        error: error.message,
+      });
+    }
+  }
+};
 module.exports = {
   addProperty,
   editProperty,
@@ -718,4 +845,5 @@ module.exports = {
   getPropertyDetails,
   getAllProperties,
   searchPropertyByLocationAndDate,
+  searchPropertiesForWhereWhenWhooseComing,
 };

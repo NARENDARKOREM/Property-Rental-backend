@@ -29,6 +29,11 @@ const TblCountry = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
+    currency: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: "INR",
+    },
   },
   {
     tableName: "tbl_country",

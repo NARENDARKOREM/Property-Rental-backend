@@ -8,6 +8,7 @@ const { Op } = require("sequelize");
 const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
+const { TblCountry } = require("../models");
 
 function generateToken(user) {
   return jwt.sign(
@@ -174,42 +175,50 @@ async function userLogin(req, res) {
 //Role change controller
 
 async function requestRoleChange(req, res) {
-  const { requested_role, userId, deviceToken } = req.body;
+  const userId = req.user.id;
+  if (!userId) {
+    return res.status(400).json({ message: "User not found!" });
+  }
+  const { requested_role, deviceToken } = req.body;
 
   if (!requested_role || !["guest", "host"].includes(requested_role)) {
     return res.status(400).json({ message: "Invalid role requested." });
   }
-  if (!userId || !deviceToken) {
-    return res
-      .status(400)
-      .json({ message: "User ID and device token are required." });
+  if (!deviceToken) {
+    return res.status(400).json({ message: "User device token are required." });
   }
 
   try {
-    const newRequest = {
-      user_id: userId,
-      requested_role,
-      status: "pending",
-    };
-
-    const message = {
-      notification: {
-        title: "Role Change Request",
-        body: `User ${userId} requested to change role to ${requested_role}`,
-      },
-      token: deviceToken,
-    };
-
-    await admin.messaging().send(message);
-
-    const roleChangeRequest = await RoleChangeRequest.create(newRequest);
-
-    res.status(201).json({
-      message: "Role change request submitted successfully.",
-      request: roleChangeRequest,
+    const existingRequest = await RoleChangeRequest.findOne({
+      where: { user_id: userId },
     });
+
+    if (existingRequest) {
+      existingRequest.requested_role = requested_role;
+      existingRequest.status = "pending";
+      await existingRequest.save();
+
+      const message = {
+        notification: {
+          title: "Role Change Request Updated",
+          body: `User ${userId} updated the role change request to ${requested_role}`,
+        },
+        token: deviceToken,
+      };
+
+      await admin.messaging().send(message);
+
+      return res.status(200).json({
+        message: "Role change request updated successfully.",
+        request: existingRequest,
+      });
+    } else {
+      return res.status(404).json({
+        message: "No existing role change request found for this user.",
+      });
+    }
   } catch (error) {
-    console.error("Error sending notification:", error);
+    console.error("Error processing role change request:", error);
     res.status(500).json({ message: "Failed to process role change request." });
   }
 }
@@ -229,18 +238,16 @@ const googleAuth = async (req, res) => {
     const existingUserByEmail = await User.findOne({ where: { email } });
 
     if (existingUserByEmail) {
-      return res.status(401).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "Email Address Already Used!",
+      const token = generateToken(existingUserByEmail);
+      return res.status(200).json({
+        token,
+        ResponseCode: "200",
+        Result: "true",
+        ResponseMsg: "Login Successfully!",
       });
     }
 
-   
-
-   
     const timestamp = new Date();
-    
 
     // Create a new user
     const newUser = await User.create({
@@ -253,7 +260,6 @@ const googleAuth = async (req, res) => {
     // Generate a token for the user
     const token = generateToken(newUser);
     return res.status(201).json({
-      UserLogin: newUser,
       token,
       ResponseCode: "200",
       Result: "true",
@@ -270,10 +276,14 @@ const googleAuth = async (req, res) => {
 };
 
 const otpLogin = async (req, res) => {
-  const { mobile } = req.body;
+  const { ccode, mobile } = req.body;
 
   if (!mobile) {
     return res.status(400).json({ message: "Mobile number is required." });
+  }
+
+  if (!ccode) {
+    return res.status(400).json({ message: "Country code is required." });
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -291,7 +301,7 @@ const otpLogin = async (req, res) => {
     const timestamp = new Date();
     const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const [user, created] = await User.findOrCreate({
-      where: { mobile },
+      where: { mobile, ccode },
       defaults: { mobile, otp, otpExpiresAt, reg_date: timestamp },
     });
 
@@ -299,7 +309,8 @@ const otpLogin = async (req, res) => {
       await user.update({ otp, otpExpiresAt });
     }
 
-    res.status(200).json({ message: "OTP sent successfully.", otp }); 
+    await user.update({ status: 1 });
+    res.status(200).json({ message: "OTP sent successfully.", otp });
   } catch (error) {
     console.error("Error in otpLogin:", error.message);
     res
@@ -309,10 +320,16 @@ const otpLogin = async (req, res) => {
 };
 
 const verifyOtp = async (req, res) => {
-  const { mobile, otp } = req.body;
+  const { mobile, otp, ccode } = req.body;
 
-  if (!mobile || !otp) {
-    return res.status(400).json({ message: "mobile and OTP are required." });
+  if (!mobile) {
+    return res.status(400).json({ message: "Mobile number is required." });
+  }
+  if (!otp) {
+    return res.status(400).json({ message: "OTP is required." });
+  }
+  if (!ccode) {
+    return res.status(400).json({ message: "Country code is required." });
   }
 
   try {
@@ -331,7 +348,7 @@ const verifyOtp = async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    await user.update({ otp: null, otpExpiresAt: null });
+    await user.update({ status: 1, otp: null, otpExpiresAt: null });
 
     res.status(200).json({
       message: "OTP verified successfully.",
@@ -341,9 +358,11 @@ const verifyOtp = async (req, res) => {
         name: user.name,
         email: user.email,
         mobile: user.mobile,
+        ccode: user.ccode,
+        role: user.role,
+        country_id: user.country_id,
       },
     });
-    
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error verifying OTP." });
@@ -418,13 +437,21 @@ const getUsersCount = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const { name, gender, email, uid } = req.body;
+    const uid = req.user.id;
 
     if (!uid) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
         ResponseMsg: "User ID (uid) is required!",
+      });
+    }
+
+    if (req.user.id !== parseInt(uid, 10)) {
+      return res.status(403).json({
+        ResponseCode: "403",
+        Result: "false",
+        ResponseMsg: "You are not authorized to update this user's details!",
       });
     }
 
@@ -437,18 +464,48 @@ const updateUser = async (req, res) => {
       });
     }
 
-    const updateData = {};
-    if (name) updateData.name = name;
-    if (gender) updateData.gender = gender;
-    if (email) updateData.email = email;
+    const { name, gender, email, ccode, country_id, mobile } = req.body;
 
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (gender !== undefined) updateData.gender = gender;
+    if (email !== undefined) updateData.email = email;
+    if (ccode !== undefined) updateData.ccode = ccode;
+    if (country_id !== undefined) updateData.country_id = country_id;
+    if (mobile !== undefined) updateData.mobile = mobile;
+
+    // Fetch country and currency details if country_id is updated
+    if (country_id) {
+      const countryData = await TblCountry.findOne({
+        where: { id: country_id, status: 1 }, // Match country ID
+      });
+
+      if (!countryData) {
+        return res.status(404).json({
+          ResponseCode: "404",
+          Result: "false",
+          ResponseMsg: "Selected country is not valid or inactive!",
+        });
+      }
+
+      updateData.currency = countryData.currency; // Update currency based on the country
+    }
+
+    // Update user with new data
     await user.update(updateData);
+
+    // Fetch the list of available countries for response
+    const availableCountries = await TblCountry.findAll({
+      where: { status: 1 },
+      attributes: ["id", "title", "currency"], // Fetch id, title, and currency
+    });
 
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "User updated successfully!",
       user,
+      availableCountries, // Send country list in response
     });
   } catch (error) {
     console.error("Error updating user:", error);
@@ -462,8 +519,8 @@ const updateUser = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
-  const { id } = req.params; 
-  const { forceDelete } = req.query; 
+  const { id } = req.params;
+  const { forceDelete } = req.query;
 
   try {
     const user = await User.findOne({
@@ -502,13 +559,13 @@ const deleteUser = async (req, res) => {
 };
 
 const deleteUserAccount = async (req, res) => {
-  const { uid } = req.body;
+  const uid = req.user.id;
 
   if (!uid) {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "Something Went Wrong!",
+      ResponseMsg: "User not found!",
     });
   }
 
@@ -523,7 +580,6 @@ const deleteUserAccount = async (req, res) => {
       });
     }
 
-    
     await user.update({ status: 0 });
 
     return res.status(200).json({
@@ -540,7 +596,6 @@ const deleteUserAccount = async (req, res) => {
     });
   }
 };
-
 
 const handleToggle = async (req, res) => {
   const { id, field, value } = req.body;
@@ -570,18 +625,40 @@ const handleToggle = async (req, res) => {
 
 const uploadUserImage = async (req, res) => {
   try {
+    // Validate user authorization
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "Unauthorized user!",
+      });
+    }
+
+    // Validate file upload
+    if (!req.file) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "No file uploaded!",
+      });
+    }
+
     const params = {
       Bucket: process.env.S3_BUCKET_NAME,
       Key: `uploads/${Date.now()}-${req.file.originalname}`,
       Body: req.file.buffer,
     };
 
+    console.log("Uploading to S3 with params:", params);
+
+    // Upload to S3
     const command = new PutObjectCommand(params);
     const result = await s3.send(command);
+
     const imageUrl = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+    console.log("Image uploaded to S3:", imageUrl);
 
-    console.log(imageUrl, "image uploaded");
-
+    // Update user profile
     const user = await User.findByPk(req.user.id);
     if (!user) {
       return res.status(404).json({
@@ -601,7 +678,7 @@ const uploadUserImage = async (req, res) => {
       ResponseMsg: "Profile Image Uploaded Successfully!!",
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error uploading user image:", error.message, error.stack);
     return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
@@ -624,5 +701,5 @@ module.exports = {
   otpLogin,
   verifyOtp,
   uploadUserImage,
-  deleteUserAccount
+  deleteUserAccount,
 };

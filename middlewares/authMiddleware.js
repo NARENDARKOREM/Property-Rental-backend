@@ -4,7 +4,7 @@ const Admin = require("../models/Admin");
 
 exports.isAuthenticated = async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
-  console.log("Token received:", token); 
+  console.log("Token received:", token);
 
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: No token provided" });
@@ -27,6 +27,33 @@ exports.isAuthenticated = async (req, res, next) => {
       .status(401)
       .json({ error: "Unauthorized: Authentication failed" });
   }
+};
+
+exports.optionalAuth = async (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findByPk(decoded.userId);
+
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized: User not found" });
+      }
+
+      req.user = user; 
+    } catch (err) {
+      console.error("Authentication error:", err.message);
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: Invalid or expired token" });
+    }
+  }
+  else{
+    req.user = null;
+  }
+
+  next();
 };
 
 exports.authenticateToken = (req, res, next) => {
