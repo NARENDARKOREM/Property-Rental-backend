@@ -68,13 +68,13 @@ const checkDateAvailability = async (req, res) => {
         ResponseCode: "401",
         Result: "false",
         ResponseMsg: "That Date Range Already Booked!",
-        existingBookings: existingBookings.map((booking) => ({
-          bookingId: booking.id,
-          check_in: booking.check_in,
-          check_out: booking.check_out,
-          book_status: booking.book_status,
-          property: booking.properties,
-        })),
+        // existingBookings: existingBookings.map((booking) => ({
+        //   bookingId: booking.id,
+        //   check_in: booking.check_in,
+        //   check_out: booking.check_out,
+        //   book_status: booking.book_status,
+        //   property: booking.properties,
+        // })),
       });
     }
 

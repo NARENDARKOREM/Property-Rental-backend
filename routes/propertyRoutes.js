@@ -18,6 +18,9 @@ router.delete(
   propertyController.deleteProperty
 );
 router.patch("/toggle-status", propertyController.togglePropertyStatus);
-router.post("/fetch-by-countries", propertyController.fetchPropertiesByCountries);
+router.post(
+  "/fetch-by-countries",
+  propertyController.fetchPropertiesByCountries
+);
 
 module.exports = router;

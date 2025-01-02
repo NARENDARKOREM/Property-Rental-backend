@@ -1,8 +1,7 @@
 const Property = require("../models/Property");
 const fs = require("fs");
 const path = require("path");
-const TblCategory = require("../models/TblCategory");
-const TblCountry = require("../models/TblCountry");
+const { TblCategory, TblCountry } = require("../models");
 const TblFacility = require("../models/TblFacility");
 
 // Create or Update Property
@@ -30,12 +29,15 @@ const upsertProperty = async (req, res) => {
     country_id,
     plimit,
     is_sell,
+    adults,
+    children,
+    infants,
+    pets,
   } = req.body;
-
-  console.log(req.body, " from property");
 
   try {
     if (id) {
+      // Update existing property
       const property = await Property.findByPk(id);
       if (!property) {
         return res.status(404).json({ error: "Property not found" });
@@ -58,11 +60,14 @@ const upsertProperty = async (req, res) => {
         mobile,
         city,
         listing_date,
-        // add_user_id,
         rules,
         country_id,
         plimit,
         is_sell,
+        adults,
+        children,
+        infants,
+        pets,
       });
 
       await property.save();
@@ -70,7 +75,7 @@ const upsertProperty = async (req, res) => {
         .status(200)
         .json({ message: "Property updated successfully", property });
     } else {
-      // Create new property
+      // Create new property without adding add_user_id
       const property = await Property.create({
         title,
         image,
@@ -89,11 +94,15 @@ const upsertProperty = async (req, res) => {
         mobile,
         city,
         listing_date,
-        // add_user_id,
         rules,
         country_id,
         plimit,
         is_sell,
+        adults,
+        children,
+        infants,
+        pets,
+        // add_user_id is omitted, so it will be NULL by default
       });
       res
         .status(201)
@@ -257,7 +266,7 @@ const togglePropertyStatus = async (req, res) => {
   }
 };
 
-const fetchPropertiesByCountries= async (req, res) => { 
+const fetchPropertiesByCountries = async (req, res) => {
   try {
     const { country_id } = req.body;
     const properties = await Property.findAll({
@@ -306,7 +315,7 @@ const fetchPropertiesByCountries= async (req, res) => {
       .status(500)
       .json({ error: "Internal server error", details: error.message });
   }
-}
+};
 
 module.exports = {
   upsertProperty,

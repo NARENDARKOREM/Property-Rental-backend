@@ -36,7 +36,6 @@ Property.hasMany(TblBook, { foreignKey: "prop_id" });
 TblFav.belongsTo(Property, { foreignKey: "property_id", as: "property" });
 Property.hasMany(TblFav, { foreignKey: "property_id" });
 
-
 module.exports = {
   User,
   RoleChangeRequest,

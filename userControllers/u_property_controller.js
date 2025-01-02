@@ -31,6 +31,10 @@ const addProperty = async (req, res) => {
     country_id,
     plimit,
     is_sell,
+    adults,
+    children,
+    infants,
+    pets,
   } = req.body;
 
   const add_user_id = req.user.id;
@@ -109,6 +113,10 @@ const addProperty = async (req, res) => {
       country_id,
       plimit,
       is_sell,
+      adults,
+      children,
+      infants,
+      pets,
     });
     res.status(201).json({
       ResponseCode: "200",
@@ -735,6 +743,76 @@ const searchPropertyByLocationAndDate = async (req, res) => {
   }
 };
 
+const searchPropertiesForWhereWhenWhooseComing = async (req, res) => {
+  try {
+    const { location, check_in, check_out, guests } = req.body;
+    if (!location) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Location is required",
+      });
+    }
+    let propertyFilter = { status: 1 };
+    if (location) {
+      propertyFilter.city = { [Op.like]: `%${location}%` };
+    }
+    let properties = await Property.findAll({
+      where: propertyFilter,
+    });
+    if (check_in && check_out) {
+      const availablePropertyIds = [];
+      for (const property of properties) {
+        const bookings = await TblBook.findAll({
+          where: {
+            prop_id: property.id,
+            book_status: { [Op.ne]: "Cancelled" },
+            [Op.or]: [
+              {
+                check_in: { [Op.between]: [check_in, check_out] },
+              },
+              {
+                check_out: { [Op.between]: [check_in, check_out] },
+              },
+            ],
+          },
+        });
+        if (bookings.length === 0) {
+          availablePropertyIds.push(property.id);
+        }
+      }
+      properties = properties.filter((property) =>
+        availablePropertyIds.includes(property.id)
+      );
+    }
+    if (!properties.length) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "No properties found for the given criteria.",
+      });
+    }
+    return res.status(200).json({
+      properties,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Properties fetched successfully!",
+    });
+  } catch (error) {
+    {
+      console.error(
+        "Error in searchPropertiesForWhereWhenWhooseComing:",
+        error
+      );
+      res.status(500).json({
+        ResponseCode: "500",
+        Result: "false",
+        ResponseMsg: "Internal Server Error",
+        error: error.message,
+      });
+    }
+  }
+};
 module.exports = {
   addProperty,
   editProperty,
@@ -743,4 +821,5 @@ module.exports = {
   getPropertyDetails,
   getAllProperties,
   searchPropertyByLocationAndDate,
+  searchPropertiesForWhereWhenWhooseComing,
 };
