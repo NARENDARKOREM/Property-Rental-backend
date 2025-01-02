@@ -444,9 +444,33 @@ const getPropertyTypes = async (req, res) => {
       });
     }
 
+
+    const formattedProperties = await Promise.all(
+      typeList.map(async (property) => {
+        const facilityIds = property.facility
+          ? property.facility
+              .split(",")
+              .map((id) => parseInt(id, 10))
+              .filter((id) => Number.isInteger(id))
+          : [];
+
+        const facilities = facilityIds.length
+          ? await TblFacility.findAll({
+              where: { id: facilityIds },
+              attributes: ["id", "title"],
+            })
+          : [];
+
+        return {
+          ...property.toJSON(),
+          facilities,
+        };
+      })
+    );
+
     // Success response
     res.status(200).json({
-      typelist: typeList,
+      typelist: formattedProperties,
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Property Type List Found!",
