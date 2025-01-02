@@ -81,7 +81,7 @@ const Property = sequelize.define(
     },
     add_user_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     rules: {
       type: DataTypes.TEXT,
@@ -91,7 +91,19 @@ const Property = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    plimit: {
+    adults: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    children: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    infants: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    pets: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },

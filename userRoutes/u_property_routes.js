@@ -8,7 +8,7 @@ router.post(
   authMiddleware.isAuthenticated,
   userPropertyController.addProperty
 );
-router.post(
+router.patch(
   "/edit",
   authMiddleware.isAuthenticated,
   userPropertyController.editProperty
