@@ -758,10 +758,11 @@ const searchPropertyByLocationAndDate = async (req, res) => {
   }
 };
 
-const searchPropertiesForWhereWhenWhooseComing = async (req, res) => {
+const searchProperties = async (req, res) => {
   try {
     const { location, check_in, check_out, adults, children, infants, pets } =
       req.body;
+
     if (!location) {
       return res.status(400).json({
         ResponseCode: "400",
@@ -769,13 +770,16 @@ const searchPropertiesForWhereWhenWhooseComing = async (req, res) => {
         ResponseMsg: "Location is required",
       });
     }
+
+    // Initial property filter based on location and active status
     let propertyFilter = { status: 1 };
     if (location) {
       propertyFilter.city = { [Op.like]: `%${location}%` };
     }
-    let properties = await Property.findAll({
-      where: propertyFilter,
-    });
+
+    // Fetch properties matching location criteria
+    let properties = await Property.findAll({ where: propertyFilter });
+
     if (check_in && check_out) {
       const availablePropertyIds = [];
       for (const property of properties) {
@@ -790,17 +794,40 @@ const searchPropertiesForWhereWhenWhooseComing = async (req, res) => {
               {
                 check_out: { [Op.between]: [check_in, check_out] },
               },
+              {
+                [Op.and]: [
+                  { check_in: { [Op.lt]: check_in } },
+                  { check_out: { [Op.gt]: check_out } },
+                ],
+              },
             ],
           },
         });
+
+        // Add property to available list if no bookings conflict
         if (bookings.length === 0) {
           availablePropertyIds.push(property.id);
         }
       }
+
+      // Filter properties to only include available ones
       properties = properties.filter((property) =>
         availablePropertyIds.includes(property.id)
       );
     }
+
+    // Further filter properties based on guest details
+    if (adults || children || infants || pets) {
+      properties = properties.filter(
+        (property) =>
+          property.adults >= (adults || 0) &&
+          property.children >= (children || 0) &&
+          property.infants >= (infants || 0) &&
+          property.pets >= (pets || 0)
+      );
+    }
+
+    // Return response if no properties found
     if (!properties.length) {
       return res.status(404).json({
         ResponseCode: "404",
@@ -808,6 +835,8 @@ const searchPropertiesForWhereWhenWhooseComing = async (req, res) => {
         ResponseMsg: "No properties found for the given criteria.",
       });
     }
+
+    // Return matched properties
     return res.status(200).json({
       properties,
       ResponseCode: "200",
@@ -815,20 +844,16 @@ const searchPropertiesForWhereWhenWhooseComing = async (req, res) => {
       ResponseMsg: "Properties fetched successfully!",
     });
   } catch (error) {
-    {
-      console.error(
-        "Error in searchPropertiesForWhereWhenWhooseComing:",
-        error
-      );
-      res.status(500).json({
-        ResponseCode: "500",
-        Result: "false",
-        ResponseMsg: "Internal Server Error",
-        error: error.message,
-      });
-    }
+    console.error("Error in searchProperties:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
+
 module.exports = {
   addProperty,
   editProperty,
@@ -837,5 +862,5 @@ module.exports = {
   getPropertyDetails,
   getAllProperties,
   searchPropertyByLocationAndDate,
-  searchPropertiesForWhereWhenWhooseComing,
+  searchProperties,
 };

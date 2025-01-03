@@ -32,5 +32,6 @@ router.post(
 
 router.get("/all-properties", userPropertyController.getAllProperties);
 router.get("/search", userPropertyController.searchPropertyByLocationAndDate);
+router.post("/search-properties", userPropertyController.searchProperties);
 
 module.exports = router;
