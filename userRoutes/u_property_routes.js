@@ -33,5 +33,8 @@ router.post(
 router.get("/all-properties", userPropertyController.getAllProperties);
 router.get("/search", userPropertyController.searchPropertyByLocationAndDate);
 router.post("/search-properties", userPropertyController.searchProperties);
+router.get("/sort-price/:sort", userPropertyController.getSortedProperties);
+router.get("/sort-property-title/:sort", userPropertyController.getSortedPropertiestitle);
+
 
 module.exports = router;

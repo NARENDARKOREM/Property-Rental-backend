@@ -77,6 +77,7 @@ const getCoupons = async (req, res) => {
 };
 
 const applyCoupon = async (req, res) => {
+
   const uid = req.user.id;
   if (!uid) {
     return res.status(400).json({
@@ -103,6 +104,7 @@ const applyCoupon = async (req, res) => {
 
     if (!coupon) {
       return res.status(404).json({
+
         ResponseCode: "401",
         Result: "false",
         ResponseMsg: "Coupon Not Exist!!",
