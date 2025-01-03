@@ -22,5 +22,6 @@ router.post(
   "/fetch-by-countries",
   propertyController.fetchPropertiesByCountries
 );
+router.patch("/toggle-panorama", propertyController.isPanoramaToggle);
 
 module.exports = router;

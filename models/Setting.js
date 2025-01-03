@@ -102,7 +102,11 @@ const Setting = sequelize.define(
     admin_tax:{
       type:DataTypes.FLOAT,
       allowNull:false
-    }
+    },
+    cancellation_policy:{
+      type:DataTypes.TEXT,
+      allowNull:true
+    },
   },
   {
     tableName: "tbl_setting",

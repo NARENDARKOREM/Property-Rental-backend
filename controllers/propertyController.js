@@ -317,6 +317,31 @@ const fetchPropertiesByCountries = async (req, res) => {
   }
 };
 
+const isPanoramaToggle = async (req, res) => {
+  const { id, field, value } = req.body;
+
+  if (!id || typeof field !== "string" || value === undefined) {
+    return res.status(400).json({ message: "Invalid request payload" });
+  }
+
+  try {
+    const property = await Property.findByPk(id);
+
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    property[field] = value;
+    await property.save();
+
+    return res.status(200).json({ message: "Field updated successfully" });
+  } catch (error) {
+    console.error("Database error:", error);
+    return res.status(500).json({ message: "Database update failed" });
+  }
+};
+
+
 module.exports = {
   upsertProperty,
   getAllProperties,
@@ -325,4 +350,5 @@ module.exports = {
   getPropertyCount,
   togglePropertyStatus,
   fetchPropertiesByCountries,
+  isPanoramaToggle,
 };
