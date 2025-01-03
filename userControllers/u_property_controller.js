@@ -494,15 +494,9 @@ const getPropertyTypes = async (req, res) => {
 };
 
 const getPropertyDetails = async (req, res) => {
-  const uid = req.user.id;
-  if (!uid) {
-    return res.status(400).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "User ID not provided",
-    });
-  }
-  const { pro_id } = req.body; 
+  const uid = req.user?.id || null;
+
+  const { pro_id } = req.body;
   console.log(pro_id);
   if (!pro_id) {
     return res.status(400).json({
@@ -513,7 +507,6 @@ const getPropertyDetails = async (req, res) => {
   }
 
   try {
-    
     const property = await Property.findOne({ where: { id: pro_id } });
 
     if (!property) {
@@ -683,10 +676,7 @@ const getAllProperties = async (req, res) => {
 
 const getSortedProperties = async (req, res) => {
   try {
-    
-    const { sort } = req.params; 
-
-    
+    const { sort } = req.params;
 
     if (!sort || !["asc", "desc"].includes(sort.toLowerCase())) {
       return res.status(400).json({
@@ -696,8 +686,6 @@ const getSortedProperties = async (req, res) => {
       });
     }
 
-    
-
     // Fetch and sort properties based on price
     const properties = await Property.findAll({
       where: { status: 1 },
@@ -706,7 +694,7 @@ const getSortedProperties = async (req, res) => {
         { model: TblFacility, as: "facilities", attributes: ["title"] },
         { model: TblCountry, as: "country", attributes: ["title"] },
       ],
-      order: [["price", sort.toLowerCase()]], 
+      order: [["price", sort.toLowerCase()]],
     });
 
     if (!properties.length) {
@@ -763,10 +751,7 @@ const getSortedProperties = async (req, res) => {
 };
 const getSortedPropertiestitle = async (req, res) => {
   try {
-    
-    const { sort } = req.params; 
-
-    
+    const { sort } = req.params;
 
     if (!sort || !["asc", "desc"].includes(sort.toLowerCase())) {
       return res.status(400).json({
@@ -776,8 +761,6 @@ const getSortedPropertiestitle = async (req, res) => {
       });
     }
 
-    
-
     // Fetch and sort properties based on price
     const properties = await Property.findAll({
       where: { status: 1 },
@@ -786,7 +769,7 @@ const getSortedPropertiestitle = async (req, res) => {
         { model: TblFacility, as: "facilities", attributes: ["title"] },
         { model: TblCountry, as: "country", attributes: ["title"] },
       ],
-      order: [["title", sort.toLowerCase()]], 
+      order: [["title", sort.toLowerCase()]],
     });
 
     if (!properties.length) {
