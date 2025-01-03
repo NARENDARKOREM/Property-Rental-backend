@@ -26,7 +26,7 @@ router.post("/user/signin", userLogin);
 router.post("/user/googleauth", googleAuth);
 router.post("/user/otplogin", otpLogin);
 router.post("/user/verifyotp", verifyOtp);
-router.post("/user/changerole",authMiddleware.isAuthenticated, requestRoleChange);
+router.post("/user/changerole",authMiddleware.isAuthenticated,upload.single("image"), requestRoleChange);
 router.put("/user/forgotpassword",authMiddleware.isAuthenticated, forgotPassword);
 router.get("/user/getalluser",adminMiddleware.isAdmin, getAllusers);
 router.get("/user/count", adminMiddleware.isAdmin, getUsersCount);
