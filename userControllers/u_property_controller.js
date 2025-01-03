@@ -452,7 +452,6 @@ const getPropertyTypes = async (req, res) => {
       });
     }
 
-
     const formattedProperties = await Promise.all(
       typeList.map(async (property) => {
         const facilityIds = property.facility
@@ -571,13 +570,6 @@ const getPropertyDetails = async (req, res) => {
       attributes: ["img", "title"],
     });
 
-    // Fetch gallery images
-    const galleryImages = await TblGallery.findAll({
-      where: { pid: property.id },
-      limit: 5,
-      attributes: ["img"],
-    });
-
     // Check if the property is a favorite for the user
     const isFavorite = await TblFav.count({
       where: { uid: uid, property_id: property.id },
@@ -612,7 +604,6 @@ const getPropertyDetails = async (req, res) => {
     const response = {
       propetydetails: {
         id: property.id,
-        user_id: property.add_user_id,
         title: property.title,
         rate: rate,
         city: property.city,
@@ -632,6 +623,7 @@ const getPropertyDetails = async (req, res) => {
         owner_image: ownerImage,
         owner_name: ownerName,
         bathroom: property.bathroom,
+        rules: property.rules,
         sqrft: property.sqrft,
         description: property.description,
         latitude: property.latitude,
@@ -641,7 +633,6 @@ const getPropertyDetails = async (req, res) => {
         IS_FAVOURITE: isFavorite > 0,
       },
       facility: facilities,
-      gallery: galleryImages.map((img) => img.img),
       reviewlist: reviewList,
       total_review: totalReviewCount,
       ResponseCode: "200",
@@ -769,7 +760,8 @@ const searchPropertyByLocationAndDate = async (req, res) => {
 
 const searchPropertiesForWhereWhenWhooseComing = async (req, res) => {
   try {
-    const { location, check_in, check_out, guests } = req.body;
+    const { location, check_in, check_out, adults, children, infants, pets } =
+      req.body;
     if (!location) {
       return res.status(400).json({
         ResponseCode: "400",
