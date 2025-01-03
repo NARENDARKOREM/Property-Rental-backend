@@ -7,6 +7,8 @@ const TblFacility = require("../models/TblFacility");
 const TblFav = require("../models/TblFav");
 const TblGallery = require("../models/TblGallery");
 const TblEnquiry = require("../models/TblEnquiry");
+const Setting = require("../models/Setting");
+const TblExtraImage = require("../models/TableExtraImages");
 
 const addProperty = async (req, res) => {
   const {
@@ -160,6 +162,10 @@ const editProperty = async (req, res) => {
       country_id,
       is_sell,
       image,
+      adults,
+      children,
+      infants,
+      pets,
     } = req.body;
 
     console.log("Request Body:", req.body);
@@ -266,6 +272,10 @@ const editProperty = async (req, res) => {
       city: ccount,
       listing_date,
       image,
+      adults,
+      children,
+      infants,
+      pets,
     });
 
     // Return success response
@@ -507,7 +517,14 @@ const getPropertyDetails = async (req, res) => {
   }
 
   try {
-    const property = await Property.findOne({ where: { id: pro_id } });
+    const property = await Property.findOne({
+      where: {
+        id: pro_id,
+      },
+      include: [
+        { model: Setting, as: "setting", attributes: ["cancellation_policy"] },
+      ],
+    });
 
     if (!property) {
       return res.status(404).json({
@@ -520,6 +537,7 @@ const getPropertyDetails = async (req, res) => {
     // Fetch extra images
     const extraImages = await TblExtra.findAll({
       where: { pid: property.id },
+      include: [{ model: TblExtraImage, as: "images", attributes: ["url"] }],
       attributes: ["status"], // Ensure column name matches your schema
     });
 
@@ -593,6 +611,12 @@ const getPropertyDetails = async (req, res) => {
       where: { prop_id: pro_id, book_status: "Completed", is_rate: 1 },
     });
 
+    const propertyImage = property.image;
+    const panoramaStatus = property.is_panorama;
+    const gallery = extraImages.flatMap((extraImage) =>
+      extraImage.images.map((image) => image.url)
+    );
+
     // Construct the response
     const response = {
       propetydetails: {
@@ -600,7 +624,8 @@ const getPropertyDetails = async (req, res) => {
         title: property.title,
         rate: rate,
         city: property.city,
-        image: extraImages.map((img) => ({ is_panorama: img.extra_image })), // Adjusted to match your schema
+        image: [{ image: propertyImage, is_panorama: panoramaStatus }],
+        is_panorama: property.is_panorama,
         property_type: property.ptype,
         property_title: await TblCategory.findOne({
           where: { id: property.ptype },
@@ -623,9 +648,17 @@ const getPropertyDetails = async (req, res) => {
         mobile: property.mobile,
         plimit: property.plimit,
         longtitude: property.longtitude,
+        adults: property.adults,
+        children: property.children,
+        infants: property.infants,
+        pets: property.pets,
+        cancellation_policy: property.setting
+          ? property.setting.cancellation_policy
+          : null,
         IS_FAVOURITE: isFavorite > 0,
       },
       facility: facilities,
+      gallery: gallery,
       reviewlist: reviewList,
       total_review: totalReviewCount,
       ResponseCode: "200",

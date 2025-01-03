@@ -8,6 +8,7 @@ const TblExtraImage = require("./TableExtraImages");
 const TblFacility = require("./TblFacility");
 const TblBook = require("./TblBook");
 const TblFav = require("./TblFav");
+const Setting = require("./Setting");
 
 RoleChangeRequest.belongsTo(User, { foreignKey: "user_id", as: "user" });
 User.hasMany(RoleChangeRequest, {
@@ -36,6 +37,9 @@ Property.hasMany(TblBook, { foreignKey: "prop_id" });
 TblFav.belongsTo(Property, { foreignKey: "property_id", as: "property" });
 Property.hasMany(TblFav, { foreignKey: "property_id" });
 
+Property.belongsTo(Setting, { as: "setting", foreignKey: "setting_id" });
+Setting.hasMany(Property, { foreignKey: "setting_id" });
+
 module.exports = {
   User,
   RoleChangeRequest,
@@ -43,4 +47,5 @@ module.exports = {
   Property,
   TblCountry,
   TblExtra,
+  Setting,
 };

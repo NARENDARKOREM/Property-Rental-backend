@@ -112,6 +112,15 @@ const Property = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
+    setting_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    is_panorama: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
   },
   {
     tableName: "tbl_property",

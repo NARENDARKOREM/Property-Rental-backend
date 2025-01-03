@@ -25,6 +25,7 @@ const createSetting = async (req, res) => {
     privacy_policy,
     terms_conditions,
     admin_tax,
+    cancellation_policy,
   } = req.body;
 
   try {
@@ -52,6 +53,7 @@ const createSetting = async (req, res) => {
       privacy_policy,
       terms_conditions,
       admin_tax,
+      cancellation_policy,
     });
 
     res.status(201).json({ message: "Setting created successfully", setting });
@@ -105,6 +107,7 @@ const updateSetting = async (req, res) => {
     privacy_policy,
     terms_conditions,
     admin_tax,
+    cancellation_policy,
   } = req.body;
   let weblogo = req.body.weblogo;
   console.log(req.body);
@@ -139,7 +142,8 @@ const updateSetting = async (req, res) => {
       show_dark,
       privacy_policy,
       terms_conditions,
-      admin_tax
+      admin_tax,
+      cancellation_policy,
     });
 
     res.status(200).json({ message: "Setting updated successfully", setting });
