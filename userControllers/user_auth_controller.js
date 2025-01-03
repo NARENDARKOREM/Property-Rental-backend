@@ -361,6 +361,7 @@ const verifyOtp = async (req, res) => {
         ccode: user.ccode,
         role: user.role,
         country_id: user.country_id,
+        pro_pic:user.pro_pic
       },
     });
   } catch (error) {

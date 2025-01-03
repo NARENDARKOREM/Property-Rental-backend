@@ -503,7 +503,7 @@ const getPropertyDetails = async (req, res) => {
       ResponseMsg: "User ID not provided",
     });
   }
-  const { pro_id } = req.body; // Get data from request body
+  const { pro_id } = req.body; 
   console.log(pro_id);
   if (!pro_id) {
     return res.status(400).json({
@@ -514,7 +514,7 @@ const getPropertyDetails = async (req, res) => {
   }
 
   try {
-    // Fetch property details
+    
     const property = await Property.findOne({ where: { id: pro_id } });
 
     if (!property) {
@@ -690,6 +690,167 @@ const getAllProperties = async (req, res) => {
   }
 };
 
+const getSortedProperties = async (req, res) => {
+  try {
+    
+    const { sort } = req.params; 
+
+    
+
+    if (!sort || !["asc", "desc"].includes(sort.toLowerCase())) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid sort parameter. Use 'asc' or 'desc'.",
+      });
+    }
+
+    
+
+    // Fetch and sort properties based on price
+    const properties = await Property.findAll({
+      where: { status: 1 },
+      include: [
+        { model: TblCategory, as: "category", attributes: ["title"] },
+        { model: TblFacility, as: "facilities", attributes: ["title"] },
+        { model: TblCountry, as: "country", attributes: ["title"] },
+      ],
+      order: [["price", sort.toLowerCase()]], 
+    });
+
+    if (!properties.length) {
+      return res.status(200).json({
+        proplist: [],
+        ResponseCode: "200",
+        Result: "false",
+        ResponseMsg: "No properties found",
+      });
+    }
+
+    console.log("Fetched and sorted properties:", properties);
+
+    // Map through properties to enrich with additional details
+    const formattedProperties = await Promise.all(
+      properties.map(async (property) => {
+        const facilityIds = property.facility
+          ? property.facility
+              .split(",")
+              .map((id) => parseInt(id, 10))
+              .filter((id) => Number.isInteger(id))
+          : [];
+
+        const facilities = facilityIds.length
+          ? await TblFacility.findAll({
+              where: { id: facilityIds },
+              attributes: ["id", "title"],
+            })
+          : [];
+
+        return {
+          ...property.toJSON(),
+          facilities,
+        };
+      })
+    );
+
+    // Send the response
+    res.status(200).json({
+      proplist: formattedProperties,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Sorted properties found",
+    });
+  } catch (error) {
+    console.error("Error fetching sorted properties:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+      error: error.message || "Unknown error",
+    });
+  }
+};
+const getSortedPropertiestitle = async (req, res) => {
+  try {
+    
+    const { sort } = req.params; 
+
+    
+
+    if (!sort || !["asc", "desc"].includes(sort.toLowerCase())) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid sort parameter. Use 'asc' or 'desc'.",
+      });
+    }
+
+    
+
+    // Fetch and sort properties based on price
+    const properties = await Property.findAll({
+      where: { status: 1 },
+      include: [
+        { model: TblCategory, as: "category", attributes: ["title"] },
+        { model: TblFacility, as: "facilities", attributes: ["title"] },
+        { model: TblCountry, as: "country", attributes: ["title"] },
+      ],
+      order: [["title", sort.toLowerCase()]], 
+    });
+
+    if (!properties.length) {
+      return res.status(200).json({
+        proplist: [],
+        ResponseCode: "200",
+        Result: "false",
+        ResponseMsg: "No properties found",
+      });
+    }
+
+    console.log("Fetched and sorted properties:", properties);
+
+    // Map through properties to enrich with additional details
+    const formattedProperties = await Promise.all(
+      properties.map(async (property) => {
+        const facilityIds = property.facility
+          ? property.facility
+              .split(",")
+              .map((id) => parseInt(id, 10))
+              .filter((id) => Number.isInteger(id))
+          : [];
+
+        const facilities = facilityIds.length
+          ? await TblFacility.findAll({
+              where: { id: facilityIds },
+              attributes: ["id", "title"],
+            })
+          : [];
+
+        return {
+          ...property.toJSON(),
+          facilities,
+        };
+      })
+    );
+
+    // Send the response
+    res.status(200).json({
+      proplist: formattedProperties,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Sorted properties found",
+    });
+  } catch (error) {
+    console.error("Error fetching sorted properties:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+      error: error.message || "Unknown error",
+    });
+  }
+};
+
 const searchPropertyByLocationAndDate = async (req, res) => {
   try {
     const { location, check_in, check_out } = req.body;
@@ -844,6 +1005,9 @@ module.exports = {
   getPropertyTypes,
   getPropertyDetails,
   getAllProperties,
+  getSortedProperties,
+  getSortedPropertiestitle,
   searchPropertyByLocationAndDate,
   searchPropertiesForWhereWhenWhooseComing,
+
 };
