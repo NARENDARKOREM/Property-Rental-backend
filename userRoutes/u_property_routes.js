@@ -16,25 +16,20 @@ router.patch(
 router.get(
   "/list",
   authMiddleware.isAuthenticated,
-  userPropertyController.getPropertyList  
+  userPropertyController.getPropertyList
 );
 
-router.post(
-  "/types",
-  userPropertyController.getPropertyTypes
-);
+router.post("/types", userPropertyController.getPropertyTypes);
 
-router.post(
-  "/u_property_details",
-  authMiddleware.isAuthenticated,
-  userPropertyController.getPropertyDetails
-);
+router.post("/u_property_details", userPropertyController.getPropertyDetails);
 
 router.get("/all-properties", userPropertyController.getAllProperties);
 router.get("/search", userPropertyController.searchPropertyByLocationAndDate);
 router.post("/search-properties", userPropertyController.searchProperties);
 router.get("/sort-price/:sort", userPropertyController.getSortedProperties);
-router.get("/sort-property-title/:sort", userPropertyController.getSortedPropertiestitle);
-
+router.get(
+  "/sort-property-title/:sort",
+  userPropertyController.getSortedPropertiestitle
+);
 
 module.exports = router;
