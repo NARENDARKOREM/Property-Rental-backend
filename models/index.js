@@ -40,6 +40,9 @@ Property.hasMany(TblFav, { foreignKey: "property_id" });
 Property.belongsTo(Setting, { as: "setting", foreignKey: "setting_id" });
 Setting.hasMany(Property, { foreignKey: "setting_id" });
 
+TblBook.belongsTo(User, { foreignKey: "uid", as: "User" });
+User.hasMany(TblBook, { foreignKey: "uid", as: "Bookings" });
+
 module.exports = {
   User,
   RoleChangeRequest,

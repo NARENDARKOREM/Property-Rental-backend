@@ -10,4 +10,11 @@ router.put(
   reviewController.updateRating
 );
 
+router.post(
+  "/create",
+  authMiddleware.isAuthenticated,
+  reviewController.createReview
+);
+router.get("/fetch-reviews/:prop_id", reviewController.fetchReviews);
+
 module.exports = router;

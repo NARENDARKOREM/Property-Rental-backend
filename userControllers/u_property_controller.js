@@ -104,7 +104,7 @@ const addProperty = async (req, res) => {
       bathroom,
       sqrft,
       rate,
-      rules: JSON.stringify(rules),
+      rules,
       ptype,
       latitude,
       longtitude,
@@ -521,9 +521,7 @@ const getPropertyDetails = async (req, res) => {
       where: {
         id: pro_id,
       },
-      include: [
-        { model: Setting, as: "setting", attributes: ["cancellation_policy"] },
-      ],
+      include: [{ model: Setting, as: "setting" }],
     });
 
     if (!property) {
@@ -534,11 +532,16 @@ const getPropertyDetails = async (req, res) => {
       });
     }
 
+    const setting = property.setting || null;
+    console.log("Cancellation Policy:", setting?.cancellation_policy);
+
+    const rulesArray = JSON.parse(property.rules);
+
     // Fetch extra images
     const extraImages = await TblExtra.findAll({
       where: { pid: property.id },
       include: [{ model: TblExtraImage, as: "images", attributes: ["url"] }],
-      attributes: ["status"], // Ensure column name matches your schema
+      attributes: ["status"],
     });
 
     // Fetch completed bookings for rating
@@ -561,17 +564,30 @@ const getPropertyDetails = async (req, res) => {
         : property.rate;
 
     // Fetch owner details
-    let ownerImage = "images/property/owner.jpg";
-    let ownerName = "Host";
+    const ownerDetails = await User.findOne({
+      where: { id: property.add_user_id },
+      attributes: ["id", "pro_pic", "name", "email", "mobile"],
+    });
 
-    if (property.add_user_id !== 0) {
-      const ownerData = await User.findOne({
-        where: { id: property.add_user_id },
-        attributes: ["pro_pic", "name"],
+    if (!ownerDetails) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "Owner not found!",
       });
-      ownerImage = ownerData?.pro_pic || ownerImage;
-      ownerName = ownerData?.name || ownerName;
     }
+
+    // let ownerImage = ownerDetails.pro_pic || "images/property/owner.jpg";
+    // let ownerName = ownerDetails.name || "Host";
+
+    // if (property.add_user_id !== 0) {
+    //   const ownerData = await User.findOne({
+    //     where: { id: property.add_user_id },
+    //     attributes: ["pro_pic", "name"],
+    //   });
+    //   ownerImage = ownerData?.pro_pic || ownerImage;
+    //   ownerName = ownerData?.name || ownerName;
+    // }
 
     // Fetch facilities
     const facilities = await TblFacility.findAll({
@@ -588,13 +604,17 @@ const getPropertyDetails = async (req, res) => {
 
     // Fetch reviews
     const reviews = await TblBook.findAll({
-      where: { prop_id: pro_id, book_status: "Completed", is_rate: 1 },
+      where: {
+        prop_id: pro_id,
+        book_status: ["Completed", "Confirmed"],
+        is_rate: 1,
+      },
       limit: 3,
     });
 
     const reviewList = await Promise.all(
       reviews.map(async (review) => {
-        const userData = await TblUser.findOne({
+        const userData = await User.findOne({
           where: { id: review.uid },
           attributes: ["pro_pic", "name"],
         });
@@ -638,10 +658,8 @@ const getPropertyDetails = async (req, res) => {
         }),
         address: property.address,
         beds: property.beds,
-        owner_image: ownerImage,
-        owner_name: ownerName,
         bathroom: property.bathroom,
-        rules: property.rules,
+        rules: rulesArray,
         sqrft: property.sqrft,
         description: property.description,
         latitude: property.latitude,
@@ -652,11 +670,17 @@ const getPropertyDetails = async (req, res) => {
         children: property.children,
         infants: property.infants,
         pets: property.pets,
-        cancellation_policy: property.setting
-          ? property.setting.cancellation_policy
-          : null,
+        cancellation_policy: setting ? setting.cancellation_policy : null,
         IS_FAVOURITE: isFavorite > 0,
+        owner: {
+          id: ownerDetails.id,
+          name: ownerDetails.name,
+          pro_pic: ownerDetails.pro_pic,
+          email: ownerDetails.email,
+          phone: ownerDetails.mobile,
+        },
       },
+
       facility: facilities,
       gallery: gallery,
       reviewlist: reviewList,
@@ -679,8 +703,15 @@ const getPropertyDetails = async (req, res) => {
 };
 
 const getAllProperties = async (req, res) => {
+  // User added Properties
+  const uid = req.user?.id;
+  if (!uid) {
+    return res.status(404).json({ message: "User not found!" });
+  }
   try {
-    const properties = await Property.findAll({ where: { status: 1 } });
+    const properties = await Property.findAll({
+      where: { status: 1, add_user_id: uid },
+    });
 
     if (!properties || properties.length === 0) {
       return res.status(404).json({
@@ -690,8 +721,48 @@ const getAllProperties = async (req, res) => {
       });
     }
 
+    const ownerDetails = await User.findOne({
+      where: { id: uid },
+      attributes: ["id", "pro_pic", "name", "email", "mobile"],
+    });
+
+    if (!ownerDetails) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "False",
+        ResponseMsg: "Owner not found!",
+      });
+    }
+
+    const propertiesWithProcessedRules = properties.map((property) => {
+      if (typeof property.rules === "string") {
+        try {
+          const parsedRules = JSON.parse(property.rules);
+          if (Array.isArray(parsedRules)) {
+            property.rules = parsedRules.join(", ");
+          } else {
+            property.rules = property.rules
+              .split(",")
+              .map((rule) => rule.trim())
+              .join(", ");
+          }
+        } catch (error) {
+          console.error("Error parsing rules:", error);
+        }
+      } else if (Array.isArray(property.rules)) {
+        property.rules = property.rules.join(", ");
+      }
+      return property;
+    });
+
     res.status(200).json({
-      properties: properties,
+      properties: propertiesWithProcessedRules,
+      owner: {
+        id: ownerDetails.id,
+        name: ownerDetails.name,
+        email: ownerDetails.email,
+        phone: ownerDetails.mobile,
+      },
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Properties fetched successfully!",
