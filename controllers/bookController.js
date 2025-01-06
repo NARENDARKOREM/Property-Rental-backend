@@ -290,6 +290,45 @@ const getUserNotifications = async (req, res) => {
   }
 };
 
+const seAllDetails = async (req, res) => {
+  const { id, status } = req.params;
+
+  try {
+    // Validate input
+    if (!id || !status) {
+      return res.status(400).json({ error: 'Both id and status are required' });
+    }
+
+    // Fetch booking with associated data
+    const booking = await TblBook.findOne({
+      where: { id, book_status: status }, // Correct field name for `status`
+      include: [
+        {
+          model: User,
+          as: 'userDetails', // Ensure this alias matches your association
+          attributes: ['id', 'name', 'email', 'phone'], // Only fetch necessary fields
+        },
+        {
+          model: Property,
+          as: 'property', // Ensure this alias matches your association
+          attributes: ['id', 'title', 'address', 'price', 'image'], // Only fetch necessary fields
+        },
+      ],
+    });
+
+    // Handle no booking found
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    // Return the booking details
+    res.status(200).json(booking);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+};
+
+
 module.exports = {
   createBooking,
   getBookingDetailsByUser,
@@ -300,4 +339,5 @@ module.exports = {
   gettingAllBookings,
   getUserNotifications,
   getBookingCountByStatus,
+  seAllDetails
 };

@@ -178,50 +178,52 @@ async function requestRoleChange(req, res) {
   const userId = req.user?.id;
   const { requested_role, id_proof } = req.body;
 
+  // Validate input
   if (!userId) {
     return res.status(400).json({ message: "User not found!" });
   }
   if (!requested_role || !["guest", "host"].includes(requested_role)) {
     return res.status(400).json({ message: "Invalid role requested." });
   }
-  // if (!deviceToken) {
-  //   return res.status(400).json({ message: "User device token is required." });
-  // }
-
-  let imageUrl = null;
-
-  // Handle file upload for host role
-  if (requested_role === "host") {
-    if (!req.file) {
-      return res.status(400).json({ message: "ID proof image is required." });
-    }
-
-    const params = {
-      Bucket: process.env.S3_BUCKET_NAME,
-      Key: `uploads/${Date.now()}-${req.file.originalname}`,
-      Body: req.file.buffer,
-    };
-
-    try {
-      console.log("Uploading to S3 with params:", params);
-      const command = new PutObjectCommand(params);
-      await s3.send(command);
-
-      imageUrl = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
-      console.log("Image uploaded to S3:", imageUrl);
-    } catch (error) {
-      console.error("Error uploading to S3:", error);
-      return res.status(500).json({ message: "Failed to upload ID proof image." });
-    }
-  }
 
   try {
-    const existingRequest = await RoleChangeRequest.findOne({
-      where: { user_id: userId },
-    });
+    // Fetch user details
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found!" });
+    }
+    if (user.role === requested_role) {
+      return res.status(400).json({ message: "User already has the requested role." });
+    }
+
+    let imageUrl = null;
+
+    // Handle ID proof upload for host role
+    if (requested_role === "host") {
+      if (!req.file) {
+        return res.status(400).json({ message: "ID proof image is required." });
+      }
+
+      try {
+        const s3Params = {
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: `uploads/${Date.now()}-${req.file.originalname}`,
+          Body: req.file.buffer,
+        };
+        const command = new PutObjectCommand(s3Params);
+        await s3.send(command);
+        imageUrl = `https://${s3Params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Params.Key}`;
+      } catch (uploadError) {
+        console.error("Error uploading to S3:", uploadError);
+        return res.status(500).json({ message: "Failed to upload ID proof image." });
+      }
+    }
+
+    // Check for existing role change requests
+    const existingRequest = await RoleChangeRequest.findOne({ where: { user_id: userId } });
 
     if (existingRequest) {
-      // Update existing role change request
+      // Update existing request
       existingRequest.requested_role = requested_role;
       existingRequest.status = "pending";
       existingRequest.id_proof = id_proof || existingRequest.id_proof;
@@ -229,16 +231,6 @@ async function requestRoleChange(req, res) {
         existingRequest.id_proof_img = imageUrl;
       }
       await existingRequest.save();
-
-      // Send notification
-      // const message = {
-      //   notification: {
-      //     title: "Role Change Request Updated",
-      //     body: `Your role change request to ${requested_role} has been updated.`,
-      //   },
-      //   token: deviceToken,
-      // };
-      // await admin.messaging().send(message);
 
       return res.status(200).json({
         message: "Role change request updated successfully.",
@@ -261,9 +253,10 @@ async function requestRoleChange(req, res) {
     }
   } catch (error) {
     console.error("Error processing role change request:", error);
-    return res.status(500).json({ message: "Failed to process role change request."});
+    return res.status(500).json({ message: "Failed to process role change request." });
   }
 }
+
 
 
 
