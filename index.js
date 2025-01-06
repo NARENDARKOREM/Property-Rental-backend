@@ -44,6 +44,7 @@ const WalletReport = require("./models/WalletReport");
 const Page = require("./models/Page");
 const RoleChangeRequest = require("./models/RoleChangeRequest");
 const foreignKeysetup = require("./models/index");
+const PriceCalendar = require('./models/PriceCalendar');
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 // Routes
@@ -122,7 +123,6 @@ app.use("/host-request", hostRequestRoutes);
 app.use("/person-records", personRecordRoutes);
 app.use("/plans", planRoutes);
 app.use("/payout-settings", payoutRoutes);
-
 app.use("/faqs", faqRoutes);
 
 app.use("/u_dashboard", require("./userRoutes/user_dashboard_route"));

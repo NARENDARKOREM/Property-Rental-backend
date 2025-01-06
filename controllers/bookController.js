@@ -232,12 +232,14 @@ const getBookingCountByStatus = async (req, res) => {
 
 // Cancel a Booking
 const cancelBooking = async (req, res) => {
-  const { id } = req.params;
   const { cancle_reason } = req.body;
   const uid = req.user.id;
+  if (!uid) {
+    return res.status(404).json({ message: "User not found!" });
+  }
 
   try {
-    const booking = await TblBook.findOne({ where: { id, uid } });
+    const booking = await TblBook.findOne({ where: { uid } });
     if (!booking) {
       return res.status(404).json({ error: "Booking not found" });
     }

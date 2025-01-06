@@ -204,6 +204,7 @@ async function requestRoleChange(req, res) {
         return res.status(400).json({ message: "ID proof image is required." });
       }
 
+
       try {
         const s3Params = {
           Bucket: process.env.S3_BUCKET_NAME,
@@ -217,6 +218,7 @@ async function requestRoleChange(req, res) {
         console.error("Error uploading to S3:", uploadError);
         return res.status(500).json({ message: "Failed to upload ID proof image." });
       }
+
     }
 
     const existingPendingRequest = await RoleChangeRequest.findOne({
@@ -265,11 +267,11 @@ async function requestRoleChange(req, res) {
     }
   } catch (error) {
     console.error("Error processing role change request:", error);
+
     return res.status(500).json({ message: "Failed to process role change request." });
+
   }
 }
-
-
 
 const googleAuth = async (req, res) => {
   const { name, email, pro_pic } = req.body;
@@ -342,9 +344,8 @@ const otpLogin = async (req, res) => {
     //   `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${mobile}/${otp}`
     // );
 
-
-    // if (response.data.Status !== 'Success') {
-    //   return res.status(500).json({ message: 'Failed to send OTP.' });
+    // if (response.data.Status !== "Success") {
+    //   return res.status(500).json({ message: "Failed to send OTP." });
     // }
     const timestamp = new Date();
     const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
