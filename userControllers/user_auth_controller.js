@@ -175,17 +175,44 @@ async function userLogin(req, res) {
 //Role change controller
 
 async function requestRoleChange(req, res) {
-  const userId = req.user.id;
+  const userId = req.user?.id;
+  const { requested_role, id_proof } = req.body;
+
   if (!userId) {
     return res.status(400).json({ message: "User not found!" });
   }
-  const { requested_role, deviceToken } = req.body;
-
   if (!requested_role || !["guest", "host"].includes(requested_role)) {
     return res.status(400).json({ message: "Invalid role requested." });
   }
-  if (!deviceToken) {
-    return res.status(400).json({ message: "User device token are required." });
+  // if (!deviceToken) {
+  //   return res.status(400).json({ message: "User device token is required." });
+  // }
+
+  let imageUrl = null;
+
+  // Handle file upload for host role
+  if (requested_role === "host") {
+    if (!req.file) {
+      return res.status(400).json({ message: "ID proof image is required." });
+    }
+
+    const params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: `uploads/${Date.now()}-${req.file.originalname}`,
+      Body: req.file.buffer,
+    };
+
+    try {
+      console.log("Uploading to S3 with params:", params);
+      const command = new PutObjectCommand(params);
+      await s3.send(command);
+
+      imageUrl = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+      console.log("Image uploaded to S3:", imageUrl);
+    } catch (error) {
+      console.error("Error uploading to S3:", error);
+      return res.status(500).json({ message: "Failed to upload ID proof image." });
+    }
   }
 
   try {
@@ -194,34 +221,51 @@ async function requestRoleChange(req, res) {
     });
 
     if (existingRequest) {
+      // Update existing role change request
       existingRequest.requested_role = requested_role;
       existingRequest.status = "pending";
+      existingRequest.id_proof = id_proof || existingRequest.id_proof;
+      if (imageUrl) {
+        existingRequest.id_proof_img = imageUrl;
+      }
       await existingRequest.save();
 
-      const message = {
-        notification: {
-          title: "Role Change Request Updated",
-          body: `User ${userId} updated the role change request to ${requested_role}`,
-        },
-        token: deviceToken,
-      };
-
-      await admin.messaging().send(message);
+      // Send notification
+      // const message = {
+      //   notification: {
+      //     title: "Role Change Request Updated",
+      //     body: `Your role change request to ${requested_role} has been updated.`,
+      //   },
+      //   token: deviceToken,
+      // };
+      // await admin.messaging().send(message);
 
       return res.status(200).json({
         message: "Role change request updated successfully.",
         request: existingRequest,
       });
     } else {
-      return res.status(404).json({
-        message: "No existing role change request found for this user.",
+      // Create new role change request
+      const newRequest = await RoleChangeRequest.create({
+        user_id: userId,
+        requested_role,
+        id_proof,
+        id_proof_img: imageUrl,
+        status: "pending",
+      });
+
+      return res.status(201).json({
+        message: "Role change request created successfully.",
+        request: newRequest,
       });
     }
   } catch (error) {
     console.error("Error processing role change request:", error);
-    res.status(500).json({ message: "Failed to process role change request." });
+    return res.status(500).json({ message: "Failed to process role change request."});
   }
 }
+
+
 
 const googleAuth = async (req, res) => {
   const { name, email, pro_pic } = req.body;
@@ -293,6 +337,7 @@ const otpLogin = async (req, res) => {
     // const response = await axios.get(
     //   `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${mobile}/${otp}`
     // );
+
 
     // if (response.data.Status !== 'Success') {
     //   return res.status(500).json({ message: 'Failed to send OTP.' });

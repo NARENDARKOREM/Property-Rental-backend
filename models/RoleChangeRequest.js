@@ -18,6 +18,14 @@ const RoleChangeRequest = sequelize.define(
       type: DataTypes.ENUM("guest", "host"),
       allowNull: false,
     },
+    id_proof:{
+          type: DataTypes.STRING,
+          allowNull:false,
+    },
+    id_proof_img:{
+          type: DataTypes.STRING,
+          allowNull:false,
+    },
     status: {
       type: DataTypes.ENUM("pending", "approved", "rejected"),
       defaultValue: "pending",
