@@ -211,7 +211,9 @@ async function requestRoleChange(req, res) {
       console.log("Image uploaded to S3:", imageUrl);
     } catch (error) {
       console.error("Error uploading to S3:", error);
-      return res.status(500).json({ message: "Failed to upload ID proof image." });
+      return res
+        .status(500)
+        .json({ message: "Failed to upload ID proof image." });
     }
   }
 
@@ -261,11 +263,11 @@ async function requestRoleChange(req, res) {
     }
   } catch (error) {
     console.error("Error processing role change request:", error);
-    return res.status(500).json({ message: "Failed to process role change request."});
+    return res
+      .status(500)
+      .json({ message: "Failed to process role change request." });
   }
 }
-
-
 
 const googleAuth = async (req, res) => {
   const { name, email, pro_pic } = req.body;
@@ -334,14 +336,13 @@ const otpLogin = async (req, res) => {
 
   try {
     // Uncomment the following if using an actual OTP service
-    // const response = await axios.get(
-    //   `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${mobile}/${otp}`
-    // );
+    const response = await axios.get(
+      `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${mobile}/${otp}`
+    );
 
-
-    // if (response.data.Status !== 'Success') {
-    //   return res.status(500).json({ message: 'Failed to send OTP.' });
-    // }
+    if (response.data.Status !== "Success") {
+      return res.status(500).json({ message: "Failed to send OTP." });
+    }
     const timestamp = new Date();
     const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const [user, created] = await User.findOrCreate({

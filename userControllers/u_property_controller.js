@@ -645,7 +645,7 @@ const getPropertyDetails = async (req, res) => {
         rate: rate,
         city: property.city,
         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
-        is_panorama: property.is_panorama,
+        // is_panorama: property.is_panorama,
         property_type: property.ptype,
         property_title: await TblCategory.findOne({
           where: { id: property.ptype },

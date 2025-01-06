@@ -47,6 +47,9 @@ router.post(
   authMiddleware.isAuthenticated,
   userBookings.myUserCancelBookings
 );
-router.get("/current-bookings", authMiddleware.isAuthenticated,userBookings.currentBookingStatus)
+router.get("/current-bookings", authMiddleware.isAuthenticated,userBookings.currentBookingStatus);
+router.get("/pending-bookings",authMiddleware.isAuthenticated,userBookings.pendingBookings);
+router.get("/past-bookings",authMiddleware.isAuthenticated,userBookings.pastBookings);
+router.get("/upcoming-bookings",authMiddleware.isAuthenticated,userBookings.upcomingBookings);
 
 module.exports = router;
