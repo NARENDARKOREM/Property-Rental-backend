@@ -35,6 +35,7 @@ const upsertProperty = async (req, res) => {
     pets,
   } = req.body;
 
+  console.log(req.body,"from bodyyyyyyyyy")
   try {
     if (id) {
       // Update existing property
