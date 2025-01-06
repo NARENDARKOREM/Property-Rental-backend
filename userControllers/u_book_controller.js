@@ -2,7 +2,7 @@ const User = require("../models/User");
 const PersonRecord = require("../models/PersonRecord");
 const TblBook = require("../models/TblBook");
 const Property = require("../models/Property");
-const { Op, or } = require("sequelize");
+const { Op, or, where } = require("sequelize");
 // const { sendResponse } = require("../utils");
 const PaymentList = require("../models/PaymentList");
 const TblNotification = require("../models/TblNotification");
@@ -880,7 +880,115 @@ const pendingBookings = async (req, res) => {
   if (!uid) {
     return res.status(404).json({ message: "User not found!" });
   }
-  const { status } = req.body;
+  try {
+    const bookings = await TblBook.findAll({
+      where: {
+        add_user_id: uid,
+        book_status: "Booked",
+      },
+      include: {
+        model: Property,
+        as: "properties",
+        add_user_id: uid,
+        attributes: [
+          "id",
+          "title",
+          "address",
+          "price",
+          "facility",
+          "rules",
+          "image",
+        ],
+      },
+    });
+
+    if (bookings.length === 0) {
+      return res.status(404).json({ message: "No pending bookings found!" });
+    }
+    res.status(200).json({
+      message: "Pending Bookings Fetched Successfully!",
+      bookings,
+    });
+  } catch (error) {
+    console.error("Error Fetching Pending Bookings.");
+    return res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+const pastBookings = async (req, res) => {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).json({ message: "User not found!" });
+  }
+  try {
+    const bookings = await TblBook.findAll({
+      where: {
+        add_user_id: uid,
+        book_status: ["Completed", "Cancelled"],
+      },
+      include: {
+        model: Property,
+        as: "properties",
+        add_user_id: uid,
+        attributes: [
+          "id",
+          "title",
+          "price",
+          "facility",
+          "rules",
+          "price",
+          "image",
+        ],
+      },
+    });
+    if (bookings.length === 0) {
+      return res.status(401).json({ message: "No Past Bookings Found!" });
+    }
+    res.status(201).json({
+      message: "Past Bookings Fetched Successfullu!",
+      bookings,
+    });
+  } catch (error) {
+    console.error("Error fetching Past Bookings", error);
+    return res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+const upcomingBookings = async (req, res) => {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).json({ message: "User not found!" });
+  }
+  try {
+    const bookings = await TblBook.findAll({
+      where: {
+        add_user_id: uid,
+        book_status: "Confirmed",
+      },
+      include: {
+        model: Property,
+        as: "properties",
+        add_user_id: uid,
+        attributes: [
+          "id",
+          "title",
+          "price",
+          "facility",
+          "rules",
+          "price",
+          "image",
+        ],
+      },
+    });
+    if(bookings.length === 0){
+      return res.status(404).json({message:"No Upcoming Bookings Found!"});
+    }
+    res.status(201).json({message:"Upcoming Bookings Fetched Successfully!",bookings})
+  } catch (error) {}
 };
 
 module.exports = {
@@ -892,6 +1000,9 @@ module.exports = {
   cancelBooking,
   getBookingsByStatus,
   currentBookingStatus,
+  pendingBookings,
+  pastBookings,
+  upcomingBookings,
 
   getMyUserBookings,
   getMyUserBookingDetails,
