@@ -4,7 +4,7 @@ const User = require("../models/User");
 exports.getPendingRoleChangeRequests = async (req, res) => {
   try {
     const pendingRequests = await RoleChangeRequest.findAll({
-      // where: { status: "pending" },
+      where: { status: "pending" },
       include: [{ model: User,as: "user",attributes: ['id', 'name', 'email', 'role'] }],
     });
     res.status(200).json(pendingRequests);

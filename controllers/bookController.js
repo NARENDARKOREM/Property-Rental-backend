@@ -21,9 +21,17 @@ const createBooking = async (req, res) => {
     book_for,
     noguest,
   } = req.body;
-  const uid = req.user.id; // Get the user ID from the authenticated user
-  console.log("Authenticated user ID in createBooking: ", uid); // Log user ID
-  const book_date = new Date(); // Current date as booking date
+  const uid = req.user.id; 
+  console.log("Authenticated user ID in createBooking: ", uid); 
+  const book_date = new Date(); 
+
+  if (!prop_id || !uid || !check_in || !check_out || !subtotal || !total || !tax || !p_method_id ) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Something Went Wrong!",
+    });
+  }
 
   try {
     // Check if the property exists
@@ -40,12 +48,41 @@ const createBooking = async (req, res) => {
 
     const total_day = Math.ceil(
       (new Date(check_out) - new Date(check_in)) / (1000 * 60 * 60 * 24)
-    ); // Calculate total days
-    const prop_price = total / total_day; // Calculate property price
+    ); 
+    const prop_price = total / total_day; 
+
+    const conflictingBookings = await TblBook.findAll({
+      where: {
+        prop_id,
+        [Op.or]: [
+          {
+            check_in: {
+              [Op.between]: [check_in, check_out],
+            },
+          },
+          {
+            check_out: {
+              [Op.between]: [check_in, check_out],
+            },
+          },
+        ],
+        book_status: {
+          [Op.not]: "Cancelled",
+        },
+      },
+    });
+
+    if (conflictingBookings.length > 0) {
+      return res.status(200).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "That Date Range Already Booked!",
+      });
+    }
 
     const newBooking = await TblBook.create({
       prop_id,
-      uid, // Ensure this is the authenticated user's ID
+      uid, 
       book_date,
       check_in,
       check_out,
@@ -62,14 +99,31 @@ const createBooking = async (req, res) => {
       book_status: "Booked",
       total_day,
       prop_price,
-      prop_img: property.image || "", // Use property image if not provided in the request
-      prop_title: property.title || "", // Use property title if not provided in the request
-      add_user_id: uid, // Ensure this is the authenticated user's ID
+      prop_img: property.image || "", 
+      prop_title: property.title || "", 
+      add_user_id:property.add_user_id , 
     });
+
+
+    // const notificationContent = {
+    //   app_id: process.env.ONESIGNAL_APP_ID,
+    //   included_segments: ["Active Users"],
+    //   data: { order_id: newBooking.id, type: "normal" },
+    //   filters: [{ field: "tag", key: "user_id", relation: "=", value: uid }],
+    //   contents: { en: `${user.name}, Your Booking #${newBooking.id} Has Been Received.` },
+    //   headings: { en: "Booking Received!!" },
+    // };
+
+    // await axios.post("https://onesignal.com/api/v1/notifications", notificationContent, {
+    //   headers: {
+    //     "Content-Type": "application/json; charset=utf-8",
+    //     Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+    //   },
+    // });
 
     // Send notification
     await TblNotification.create({
-      uid, // Ensure this is the authenticated user's ID
+      uid, 
       datetime: new Date(),
       title: "Booking Confirmed",
       description: `Your booking for property ID ${prop_id} has been confirmed. Check-in: ${new Date(
