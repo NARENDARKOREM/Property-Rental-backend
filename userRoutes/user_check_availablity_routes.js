@@ -4,15 +4,5 @@ const bookingController = require("../userControllers/user_check_availability_co
 const authMiddleware = require("../middlewares/authMiddleware");
 
 router.post("/check-availability", bookingController.checkDateAvailability);
-router.post("/confirm-booking", bookingController.confirmBooking);
-router.post(
-  "/check-in",
-  authMiddleware.isAuthenticated,
-  bookingController.checkIn
-);
-router.post(
-  "/check-out",
-  authMiddleware.isAuthenticated,
-  bookingController.checkOut
-);
+
 module.exports = router;

@@ -2,9 +2,10 @@ const User = require("../models/User");
 const PersonRecord = require("../models/PersonRecord");
 const TblBook = require("../models/TblBook");
 const Property = require("../models/Property");
-const { Op } = require("sequelize");
+const { Op, or } = require("sequelize");
 // const { sendResponse } = require("../utils");
 const PaymentList = require("../models/PaymentList");
+const TblNotification = require("../models/TblNotification");
 
 const sendResponse = (res, code, result, msg, additionalData = {}) => {
   res.status(code).json({
@@ -31,7 +32,6 @@ const createBooking = async (req, res) => {
     add_note,
     transaction_id,
     cou_amt,
-    wall_amt,
     noguest,
     fname,
     lname,
@@ -40,6 +40,10 @@ const createBooking = async (req, res) => {
     mobile,
     ccode,
     country,
+    adults,
+    children,
+    infants,
+    pets,
   } = req.body;
 
   // Validation
@@ -64,6 +68,28 @@ const createBooking = async (req, res) => {
       return sendResponse(res, 401, "false", "User Not Found!");
     }
 
+    // Fetch property details
+    const property = await Property.findOne({
+      where: { id: prop_id, status: 1 },
+    });
+
+    if (!property) {
+      return sendResponse(res, 401, "false", "Property Not Found!");
+    }
+    if (
+      adults > property.adults ||
+      children > property.children ||
+      infants > property.infants ||
+      pets > property.pets
+    ) {
+      return sendResponse(
+        res,
+        401,
+        "false",
+        `Guests limit exceeded! Adults: ${property.adults}, Children: ${property.children}, Infants: ${property.infants}, Pets: ${property.pets}`
+      );
+    }
+
     // Check date availability
     const existingBookings = await TblBook.findOne({
       where: {
@@ -78,15 +104,6 @@ const createBooking = async (req, res) => {
 
     if (existingBookings) {
       return sendResponse(res, 401, "false", "That Date Range Already Booked!");
-    }
-
-    // Fetch property details
-    const property = await Property.findOne({
-      where: { id: prop_id, status: 1 },
-    });
-
-    if (!property) {
-      return sendResponse(res, 401, "false", "Property Not Found!");
     }
 
     // Create booking with status as 'Confirmed'
@@ -106,12 +123,15 @@ const createBooking = async (req, res) => {
       add_note,
       transaction_id,
       cou_amt,
-      wall_amt,
       prop_title: property.title,
       prop_img: property.image,
       add_user_id: property.add_user_id,
       noguest,
-      book_status: "Confirmed", // Set status to Confirmed
+      adults,
+      children,
+      infants,
+      pets,
+      book_status: "Booked", // Set status to Booked
     });
 
     // If booking is for another person, save their details
@@ -129,7 +149,7 @@ const createBooking = async (req, res) => {
     }
 
     // Return booking details along with the property details
-    return sendResponse(res, 200, "true", "Booking Confirmed Successfully!!!", {
+    return sendResponse(res, 200, "true", "Booking Booked Successfully!!!", {
       book_id: booking.id,
       booking_details: booking,
       property_details: property,
@@ -137,6 +157,69 @@ const createBooking = async (req, res) => {
   } catch (error) {
     console.error("Error creating booking:", error);
     return sendResponse(res, 500, "false", "Internal Server Error!");
+  }
+};
+
+const confirmBooking = async (req, res) => {
+  const uid = req.user.id;
+  if (!uid) {
+    return sendResponse(res, 401, "false", "User Not Found!");
+  }
+  const { book_id } = req.body;
+  if (!book_id) {
+    return sendResponse(res, 401, "false", "book_id is Required!");
+  }
+
+  try {
+    const booking = await TblBook.findOne({
+      where: { id: book_id, uid: uid, book_status: "Booked" },
+    });
+    if (!booking) {
+      return sendResponse(
+        res,
+        404,
+        "false",
+        "Booking not found or already confirmed!"
+      );
+    }
+    booking.book_status = "Confirmed";
+    await booking.save();
+    const user = await User.findByPk(uid);
+
+    // Send push notification or email (update the notification logic as required)
+    const message = {
+      notification: {
+        title: "Booking Confirmed",
+        body: `${user.name}, Your booking for ${booking.prop_title} has been confirmed! Your Booking ID is ${booking.id}`,
+      },
+      data: {
+        order_id: booking.id,
+        type: "booking",
+      },
+      topic: `booking_${uid}`,
+    };
+
+    // Create a notification record in the database
+    await TblNotification.create({
+      uid: uid,
+      datetime: new Date(),
+      title: "Booking Confirmed",
+      description: `Your booking for ${booking.prop_title} has been confirmed! Your Booking ID is ${booking.id}`,
+    });
+
+    // Return success response
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Property Booking Confirmed Successfully!",
+    });
+  } catch (error) {
+    console.error("Error confirming booking:", error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error!",
+    });
   }
 };
 
@@ -185,7 +268,6 @@ const getBookingDetails = async (req, res) => {
       total: booking.total,
       tax: booking.tax,
       cou_amt: booking.cou_amt,
-      wall_amt: booking.wall_amt,
       transaction_id: booking.transaction_id,
       p_method_id: booking.p_method_id,
       add_note: booking.add_note,
@@ -250,6 +332,106 @@ const getBookingDetails = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching booking details:", error);
+    return sendResponse(res, 500, "false", "Internal Server Error!");
+  }
+};
+
+const userCheckIn = async (req, res) => {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).json({ message: "User Not Found!" });
+  }
+  const { book_id } = req.body;
+
+  if (!book_id) {
+    return sendResponse(res, 401, "false", "book_id is Required!");
+  }
+
+  try {
+    const booking = await TblBook.findOne({
+      where: { id: book_id, uid: uid, book_status: "Confirmed" },
+      include: [
+        {
+          model: Property,
+          as: "properties",
+          attributes: [
+            "id",
+            "title",
+            "facility",
+            "ptype",
+            "price",
+            "address",
+            "rate",
+          ],
+        },
+      ],
+    });
+
+    if (!booking) {
+      return sendResponse(
+        res,
+        404,
+        "false",
+        "Booking not found, or you don't have permission to check-in this booking!"
+      );
+    }
+
+    await TblBook.update(
+      { book_status: "Check_in" },
+      { where: { id: book_id, uid } }
+    );
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Checked In Successfully!",
+      booking: {
+        id: booking.id,
+        check_in: booking.check_in,
+        check_out: booking.check_out,
+        book_status: booking.book_status,
+        property: booking.properties,
+      },
+    });
+  } catch (error) {
+    console.error("Error checking in:", error);
+    return sendResponse(res, 500, "false", "Internal Server Error!");
+  }
+};
+
+const userCheckOut = async (req, res) => {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).json({ message: "User Not Found!" });
+  }
+  const { book_id } = req.body;
+
+  if (!book_id) {
+    return sendResponse(res, 401, "false", "book_id is Required!");
+  }
+
+  try {
+    const booking = await TblBook.findOne({
+      where: { id: book_id, uid: uid, book_status: "Check_in" },
+    });
+
+    if (!booking) {
+      return sendResponse(
+        res,
+        404,
+        "false",
+        "Booking not found, or you don't have permission to check-out this booking!"
+      );
+    }
+
+    await TblBook.update(
+      { book_status: "Completed" },
+      { where: { id: book_id, uid } }
+    );
+
+    return sendResponse(res, 200, "true", "Checked Out Successfully!");
+  } catch (error) {
+    console.error("Error checking out:", error);
     return sendResponse(res, 500, "false", "Internal Server Error!");
   }
 };
@@ -562,7 +744,6 @@ const getMyUserBookingDetails = async (req, res) => {
       tax: booking.tax,
       cou_amt: booking.cou_amt,
       noguest: booking.noguest,
-      wall_amt: booking.wall_amt,
       transaction_id: booking.transaction_id,
       p_method_id: booking.p_method_id,
       add_note: booking.add_note,
@@ -651,11 +832,66 @@ const myUserCancelBookings = async (req, res) => {
   }
 };
 
+// Booking Status
+const currentBookingStatus = async (req, res) => {
+  const uid = req.user?.id;
+
+  if (!uid) {
+    return res.status(404).json({ message: "User not found!" });
+  }
+
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date();
+  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+  const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+  try {
+    // Fetch bookings confirmed for today
+    const bookings = await TblBook.findAll({
+      where: {
+        uid: uid,
+        book_status: "Confirmed",
+        book_date: {
+          [Op.between]: [startOfDay, endOfDay],
+        },
+      },
+    });
+
+    if (bookings.length === 0) {
+      return res
+        .status(200)
+        .json({ message: "No confirmed bookings for today." });
+    }
+
+    res.status(200).json({
+      message: "Confirmed bookings fetched successfully!",
+      bookings: bookings,
+    });
+  } catch (error) {
+    console.error("Error fetching current booking status:", error);
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+const pendingBookings = async (req, res) => {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(404).json({ message: "User not found!" });
+  }
+  const { status } = req.body;
+};
+
 module.exports = {
   createBooking,
+  confirmBooking,
+  userCheckIn,
+  userCheckOut,
   getBookingDetails,
   cancelBooking,
   getBookingsByStatus,
+  currentBookingStatus,
 
   getMyUserBookings,
   getMyUserBookingDetails,

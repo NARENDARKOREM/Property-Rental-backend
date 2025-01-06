@@ -338,7 +338,7 @@ const otpLogin = async (req, res) => {
     //   `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${mobile}/${otp}`
     // );
 
-    
+
     // if (response.data.Status !== 'Success') {
     //   return res.status(500).json({ message: 'Failed to send OTP.' });
     // }
@@ -405,7 +405,7 @@ const verifyOtp = async (req, res) => {
         ccode: user.ccode,
         role: user.role,
         country_id: user.country_id,
-        pro_pic:user.pro_pic
+        pro_pic: user.pro_pic,
       },
     });
   } catch (error) {

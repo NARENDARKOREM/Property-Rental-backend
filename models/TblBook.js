@@ -124,6 +124,22 @@ const TblBook = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    adults: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    children: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    infants: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    pets: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
   },
   {
     tableName: "tbl_book",

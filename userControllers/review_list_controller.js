@@ -1,3 +1,4 @@
+const { User } = require("../models");
 const TblBook = require("../models/TblBook");
 const { Op } = require("sequelize");
 
@@ -103,7 +104,145 @@ const updateRating = async (req, res) => {
   }
 };
 
+const createReview = async (req, res) => {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "User not found!",
+    });
+  }
+
+  const { prop_id, total_rate, rate_text } = req.body;
+
+  if (!prop_id || !total_rate || !rate_text) {
+    return res.status(400).json({
+      ResponseCode: "400",
+      Result: "false",
+      ResponseMsg: "Invalid Fields! All fields are required.",
+    });
+  }
+
+  try {
+    // Check if the user has a confirmed or completed booking for the property
+    const booking = await TblBook.findOne({
+      where: {
+        prop_id,
+        uid,
+        book_status: {
+          [Op.or]: ["Confirmed", "Completed"], // Only allow reviews for confirmed or completed bookings
+        },
+      },
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "Booking not found or not eligible for review!",
+      });
+    }
+
+    // Update the booking with the rating and review
+    const updated = await TblBook.update(
+      {
+        total_rate,
+        rate_text,
+        is_rate: 1,
+      },
+      {
+        where: {
+          prop_id,
+          uid,
+        },
+      }
+    );
+
+    if (updated[0] === 0) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "Booking not found or already rated!",
+      });
+    }
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Rate Updated Successfully!",
+    });
+  } catch (error) {
+    console.error("Error updating rating:", error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+    });
+  }
+};
+
+const fetchReviews = async (req, res) => {
+  const { prop_id } = req.params; // Fetch property ID from the URL parameters
+
+  if (!prop_id) {
+    return res.status(400).json({
+      ResponseCode: "400",
+      Result: "false",
+      ResponseMsg: "Property ID is required!",
+    });
+  }
+
+  try {
+    const reviews = await TblBook.findAll({
+      where: {
+        prop_id,
+        is_rate: 1, 
+      },
+      attributes: ["uid", "total_rate", "rate_text", "createdAt"], 
+      include: [
+        {
+          model: User,
+          as: "User",
+          attributes: ["name", "email"],
+        },
+      ],
+      order: [["createdAt", "DESC"]], 
+    });
+
+    if (!reviews || reviews.length === 0) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "No reviews found for this property!",
+      });
+    }
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Reviews fetched successfully!",
+      reviews: reviews.map((review) => ({
+        user: review.User.name,
+        email: review.User.email,
+        rating: review.total_rate,
+        review: review.rate_text,
+        createdAt: review.createdAt,
+      })),
+    });
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+    });
+  }
+};
+
 module.exports = {
   getReviews,
   updateRating,
+  createReview,
+  fetchReviews,
 };
