@@ -40,4 +40,6 @@ router.post(
   bookController.searchBookingsByDate
 );
 
+router.get("/status/:status/:id",bookController.seAllDetails)
+
 module.exports = router;

@@ -205,6 +205,7 @@ async function requestRoleChange(req, res) {
       }
 
 
+
       try {
         const s3Params = {
           Bucket: process.env.S3_BUCKET_NAME,
@@ -224,6 +225,7 @@ async function requestRoleChange(req, res) {
     const existingPendingRequest = await RoleChangeRequest.findOne({
       where: { user_id: userId, status: "pending" },
     });
+
 
     if (existingPendingRequest) {
       return res.status(400).json({
@@ -268,10 +270,12 @@ async function requestRoleChange(req, res) {
   } catch (error) {
     console.error("Error processing role change request:", error);
 
+
     return res.status(500).json({ message: "Failed to process role change request." });
 
   }
 }
+
 
 const googleAuth = async (req, res) => {
   const { name, email, pro_pic } = req.body;
