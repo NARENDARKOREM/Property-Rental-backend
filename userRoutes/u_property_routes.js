@@ -23,13 +23,22 @@ router.post("/types", userPropertyController.getPropertyTypes);
 
 router.post("/u_property_details", userPropertyController.getPropertyDetails);
 
-router.get("/all-properties",authMiddleware.isAuthenticated, userPropertyController.getAllProperties);
+router.get(
+  "/all-properties",
+  authMiddleware.isAuthenticated,
+  userPropertyController.getAllProperties
+);
 router.get("/search", userPropertyController.searchPropertyByLocationAndDate);
 router.post("/search-properties", userPropertyController.searchProperties);
 router.get("/sort-price/:sort", userPropertyController.getSortedProperties);
 router.get(
   "/sort-property-title/:sort",
   userPropertyController.getSortedPropertiestitle
+);
+router.delete(
+  "/delete-property/:propertyId",
+  authMiddleware.isAuthenticated,
+  userPropertyController.deleteUserProperty
 );
 
 module.exports = router;
