@@ -80,6 +80,7 @@ const upsertProperty = async (req, res) => {
       const property = await Property.create({
         title,
         image,
+        is_panorama,
         price,
         status,
         address,
@@ -97,7 +98,6 @@ const upsertProperty = async (req, res) => {
         listing_date,
         rules,
         country_id,
-        plimit,
         is_sell,
         adults,
         children,
