@@ -725,7 +725,7 @@ const uploadUserImage = async (req, res) => {
     user.pro_pic = imageUrl;
     await user.save();
 
-    return res.status(200).json({
+    return res.status(200).json({ 
       userDetails: user,
       ResponseCode: "200",
       Result: "true",

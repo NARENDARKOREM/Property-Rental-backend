@@ -44,7 +44,7 @@ const WalletReport = require("./models/WalletReport");
 const Page = require("./models/Page");
 const RoleChangeRequest = require("./models/RoleChangeRequest");
 const foreignKeysetup = require("./models/index");
-const PriceCalendar = require('./models/PriceCalendar');
+const PriceCalendar = require("./models/PriceCalendar");
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 // Routes
@@ -81,6 +81,7 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(
   cors({
@@ -130,14 +131,13 @@ app.use("/u_dashboard", require("./userRoutes/user_dashboard_route"));
 const userPropertyRoutes = require("./userRoutes/u_property_routes");
 const userBookings = require("./userRoutes/u_book_routes");
 const checkInAvailabilityRoutes = require("./userRoutes/user_check_availablity_routes");
+const priceCalendarRoutes = require('./userRoutes/u_price_calendar_routes');
 
 app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/u_paymentgateway", require("./userRoutes/user_paymentgateway_route"));
 app.use("/user/bookings", userBookings);
-
 app.use("/favorites", userFavorites);
 app.use("/user/properties", userPropertyRoutes);
-
 app.use("/u_country", usercountryRoutes);
 
 app.use("/u_facility", require("./userRoutes/user_facilities_route"));
@@ -147,8 +147,8 @@ app.use("/review", require("./userRoutes/review_list_route"));
 app.use("/coupon", require("./userRoutes/u_couponlist_route"));
 app.use("/faq", require("./userRoutes/u_faq_route"));
 app.use("/u_homedata", require("./userRoutes/u_homedata_route"));
-
 app.use("/check-availability", checkInAvailabilityRoutes);
+app.use("/price-calendar", priceCalendarRoutes);
 
 app.get("/", (req, res) => {
   // const query

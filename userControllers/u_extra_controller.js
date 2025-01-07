@@ -246,4 +246,51 @@ const getExtraImages = async (req, res) => {
   }
 };
 
-module.exports = { editExtraImages, addExtraImages, getExtraImages };
+const deleteExtraImage = async(req, res)=>{
+  const {extra_id}=req.query;
+  if (!extra_id) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Missing Image ID!",
+    });
+  }
+  try {
+    const extraImage = await TblExtraImage.findOne({where:{id:extra_id}});
+    if (!extraImage) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "Image not found!",
+      });
+    }
+    const key = extraImage.url.split('.amazonaws.com/')[1];
+    const params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+    };
+
+    await s3.deleteObject(params).promise();
+
+    await TblExtraImage.destroy({
+      where: { id: extra_id },
+    });
+
+    res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Image deleted successfully",
+    });
+
+  } catch (error) {
+    console.error("Error deleting image: ", error);
+    return res.status(500).json({
+      ResponseCode:"500",
+      Result:"false",
+      ResponseMsg:"Failed to delete image."
+    })
+  }
+  
+}
+
+module.exports = { editExtraImages, addExtraImages, getExtraImages, deleteExtraImage };

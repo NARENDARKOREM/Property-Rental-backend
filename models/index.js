@@ -9,6 +9,7 @@ const TblFacility = require("./TblFacility");
 const TblBook = require("./TblBook");
 const TblFav = require("./TblFav");
 const Setting = require("./Setting");
+const PriceCalendar = require("./PriceCalendar");
 
 RoleChangeRequest.belongsTo(User, { foreignKey: "user_id", as: "user" });
 User.hasMany(RoleChangeRequest, {
@@ -43,6 +44,9 @@ Setting.hasMany(Property, { foreignKey: "setting_id" });
 TblBook.belongsTo(User, { foreignKey: "uid", as: "User" });
 User.hasMany(TblBook, { foreignKey: "uid", as: "Bookings" });
 
+PriceCalendar.belongsTo(Property, { foreignKey: "prop_id", as: "property" });
+Property.hasMany(PriceCalendar, { foreignKey: "prop_id", as: "priceCalendars" });
+
 module.exports = {
   User,
   RoleChangeRequest,
@@ -51,4 +55,5 @@ module.exports = {
   TblCountry,
   TblExtra,
   Setting,
+  PriceCalendar,
 };

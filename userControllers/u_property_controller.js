@@ -1,5 +1,5 @@
 const { Op, where } = require("sequelize");
-const { TblCategory, TblExtra, User } = require("../models");
+const { TblCategory, TblExtra, User, PriceCalendar } = require("../models");
 const Property = require("../models/Property");
 const TblBook = require("../models/TblBook");
 const TblCountry = require("../models/TblCountry");
@@ -55,7 +55,6 @@ const addProperty = async (req, res) => {
   if (
     !is_sell ||
     !country_id ||
-    !plimit ||
     !status ||
     !title ||
     !image ||
@@ -77,7 +76,7 @@ const addProperty = async (req, res) => {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "Something Went Wrong!",
+      ResponseMsg: "Fields Required!",
     });
   }
 
@@ -114,7 +113,6 @@ const addProperty = async (req, res) => {
       listing_date: new Date(),
       add_user_id,
       country_id,
-      plimit,
       is_sell,
       adults,
       children,
@@ -160,7 +158,6 @@ const editProperty = async (req, res) => {
       listing_date,
       price,
       prop_id,
-      plimit,
       country_id,
       is_sell,
       image,
@@ -256,7 +253,6 @@ const editProperty = async (req, res) => {
     await property.update({
       is_sell,
       country_id,
-      plimit,
       status,
       title,
       price,
@@ -508,11 +504,199 @@ const getPropertyTypes = async (req, res) => {
   }
 };
 
+// const getPropertyDetails = async (req, res) => {
+//   const uid = req.user?.id || null;
+//   const { pro_id } = req.body;
+
+//   if (!pro_id) {
+//     return res.status(400).json({
+//       ResponseCode: "401",
+//       Result: "false",
+//       ResponseMsg: "Invalid input data!",
+//     });
+//   }
+
+//   try {
+//     const property = await Property.findOne({
+//       where: { id: pro_id },
+//     });
+
+//     if (!property) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "false",
+//         ResponseMsg: "Property not found!",
+//       });
+//     }
+
+//     const today = new Date().toISOString().split("T")[0];
+
+//     // Fetch price from PriceCalendar for the given date and property
+//     const priceEntry = await PriceCalendar.findOne({
+//       where: {
+//         prop_id: pro_id,
+//         date: today,
+//       },
+//     });
+
+//     // If a price entry exists for today, override the default price
+//     if (priceEntry) {
+//       property.price = priceEntry.price; // Override the price with the new one from PriceCalendar
+//     }
+
+//     const rulesArray = JSON.parse(property.rules);
+
+//     const extraImages = await TblExtra.findAll({
+//       where: { pid: property.id },
+//       include: [{ model: TblExtraImage, as: "images", attributes: ["url"] }],
+//       attributes: ["status"],
+//     });
+
+//     const completedBookings = await TblBook.findAll({
+//       where: {
+//         prop_id: property.id,
+//         book_status: "Completed",
+//         total_rate: { [Op.ne]: 0 },
+//       },
+//     });
+
+//     const category = await TblCategory.findOne({
+//       where: { id: property.ptype },
+//       attributes: ["title"],
+//     });
+
+//     const settings = await Setting.findOne({
+//       where: { id: property.setting_id },
+//       attributes: ["cancellation_policy"],
+//       paranoid: false,
+//     });
+
+//     const rate =
+//       completedBookings.length > 0
+//         ? (
+//             completedBookings.reduce(
+//               (sum, booking) => sum + booking.total_rate,
+//               0
+//             ) / completedBookings.length
+//           ).toFixed(2)
+//         : property.rate;
+
+//     let ownerDetails = null;
+//     if (property.add_user_id !== 0) {
+//       ownerDetails = await User.findOne({
+//         where: { id: property.add_user_id },
+//         attributes: ["id", "pro_pic", "name", "email", "mobile"],
+//       });
+//     }
+
+//     const facilities = await TblFacility.findAll({
+//       where: {
+//         id: { [Op.in]: property.facility.split(",") },
+//       },
+//       attributes: ["img", "title"],
+//     });
+
+//     const isFavorite = await TblFav.count({
+//       where: { uid: uid, property_id: property.id },
+//     });
+
+//     const reviews = await TblBook.findAll({
+//       where: {
+//         prop_id: pro_id,
+//         book_status: ["Completed", "Confirmed"],
+//         is_rate: 1,
+//       },
+//       limit: 3,
+//     });
+
+//     const reviewList = await Promise.all(
+//       reviews.map(async (review) => {
+//         const userData = await User.findOne({
+//           where: { id: review.uid },
+//           attributes: ["pro_pic", "name"],
+//         });
+//         return {
+//           user_img: userData?.pro_pic || null,
+//           user_title: userData?.name || null,
+//           user_rate: review.total_rate,
+//           user_desc: review.rate_text,
+//         };
+//       })
+//     );
+
+//     const totalReviewCount = await TblBook.count({
+//       where: { prop_id: pro_id, book_status: "Completed", is_rate: 1 },
+//     });
+
+//     const propertyImage = property.image;
+//     const panoramaStatus = property.is_panorama;
+//     const gallery = extraImages.flatMap((extraImage) =>
+//       extraImage.images.map((image) => image.url)
+//     );
+
+//     const response = {
+//       propetydetails: {
+//         id: property.id,
+//         title: property.title,
+//         rate: rate,
+//         city: property.city,
+//         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
+//         property_type: property.ptype,
+//         property_title: category?.title,
+//         price: property.price,
+//         buyorrent: property.pbuysell,
+//         address: property.address,
+//         beds: property.beds,
+//         bathroom: property.bathroom,
+//         rules: rulesArray,
+//         sqrft: property.sqrft,
+//         description: property.description,
+//         latitude: property.latitude,
+//         mobile: property.mobile,
+//         plimit: property.plimit,
+//         longtitude: property.longtitude,
+//         adults: property.adults,
+//         children: property.children,
+//         infants: property.infants,
+//         pets: property.pets,
+//         cancellation_policy:
+//           settings?.cancellation_policy || "No cancellation policy available",
+//         IS_FAVOURITE: isFavorite > 0,
+//         owner: ownerDetails
+//           ? {
+//               id: ownerDetails.id,
+//               name: ownerDetails.name,
+//               pro_pic: ownerDetails.pro_pic,
+//               email: ownerDetails.email,
+//               phone: ownerDetails.mobile,
+//             }
+//           : null,
+//       },
+//       facility: facilities,
+//       gallery: gallery,
+//       reviewlist: reviewList,
+//       total_review: totalReviewCount,
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Property details fetched successfully!",
+//     };
+
+//     res.json(response);
+//   } catch (error) {
+//     console.error("Error fetching property details:", error);
+//     res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const getPropertyDetails = async (req, res) => {
   const uid = req.user?.id || null;
-
   const { pro_id } = req.body;
-  console.log(pro_id);
+
   if (!pro_id) {
     return res.status(400).json({
       ResponseCode: "401",
@@ -523,9 +707,7 @@ const getPropertyDetails = async (req, res) => {
 
   try {
     const property = await Property.findOne({
-      where: {
-        id: pro_id,
-      },
+      where: { id: pro_id },
     });
 
     if (!property) {
@@ -536,16 +718,35 @@ const getPropertyDetails = async (req, res) => {
       });
     }
 
-    const rulesArray = JSON.parse(property.rules);
+    // Check today's date
+    const today = new Date().toISOString().split("T")[0];
 
-    // Fetch extra images
+    const priceEntry = await PriceCalendar.findOne({
+      where: {
+        prop_id: pro_id,
+        date: today,
+      },
+    });
+
+    let previousPrice = property.price;
+    if (priceEntry) {
+      property.price = priceEntry.price;
+      const isToday =
+        new Date().toISOString().split("T")[0] === priceEntry.date;
+      if (priceEntry && !isToday) {
+        property.price = previousPrice;
+      }
+    } else {
+      property.price = previousPrice;
+    }
+
+    const rulesArray = JSON.parse(property.rules);
     const extraImages = await TblExtra.findAll({
       where: { pid: property.id },
       include: [{ model: TblExtraImage, as: "images", attributes: ["url"] }],
       attributes: ["status"],
     });
 
-    // Fetch completed bookings for rating
     const completedBookings = await TblBook.findAll({
       where: {
         prop_id: property.id,
@@ -575,21 +776,14 @@ const getPropertyDetails = async (req, res) => {
           ).toFixed(2)
         : property.rate;
 
-    // Fetch owner details
-    const ownerDetails = await User.findOne({
-      where: { id: property.add_user_id },
-      attributes: ["id", "pro_pic", "name", "email", "mobile"],
-    });
-
-    if (!ownerDetails) {
-      return res.status(404).json({
-        ResponseCode: "404",
-        Result: "false",
-        ResponseMsg: "Owner not found!",
+    let ownerDetails = null;
+    if (property.add_user_id !== 0) {
+      ownerDetails = await User.findOne({
+        where: { id: property.add_user_id },
+        attributes: ["id", "pro_pic", "name", "email", "mobile"],
       });
     }
 
-    // Fetch facilities
     const facilities = await TblFacility.findAll({
       where: {
         id: { [Op.in]: property.facility.split(",") },
@@ -597,12 +791,10 @@ const getPropertyDetails = async (req, res) => {
       attributes: ["img", "title"],
     });
 
-    // Check if the property is a favorite for the user
     const isFavorite = await TblFav.count({
       where: { uid: uid, property_id: property.id },
     });
 
-    // Fetch reviews
     const reviews = await TblBook.findAll({
       where: {
         prop_id: pro_id,
@@ -637,7 +829,6 @@ const getPropertyDetails = async (req, res) => {
       extraImage.images.map((image) => image.url)
     );
 
-    // Construct the response
     const response = {
       propetydetails: {
         id: property.id,
@@ -647,11 +838,8 @@ const getPropertyDetails = async (req, res) => {
         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
         property_type: property.ptype,
         property_title: category?.title,
-        price: property.price,
+        price: property.price, // This will be the updated price if found in the PriceCalendar
         buyorrent: property.pbuysell,
-        // is_enquiry: await TblEnquiry.count({
-        //   where: { prop_id: property.id, uid: uid },
-        // }),
         address: property.address,
         beds: property.beds,
         bathroom: property.bathroom,
@@ -668,20 +856,17 @@ const getPropertyDetails = async (req, res) => {
         pets: property.pets,
         cancellation_policy:
           settings?.cancellation_policy || "No cancellation policy available",
-        cancellation_policy: await Setting.findOne({
-          where: { id: property.setting_id },
-          attributes: ["cancellation_policy"],
-        }),
         IS_FAVOURITE: isFavorite > 0,
-        owner: {
-          id: ownerDetails.id,
-          name: ownerDetails.name,
-          pro_pic: ownerDetails.pro_pic,
-          email: ownerDetails.email,
-          phone: ownerDetails.mobile,
-        },
+        owner: ownerDetails
+          ? {
+              id: ownerDetails.id,
+              name: ownerDetails.name,
+              pro_pic: ownerDetails.pro_pic,
+              email: ownerDetails.email,
+              phone: ownerDetails.mobile,
+            }
+          : null,
       },
-
       facility: facilities,
       gallery: gallery,
       reviewlist: reviewList,
@@ -699,6 +884,7 @@ const getPropertyDetails = async (req, res) => {
       Result: "false",
       ResponseMsg: "Internal Server Error",
       error: error.message,
+      stack: error.stack,
     });
   }
 };
@@ -782,7 +968,7 @@ const getAllProperties = async (req, res) => {
 const getSortedProperties = async (req, res) => {
   try {
     const { sort } = req.params;
-    const {id} = req.body;
+    const { id } = req.body;
 
     if (!sort || !["asc", "desc"].includes(sort.toLowerCase())) {
       return res.status(400).json({
@@ -792,120 +978,115 @@ const getSortedProperties = async (req, res) => {
       });
     }
 
-    if(id === 0){
+    if (id === 0) {
+      // Fetch and sort properties based on price
+      const properties = await Property.findAll({
+        where: { status: 1 },
+        include: [
+          { model: TblCategory, as: "category", attributes: ["title"] },
+          { model: TblFacility, as: "facilities", attributes: ["title"] },
+          { model: TblCountry, as: "country", attributes: ["title"] },
+        ],
+        order: [["price", sort.toLowerCase()]],
+      });
 
-    
+      if (!properties.length) {
+        return res.status(200).json({
+          proplist: [],
+          ResponseCode: "200",
+          Result: "false",
+          ResponseMsg: "No properties found",
+        });
+      }
 
-    // Fetch and sort properties based on price
-    const properties = await Property.findAll({
-      where: { status: 1 },
-      include: [
-        { model: TblCategory, as: "category", attributes: ["title"] },
-        { model: TblFacility, as: "facilities", attributes: ["title"] },
-        { model: TblCountry, as: "country", attributes: ["title"] },
-      ],
-      order: [["price", sort.toLowerCase()]],
-    });
+      console.log("Fetched and sorted properties:", properties);
 
-    if (!properties.length) {
-      return res.status(200).json({
-        proplist: [],
+      // Map through properties to enrich with additional details
+      const formattedProperties = await Promise.all(
+        properties.map(async (property) => {
+          const facilityIds = property.facility
+            ? property.facility
+                .split(",")
+                .map((id) => parseInt(id, 10))
+                .filter((id) => Number.isInteger(id))
+            : [];
+
+          const facilities = facilityIds.length
+            ? await TblFacility.findAll({
+                where: { id: facilityIds },
+                attributes: ["id", "title"],
+              })
+            : [];
+
+          return {
+            ...property.toJSON(),
+            facilities,
+          };
+        })
+      );
+
+      // Send the response
+      res.status(200).json({
+        proplist: formattedProperties,
         ResponseCode: "200",
-        Result: "false",
-        ResponseMsg: "No properties found",
+        Result: "true",
+        ResponseMsg: "Sorted properties found",
+      });
+    } else {
+      // Fetch and sort properties based on price
+      const properties = await Property.findAll({
+        where: { status: 1, ptype: id },
+        include: [
+          { model: TblCategory, as: "category", attributes: ["title"] },
+          { model: TblFacility, as: "facilities", attributes: ["title"] },
+          { model: TblCountry, as: "country", attributes: ["title"] },
+        ],
+        order: [["price", sort.toLowerCase()]],
+      });
+
+      if (!properties.length) {
+        return res.status(200).json({
+          proplist: [],
+          ResponseCode: "200",
+          Result: "false",
+          ResponseMsg: "No properties found",
+        });
+      }
+
+      console.log("Fetched and sorted properties:", properties);
+
+      // Map through properties to enrich with additional details
+      const formattedProperties = await Promise.all(
+        properties.map(async (property) => {
+          const facilityIds = property.facility
+            ? property.facility
+                .split(",")
+                .map((id) => parseInt(id, 10))
+                .filter((id) => Number.isInteger(id))
+            : [];
+
+          const facilities = facilityIds.length
+            ? await TblFacility.findAll({
+                where: { id: facilityIds },
+                attributes: ["id", "title"],
+              })
+            : [];
+
+          return {
+            ...property.toJSON(),
+            facilities,
+          };
+        })
+      );
+
+      // Send the response
+      res.status(200).json({
+        proplist: formattedProperties,
+        ResponseCode: "200",
+        Result: "true",
+        ResponseMsg: "Sorted properties found",
       });
     }
-
-    console.log("Fetched and sorted properties:", properties);
-
-    // Map through properties to enrich with additional details
-    const formattedProperties = await Promise.all(
-      properties.map(async (property) => {
-        const facilityIds = property.facility
-          ? property.facility
-              .split(",")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => Number.isInteger(id))
-          : [];
-
-        const facilities = facilityIds.length
-          ? await TblFacility.findAll({
-              where: { id: facilityIds },
-              attributes: ["id", "title"],
-            })
-          : [];
-
-        return {
-          ...property.toJSON(),
-          facilities,
-        };
-      })
-    );
-
-    // Send the response
-    res.status(200).json({
-      proplist: formattedProperties,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Sorted properties found",
-    });
-  }else{
-
-     // Fetch and sort properties based on price
-     const properties = await Property.findAll({
-      where: { status: 1, ptype:id},
-      include: [
-        { model: TblCategory, as: "category", attributes: ["title"] },
-        { model: TblFacility, as: "facilities", attributes: ["title"] },
-        { model: TblCountry, as: "country", attributes: ["title"] },
-      ],
-      order: [["price", sort.toLowerCase()]],
-    });
-
-    if (!properties.length) {
-      return res.status(200).json({
-        proplist: [],
-        ResponseCode: "200",
-        Result: "false",
-        ResponseMsg: "No properties found",
-      });
-    }
-
-    console.log("Fetched and sorted properties:", properties);
-
-    // Map through properties to enrich with additional details
-    const formattedProperties = await Promise.all(
-      properties.map(async (property) => {
-        const facilityIds = property.facility
-          ? property.facility
-              .split(",")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => Number.isInteger(id))
-          : [];
-
-        const facilities = facilityIds.length
-          ? await TblFacility.findAll({
-              where: { id: facilityIds },
-              attributes: ["id", "title"],
-            })
-          : [];
-
-        return {
-          ...property.toJSON(),
-          facilities,
-        };
-      })
-    );
-
-    // Send the response
-    res.status(200).json({
-      proplist: formattedProperties,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Sorted properties found",
-    });
-  }
-  
   } catch (error) {
     console.error("Error fetching sorted properties:", error);
     res.status(500).json({
@@ -919,7 +1100,7 @@ const getSortedProperties = async (req, res) => {
 const getSortedPropertiestitle = async (req, res) => {
   try {
     const { sort } = req.params;
-    const {id} = req.body;
+    const { id } = req.body;
 
     if (!sort || !["asc", "desc"].includes(sort.toLowerCase())) {
       return res.status(400).json({
@@ -928,119 +1109,114 @@ const getSortedPropertiestitle = async (req, res) => {
         ResponseMsg: "Invalid sort parameter. Use 'asc' or 'desc'.",
       });
     }
-if(id === 0){
+    if (id === 0) {
+      // Fetch and sort properties based on price
+      const properties = await Property.findAll({
+        where: { status: 1 },
+        include: [
+          { model: TblCategory, as: "category", attributes: ["title"] },
+          { model: TblFacility, as: "facilities", attributes: ["title"] },
+          { model: TblCountry, as: "country", attributes: ["title"] },
+        ],
+        order: [["title", sort.toLowerCase()]],
+      });
 
+      if (!properties.length) {
+        return res.status(200).json({
+          proplist: [],
+          ResponseCode: "200",
+          Result: "false",
+          ResponseMsg: "No properties found",
+        });
+      }
 
-    // Fetch and sort properties based on price
-    const properties = await Property.findAll({
-      where: { status: 1 },
-      include: [
-        { model: TblCategory, as: "category", attributes: ["title"] },
-        { model: TblFacility, as: "facilities", attributes: ["title"] },
-        { model: TblCountry, as: "country", attributes: ["title"] },
-      ],
-      order: [["title", sort.toLowerCase()]],
-    });
+      console.log("Fetched and sorted properties:", properties);
 
-    if (!properties.length) {
-      return res.status(200).json({
-        proplist: [],
+      // Map through properties to enrich with additional details
+      const formattedProperties = await Promise.all(
+        properties.map(async (property) => {
+          const facilityIds = property.facility
+            ? property.facility
+                .split(",")
+                .map((id) => parseInt(id, 10))
+                .filter((id) => Number.isInteger(id))
+            : [];
+
+          const facilities = facilityIds.length
+            ? await TblFacility.findAll({
+                where: { id: facilityIds },
+                attributes: ["id", "title"],
+              })
+            : [];
+
+          return {
+            ...property.toJSON(),
+            facilities,
+          };
+        })
+      );
+
+      // Send the response
+      res.status(200).json({
+        proplist: formattedProperties,
         ResponseCode: "200",
-        Result: "false",
-        ResponseMsg: "No properties found",
+        Result: "true",
+        ResponseMsg: "Sorted properties found",
+      });
+    } else {
+      const properties = await Property.findAll({
+        where: { status: 1, ptype: id },
+        include: [
+          { model: TblCategory, as: "category", attributes: ["title"] },
+          { model: TblFacility, as: "facilities", attributes: ["title"] },
+          { model: TblCountry, as: "country", attributes: ["title"] },
+        ],
+        order: [["title", sort.toLowerCase()]],
+      });
+
+      if (!properties.length) {
+        return res.status(200).json({
+          proplist: [],
+          ResponseCode: "200",
+          Result: "false",
+          ResponseMsg: "No properties found",
+        });
+      }
+
+      console.log("Fetched and sorted properties:", properties);
+
+      // Map through properties to enrich with additional details
+      const formattedProperties = await Promise.all(
+        properties.map(async (property) => {
+          const facilityIds = property.facility
+            ? property.facility
+                .split(",")
+                .map((id) => parseInt(id, 10))
+                .filter((id) => Number.isInteger(id))
+            : [];
+
+          const facilities = facilityIds.length
+            ? await TblFacility.findAll({
+                where: { id: facilityIds },
+                attributes: ["id", "title"],
+              })
+            : [];
+
+          return {
+            ...property.toJSON(),
+            facilities,
+          };
+        })
+      );
+
+      // Send the response
+      res.status(200).json({
+        proplist: formattedProperties,
+        ResponseCode: "200",
+        Result: "true",
+        ResponseMsg: "Sorted properties found",
       });
     }
-
-    console.log("Fetched and sorted properties:", properties);
-
-    // Map through properties to enrich with additional details
-    const formattedProperties = await Promise.all(
-      properties.map(async (property) => {
-        const facilityIds = property.facility
-          ? property.facility
-              .split(",")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => Number.isInteger(id))
-          : [];
-
-        const facilities = facilityIds.length
-          ? await TblFacility.findAll({
-              where: { id: facilityIds },
-              attributes: ["id", "title"],
-            })
-          : [];
-
-        return {
-          ...property.toJSON(),
-          facilities,
-        };
-      })
-    );
-
-    // Send the response
-    res.status(200).json({
-      proplist: formattedProperties,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Sorted properties found",
-    });
-
-  }
-  else{
-
-    const properties = await Property.findAll({
-      where: { status: 1, ptype:id },
-      include: [
-        { model: TblCategory, as: "category", attributes: ["title"] },
-        { model: TblFacility, as: "facilities", attributes: ["title"] },
-        { model: TblCountry, as: "country", attributes: ["title"] },
-      ],
-      order: [["title", sort.toLowerCase()]],
-    });
-
-    if (!properties.length) {
-      return res.status(200).json({
-        proplist: [],
-        ResponseCode: "200",
-        Result: "false",
-        ResponseMsg: "No properties found",
-      });
-    }
-
-    console.log("Fetched and sorted properties:", properties);
-
-    // Map through properties to enrich with additional details
-    const formattedProperties = await Promise.all(
-      properties.map(async (property) => {
-        const facilityIds = property.facility
-          ? property.facility
-              .split(",")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => Number.isInteger(id))
-          : [];
-
-        const facilities = facilityIds.length
-          ? await TblFacility.findAll({
-              where: { id: facilityIds },
-              attributes: ["id", "title"],
-            })
-          : [];
-
-        return {
-          ...property.toJSON(),
-          facilities,
-        };
-      })
-    );
-
-    // Send the response
-    res.status(200).json({
-      proplist: formattedProperties,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Sorted properties found",
-    });
-  }
   } catch (error) {
     console.error("Error fetching sorted properties:", error);
     res.status(500).json({

@@ -24,4 +24,6 @@ router.get(
   extraImgController.getExtraImages
 );
 
+router.delete("/delete-extra-image", authMiddleware.isAuthenticated, extraImgController.deleteExtraImage)
+
 module.exports = router;
