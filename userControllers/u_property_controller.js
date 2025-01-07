@@ -1,4 +1,4 @@
-const { Op, where } = require("sequelize");
+const { Op, literal  } = require("sequelize");
 const { TblCategory, TblExtra, User } = require("../models");
 const Property = require("../models/Property");
 const TblBook = require("../models/TblBook");
@@ -809,7 +809,7 @@ const getSortedProperties = async (req, res) => {
 
     if (!properties.length) {
       return res.status(200).json({
-        proplist: [],
+        typelist: [],
         ResponseCode: "200",
         Result: "false",
         ResponseMsg: "No properties found",
@@ -844,7 +844,7 @@ const getSortedProperties = async (req, res) => {
 
     // Send the response
     res.status(200).json({
-      proplist: formattedProperties,
+      typelist: formattedProperties,
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Sorted properties found",
@@ -864,7 +864,7 @@ const getSortedProperties = async (req, res) => {
 
     if (!properties.length) {
       return res.status(200).json({
-        proplist: [],
+        typelist: [],
         ResponseCode: "200",
         Result: "false",
         ResponseMsg: "No properties found",
@@ -899,7 +899,7 @@ const getSortedProperties = async (req, res) => {
 
     // Send the response
     res.status(200).json({
-      proplist: formattedProperties,
+      typelist: formattedProperties,
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Sorted properties found",
@@ -921,7 +921,7 @@ const getSortedPropertiestitle = async (req, res) => {
     const { sort } = req.params;
     const {id} = req.body;
 
-    if (!sort || !["asc", "desc"].includes(sort.toLowerCase())) {
+    if (!sort || !["asc", "desc"].includes(sort.toLowerCase())){
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
@@ -944,7 +944,7 @@ if(id === 0){
 
     if (!properties.length) {
       return res.status(200).json({
-        proplist: [],
+        typelist: [],
         ResponseCode: "200",
         Result: "false",
         ResponseMsg: "No properties found",
@@ -979,7 +979,7 @@ if(id === 0){
 
     // Send the response
     res.status(200).json({
-      proplist: formattedProperties,
+      typelist: formattedProperties,
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Sorted properties found",
@@ -987,6 +987,8 @@ if(id === 0){
 
   }
   else{
+
+    if(id){
 
     const properties = await Property.findAll({
       where: { status: 1, ptype:id },
@@ -1000,7 +1002,7 @@ if(id === 0){
 
     if (!properties.length) {
       return res.status(200).json({
-        proplist: [],
+        typelist: [],
         ResponseCode: "200",
         Result: "false",
         ResponseMsg: "No properties found",
@@ -1035,12 +1037,13 @@ if(id === 0){
 
     // Send the response
     res.status(200).json({
-      proplist: formattedProperties,
+      typelist: formattedProperties,
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Sorted properties found",
     });
   }
+}
   } catch (error) {
     console.error("Error fetching sorted properties:", error);
     res.status(500).json({
@@ -1253,6 +1256,85 @@ const deleteUserProperty = async (req, res) => {
   }
 };
 
+const nearByProperties = async (req, res) => {
+  const { latitude, longitude, maxDistance } = req.body;
+  console.log(req.body)
+
+  
+  if (!latitude || !longitude || !maxDistance) {
+    return res.status(400).json({
+      ResponseCode: "400",
+      Result: "false",
+      ResponseMsg: "Latitude, longitude, and maxDistance are required.",
+    });
+  }
+
+  try {
+    const nearbyProperties = await Property.findAll({
+      attributes: {
+        include: [
+          
+          [
+            literal(`
+              6371 * acos(
+                cos(radians(:latitude))
+                * cos(radians(latitude))
+                * cos(radians(longtitude) - radians(:longitude))
+                + sin(radians(:latitude)) * sin(radians(latitude))
+              )
+            `),
+            "distance",
+          ],
+        ],
+      },
+      where: {
+        // Add filtering by calculated distance
+        [Op.and]: [
+          literal(`
+            6371 * acos(
+              cos(radians(:latitude))
+              * cos(radians(latitude))
+              * cos(radians(longtitude) - radians(:longitude))
+              + sin(radians(:latitude)) * sin(radians(latitude))
+            ) < :maxDistance
+          `),
+        ],
+      },
+      order: [
+        // Order results by proximity (ascending distance)
+        [literal("distance"), "ASC"],
+      ],
+      replacements: {
+        latitude,
+        longitude,
+        maxDistance,
+      },
+    });
+
+    if (nearbyProperties.length === 0) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "No nearby properties found.",
+      });
+    }
+
+    return res.status(200).json({
+      typelist: nearbyProperties,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Nearby properties found.",
+    });
+  } catch (error) {
+    console.error("Error fetching nearby properties:", error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal server error.",
+    });
+  }
+};
+
 module.exports = {
   addProperty,
   editProperty,
@@ -1265,4 +1347,5 @@ module.exports = {
   searchPropertyByLocationAndDate,
   searchProperties,
   deleteUserProperty,
+  nearByProperties
 };
