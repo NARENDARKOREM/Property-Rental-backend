@@ -1,6 +1,5 @@
-const { Op, where } = require("sequelize");
+const { Op, where, literal } = require("sequelize");
 const { TblCategory, TblExtra, User, PriceCalendar } = require("../models");
-const { Op, literal  } = require("sequelize");
 const Property = require("../models/Property");
 const TblBook = require("../models/TblBook");
 const TblCountry = require("../models/TblCountry");
@@ -966,11 +965,10 @@ const getAllProperties = async (req, res) => {
   }
 };
 
-
 const getSortedProperties = async (req, res) => {
   try {
     const { sort } = req.params;
-    const {id} = req.body;
+    const { id } = req.body;
 
     if (!sort || !["asc", "desc"].includes(sort.toLowerCase())) {
       return res.status(400).json({
@@ -980,120 +978,115 @@ const getSortedProperties = async (req, res) => {
       });
     }
 
-    if(id === 0){
+    if (id === 0) {
+      // Fetch and sort properties based on price
+      const properties = await Property.findAll({
+        where: { status: 1 },
+        include: [
+          { model: TblCategory, as: "category", attributes: ["title"] },
+          { model: TblFacility, as: "facilities", attributes: ["title"] },
+          { model: TblCountry, as: "country", attributes: ["title"] },
+        ],
+        order: [["price", sort.toLowerCase()]],
+      });
 
-    
+      if (!properties.length) {
+        return res.status(200).json({
+          typelist: [],
+          ResponseCode: "200",
+          Result: "false",
+          ResponseMsg: "No properties found",
+        });
+      }
 
-    // Fetch and sort properties based on price
-    const properties = await Property.findAll({
-      where: { status: 1 },
-      include: [
-        { model: TblCategory, as: "category", attributes: ["title"] },
-        { model: TblFacility, as: "facilities", attributes: ["title"] },
-        { model: TblCountry, as: "country", attributes: ["title"] },
-      ],
-      order: [["price", sort.toLowerCase()]],
-    });
+      console.log("Fetched and sorted properties:", properties);
 
-    if (!properties.length) {
-      return res.status(200).json({
-        typelist: [],
+      // Map through properties to enrich with additional details
+      const formattedProperties = await Promise.all(
+        properties.map(async (property) => {
+          const facilityIds = property.facility
+            ? property.facility
+                .split(",")
+                .map((id) => parseInt(id, 10))
+                .filter((id) => Number.isInteger(id))
+            : [];
+
+          const facilities = facilityIds.length
+            ? await TblFacility.findAll({
+                where: { id: facilityIds },
+                attributes: ["id", "title"],
+              })
+            : [];
+
+          return {
+            ...property.toJSON(),
+            facilities,
+          };
+        })
+      );
+
+      // Send the response
+      res.status(200).json({
+        typelist: formattedProperties,
         ResponseCode: "200",
-        Result: "false",
-        ResponseMsg: "No properties found",
+        Result: "true",
+        ResponseMsg: "Sorted properties found",
+      });
+    } else {
+      // Fetch and sort properties based on price
+      const properties = await Property.findAll({
+        where: { status: 1, ptype: id },
+        include: [
+          { model: TblCategory, as: "category", attributes: ["title"] },
+          { model: TblFacility, as: "facilities", attributes: ["title"] },
+          { model: TblCountry, as: "country", attributes: ["title"] },
+        ],
+        order: [["price", sort.toLowerCase()]],
+      });
+
+      if (!properties.length) {
+        return res.status(200).json({
+          typelist: [],
+          ResponseCode: "200",
+          Result: "false",
+          ResponseMsg: "No properties found",
+        });
+      }
+
+      console.log("Fetched and sorted properties:", properties);
+
+      // Map through properties to enrich with additional details
+      const formattedProperties = await Promise.all(
+        properties.map(async (property) => {
+          const facilityIds = property.facility
+            ? property.facility
+                .split(",")
+                .map((id) => parseInt(id, 10))
+                .filter((id) => Number.isInteger(id))
+            : [];
+
+          const facilities = facilityIds.length
+            ? await TblFacility.findAll({
+                where: { id: facilityIds },
+                attributes: ["id", "title"],
+              })
+            : [];
+
+          return {
+            ...property.toJSON(),
+            facilities,
+          };
+        })
+      );
+
+      // Send the response
+      res.status(200).json({
+        typelist: formattedProperties,
+        ResponseCode: "200",
+        Result: "true",
+        ResponseMsg: "Sorted properties found",
       });
     }
-
-    console.log("Fetched and sorted properties:", properties);
-
-    // Map through properties to enrich with additional details
-    const formattedProperties = await Promise.all(
-      properties.map(async (property) => {
-        const facilityIds = property.facility
-          ? property.facility
-              .split(",")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => Number.isInteger(id))
-          : [];
-
-        const facilities = facilityIds.length
-          ? await TblFacility.findAll({
-              where: { id: facilityIds },
-              attributes: ["id", "title"],
-            })
-          : [];
-
-        return {
-          ...property.toJSON(),
-          facilities,
-        };
-      })
-    );
-
-    // Send the response
-    res.status(200).json({
-      typelist: formattedProperties,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Sorted properties found",
-    });
-  }else{
-
-     // Fetch and sort properties based on price
-     const properties = await Property.findAll({
-      where: { status: 1, ptype:id},
-      include: [
-        { model: TblCategory, as: "category", attributes: ["title"] },
-        { model: TblFacility, as: "facilities", attributes: ["title"] },
-        { model: TblCountry, as: "country", attributes: ["title"] },
-      ],
-      order: [["price", sort.toLowerCase()]],
-    });
-
-    if (!properties.length) {
-      return res.status(200).json({
-        typelist: [],
-        ResponseCode: "200",
-        Result: "false",
-        ResponseMsg: "No properties found",
-      });
-    }
-
-    console.log("Fetched and sorted properties:", properties);
-
-    // Map through properties to enrich with additional details
-    const formattedProperties = await Promise.all(
-      properties.map(async (property) => {
-        const facilityIds = property.facility
-          ? property.facility
-              .split(",")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => Number.isInteger(id))
-          : [];
-
-        const facilities = facilityIds.length
-          ? await TblFacility.findAll({
-              where: { id: facilityIds },
-              attributes: ["id", "title"],
-            })
-          : [];
-
-        return {
-          ...property.toJSON(),
-          facilities,
-        };
-      })
-    );
-
-    // Send the response
-    res.status(200).json({
-      typelist: formattedProperties,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Sorted properties found",
-    });
-  }
-  
   } catch (error) {
     console.error("Error fetching sorted properties:", error);
     res.status(500).json({
@@ -1107,131 +1100,125 @@ const getSortedProperties = async (req, res) => {
 const getSortedPropertiestitle = async (req, res) => {
   try {
     const { sort } = req.params;
-    const {id} = req.body;
+    const { id } = req.body;
 
-    if (!sort || !["asc", "desc"].includes(sort.toLowerCase())){
+    if (!sort || !["asc", "desc"].includes(sort.toLowerCase())) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
         ResponseMsg: "Invalid sort parameter. Use 'asc' or 'desc'.",
       });
     }
-if(id === 0){
-
-
-    // Fetch and sort properties based on price
-    const properties = await Property.findAll({
-      where: { status: 1 },
-      include: [
-        { model: TblCategory, as: "category", attributes: ["title"] },
-        { model: TblFacility, as: "facilities", attributes: ["title"] },
-        { model: TblCountry, as: "country", attributes: ["title"] },
-      ],
-      order: [["title", sort.toLowerCase()]],
-    });
-
-    if (!properties.length) {
-      return res.status(200).json({
-        typelist: [],
-        ResponseCode: "200",
-        Result: "false",
-        ResponseMsg: "No properties found",
+    if (id === 0) {
+      // Fetch and sort properties based on price
+      const properties = await Property.findAll({
+        where: { status: 1 },
+        include: [
+          { model: TblCategory, as: "category", attributes: ["title"] },
+          { model: TblFacility, as: "facilities", attributes: ["title"] },
+          { model: TblCountry, as: "country", attributes: ["title"] },
+        ],
+        order: [["title", sort.toLowerCase()]],
       });
-    }
 
-    console.log("Fetched and sorted properties:", properties);
+      if (!properties.length) {
+        return res.status(200).json({
+          typelist: [],
+          ResponseCode: "200",
+          Result: "false",
+          ResponseMsg: "No properties found",
+        });
+      }
 
-    // Map through properties to enrich with additional details
-    const formattedProperties = await Promise.all(
-      properties.map(async (property) => {
-        const facilityIds = property.facility
-          ? property.facility
-              .split(",")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => Number.isInteger(id))
-          : [];
+      console.log("Fetched and sorted properties:", properties);
 
-        const facilities = facilityIds.length
-          ? await TblFacility.findAll({
-              where: { id: facilityIds },
-              attributes: ["id", "title"],
-            })
-          : [];
+      // Map through properties to enrich with additional details
+      const formattedProperties = await Promise.all(
+        properties.map(async (property) => {
+          const facilityIds = property.facility
+            ? property.facility
+                .split(",")
+                .map((id) => parseInt(id, 10))
+                .filter((id) => Number.isInteger(id))
+            : [];
 
-        return {
-          ...property.toJSON(),
-          facilities,
-        };
-      })
-    );
+          const facilities = facilityIds.length
+            ? await TblFacility.findAll({
+                where: { id: facilityIds },
+                attributes: ["id", "title"],
+              })
+            : [];
 
-    // Send the response
-    res.status(200).json({
-      typelist: formattedProperties,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Sorted properties found",
-    });
+          return {
+            ...property.toJSON(),
+            facilities,
+          };
+        })
+      );
 
-  }
-  else{
-
-    if(id){
-
-    const properties = await Property.findAll({
-      where: { status: 1, ptype:id },
-      include: [
-        { model: TblCategory, as: "category", attributes: ["title"] },
-        { model: TblFacility, as: "facilities", attributes: ["title"] },
-        { model: TblCountry, as: "country", attributes: ["title"] },
-      ],
-      order: [["title", sort.toLowerCase()]],
-    });
-
-    if (!properties.length) {
-      return res.status(200).json({
-        typelist: [],
+      // Send the response
+      res.status(200).json({
+        typelist: formattedProperties,
         ResponseCode: "200",
-        Result: "false",
-        ResponseMsg: "No properties found",
+        Result: "true",
+        ResponseMsg: "Sorted properties found",
       });
+    } else {
+      if (id) {
+        const properties = await Property.findAll({
+          where: { status: 1, ptype: id },
+          include: [
+            { model: TblCategory, as: "category", attributes: ["title"] },
+            { model: TblFacility, as: "facilities", attributes: ["title"] },
+            { model: TblCountry, as: "country", attributes: ["title"] },
+          ],
+          order: [["title", sort.toLowerCase()]],
+        });
+
+        if (!properties.length) {
+          return res.status(200).json({
+            typelist: [],
+            ResponseCode: "200",
+            Result: "false",
+            ResponseMsg: "No properties found",
+          });
+        }
+
+        console.log("Fetched and sorted properties:", properties);
+
+        // Map through properties to enrich with additional details
+        const formattedProperties = await Promise.all(
+          properties.map(async (property) => {
+            const facilityIds = property.facility
+              ? property.facility
+                  .split(",")
+                  .map((id) => parseInt(id, 10))
+                  .filter((id) => Number.isInteger(id))
+              : [];
+
+            const facilities = facilityIds.length
+              ? await TblFacility.findAll({
+                  where: { id: facilityIds },
+                  attributes: ["id", "title"],
+                })
+              : [];
+
+            return {
+              ...property.toJSON(),
+              facilities,
+            };
+          })
+        );
+
+        // Send the response
+        res.status(200).json({
+          typelist: formattedProperties,
+          ResponseCode: "200",
+          Result: "true",
+          ResponseMsg: "Sorted properties found",
+        });
+      }
     }
-
-    console.log("Fetched and sorted properties:", properties);
-
-    // Map through properties to enrich with additional details
-    const formattedProperties = await Promise.all(
-      properties.map(async (property) => {
-        const facilityIds = property.facility
-          ? property.facility
-              .split(",")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => Number.isInteger(id))
-          : [];
-
-        const facilities = facilityIds.length
-          ? await TblFacility.findAll({
-              where: { id: facilityIds },
-              attributes: ["id", "title"],
-            })
-          : [];
-
-        return {
-          ...property.toJSON(),
-          facilities,
-        };
-      })
-    );
-
-    // Send the response
-    res.status(200).json({
-      typelist: formattedProperties,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Sorted properties found",
-    });
-  }
-}
   } catch (error) {
     console.error("Error fetching sorted properties:", error);
     res.status(500).json({
@@ -1445,10 +1432,8 @@ const deleteUserProperty = async (req, res) => {
 };
 
 const nearByProperties = async (req, res) => {
-  const { latitude, longitude, maxDistance,id } = req.body;
-  
+  const { latitude, longitude, maxDistance, id } = req.body;
 
-  
   if (!latitude || !longitude || !maxDistance) {
     return res.status(400).json({
       ResponseCode: "400",
@@ -1458,13 +1443,12 @@ const nearByProperties = async (req, res) => {
   }
 
   try {
-    if(id !== 0){
-    const nearbyProperties = await Property.findAll({
-      attributes: {
-        include: [
-          
-          [
-            literal(`
+    if (id !== 0) {
+      const nearbyProperties = await Property.findAll({
+        attributes: {
+          include: [
+            [
+              literal(`
               6371 * acos(
                 cos(radians(:latitude))
                 * cos(radians(latitude))
@@ -1472,14 +1456,14 @@ const nearByProperties = async (req, res) => {
                 + sin(radians(:latitude)) * sin(radians(latitude))
               )
             `),
-            "distance",
+              "distance",
+            ],
           ],
-        ],
-      },
-      where: {
-        // Add filtering by calculated distance
-        [Op.and]: [
-          literal(`
+        },
+        where: {
+          // Add filtering by calculated distance
+          [Op.and]: [
+            literal(`
             6371 * acos(
               cos(radians(:latitude))
               * cos(radians(latitude))
@@ -1487,42 +1471,40 @@ const nearByProperties = async (req, res) => {
               + sin(radians(:latitude)) * sin(radians(latitude))
             ) < :maxDistance
           `),
+          ],
+          ptype: id,
+        },
+        order: [
+          // Order results by proximity (ascending distance)
+          [literal("distance"), "ASC"],
         ],
-        ptype:id
-      },
-      order: [
-        // Order results by proximity (ascending distance)
-        [literal("distance"), "ASC"],
-      ],
-      replacements: {
-        latitude,
-        longitude,
-        maxDistance,
-      },
-    });
-
-    if (nearbyProperties.length === 0) {
-      return res.status(404).json({
-        ResponseCode: "404",
-        Result: "false",
-        ResponseMsg: "No nearby properties found.",
+        replacements: {
+          latitude,
+          longitude,
+          maxDistance,
+        },
       });
-    }
 
-    return res.status(200).json({
-      typelist: nearbyProperties,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Nearby properties found.",
-    });
-  }
-  else{
-    const nearbyProperties = await Property.findAll({
-      attributes: {
-        include: [
-          
-          [
-            literal(`
+      if (nearbyProperties.length === 0) {
+        return res.status(404).json({
+          ResponseCode: "404",
+          Result: "false",
+          ResponseMsg: "No nearby properties found.",
+        });
+      }
+
+      return res.status(200).json({
+        typelist: nearbyProperties,
+        ResponseCode: "200",
+        Result: "true",
+        ResponseMsg: "Nearby properties found.",
+      });
+    } else {
+      const nearbyProperties = await Property.findAll({
+        attributes: {
+          include: [
+            [
+              literal(`
               6371 * acos(
                 cos(radians(:latitude))
                 * cos(radians(latitude))
@@ -1530,14 +1512,14 @@ const nearByProperties = async (req, res) => {
                 + sin(radians(:latitude)) * sin(radians(latitude))
               )
             `),
-            "distance",
+              "distance",
+            ],
           ],
-        ],
-      },
-      where: {
-        // Add filtering by calculated distance
-        [Op.and]: [
-          literal(`
+        },
+        where: {
+          // Add filtering by calculated distance
+          [Op.and]: [
+            literal(`
             6371 * acos(
               cos(radians(:latitude))
               * cos(radians(latitude))
@@ -1545,36 +1527,35 @@ const nearByProperties = async (req, res) => {
               + sin(radians(:latitude)) * sin(radians(latitude))
             ) < :maxDistance
           `),
+          ],
+        },
+        order: [
+          // Order results by proximity (ascending distance)
+          [literal("distance"), "ASC"],
         ],
-        
-      },
-      order: [
-        // Order results by proximity (ascending distance)
-        [literal("distance"), "ASC"],
-      ],
-      replacements: {
-        latitude,
-        longitude,
-        maxDistance,
-      },
-    });
+        replacements: {
+          latitude,
+          longitude,
+          maxDistance,
+        },
+      });
 
-    if (nearbyProperties.length === 0) {
-      return res.status(404).json({
-        ResponseCode: "404",
-        Result: "false",
-        ResponseMsg: "No nearby properties found.",
+      if (nearbyProperties.length === 0) {
+        return res.status(404).json({
+          ResponseCode: "404",
+          Result: "false",
+          ResponseMsg: "No nearby properties found.",
+        });
+      }
+
+      return res.status(200).json({
+        typelist: nearbyProperties,
+        ResponseCode: "200",
+        Result: "true",
+        ResponseMsg: "Nearby properties found.",
       });
     }
-
-    return res.status(200).json({
-      typelist: nearbyProperties,
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Nearby properties found.",
-    });
-  }
- } catch (error) {
+  } catch (error) {
     console.error("Error fetching nearby properties:", error);
     return res.status(500).json({
       ResponseCode: "500",
@@ -1596,5 +1577,5 @@ module.exports = {
   searchPropertyByLocationAndDate,
   searchProperties,
   deleteUserProperty,
-  nearByProperties
+  nearByProperties,
 };
