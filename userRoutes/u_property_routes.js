@@ -35,6 +35,10 @@ router.post(
   "/sort-property-title/:sort",
   userPropertyController.getSortedPropertiestitle
 );
+router.post(
+  "/nearby_properties",
+  userPropertyController.nearByProperties
+);
 router.delete(
   "/delete-property/:propertyId",
   authMiddleware.isAuthenticated,
