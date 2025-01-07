@@ -37,6 +37,7 @@ const addProperty = async (req, res) => {
     children,
     infants,
     pets,
+    setting_id,
   } = req.body;
 
   const add_user_id = req.user.id;
@@ -119,6 +120,7 @@ const addProperty = async (req, res) => {
       children,
       infants,
       pets,
+      setting_id,
     });
     res.status(201).json({
       ResponseCode: "200",
@@ -166,6 +168,7 @@ const editProperty = async (req, res) => {
       children,
       infants,
       pets,
+      setting_id,
     } = req.body;
 
     console.log("Request Body:", req.body);
@@ -276,6 +279,7 @@ const editProperty = async (req, res) => {
       children,
       infants,
       pets,
+      setting_id,
     });
 
     // Return success response
@@ -312,7 +316,7 @@ const getPropertyList = async (req, res) => {
     // Fetch properties
 
     const properties = await Property.findAll({
-      where: { add_user_id: uid },
+      where: { add_user_id: uid, status: 1 },
       include: [
         { model: TblCategory, as: "category", attributes: ["title"] },
         { model: TblFacility, as: "facilities", attributes: ["title"] },
@@ -383,6 +387,7 @@ const getPropertyList = async (req, res) => {
           description: property.description,
           address: property.address,
           country_name: property.country?.title || "Unknown",
+          setting_id: property.setting_id,
         };
       })
     );
@@ -521,7 +526,6 @@ const getPropertyDetails = async (req, res) => {
       where: {
         id: pro_id,
       },
-      include: [{ model: Setting, as: "setting" }],
     });
 
     if (!property) {
@@ -531,9 +535,6 @@ const getPropertyDetails = async (req, res) => {
         ResponseMsg: "Property not found!",
       });
     }
-
-    const setting = property.setting || null;
-    console.log("Cancellation Policy:", setting?.cancellation_policy);
 
     const rulesArray = JSON.parse(property.rules);
 
@@ -551,6 +552,17 @@ const getPropertyDetails = async (req, res) => {
         book_status: "Completed",
         total_rate: { [Op.ne]: 0 },
       },
+    });
+
+    const category = await TblCategory.findOne({
+      where: { id: property.ptype },
+      attributes: ["title"],
+    });
+
+    const settings = await Setting.findOne({
+      where: { id: property.setting_id },
+      attributes: ["cancellation_policy"],
+      paranoid: false,
     });
 
     const rate =
@@ -576,18 +588,6 @@ const getPropertyDetails = async (req, res) => {
         ResponseMsg: "Owner not found!",
       });
     }
-
-    // let ownerImage = ownerDetails.pro_pic || "images/property/owner.jpg";
-    // let ownerName = ownerDetails.name || "Host";
-
-    // if (property.add_user_id !== 0) {
-    //   const ownerData = await User.findOne({
-    //     where: { id: property.add_user_id },
-    //     attributes: ["pro_pic", "name"],
-    //   });
-    //   ownerImage = ownerData?.pro_pic || ownerImage;
-    //   ownerName = ownerData?.name || ownerName;
-    // }
 
     // Fetch facilities
     const facilities = await TblFacility.findAll({
@@ -645,17 +645,13 @@ const getPropertyDetails = async (req, res) => {
         rate: rate,
         city: property.city,
         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
-        // is_panorama: property.is_panorama,
         property_type: property.ptype,
-        property_title: await TblCategory.findOne({
-          where: { id: property.ptype },
-          attributes: ["title"],
-        }),
+        property_title: category?.title,
         price: property.price,
         buyorrent: property.pbuysell,
-        is_enquiry: await TblEnquiry.count({
-          where: { prop_id: property.id, uid: uid },
-        }),
+        // is_enquiry: await TblEnquiry.count({
+        //   where: { prop_id: property.id, uid: uid },
+        // }),
         address: property.address,
         beds: property.beds,
         bathroom: property.bathroom,
@@ -670,7 +666,12 @@ const getPropertyDetails = async (req, res) => {
         children: property.children,
         infants: property.infants,
         pets: property.pets,
-        cancellation_policy: setting ? setting.cancellation_policy : null,
+        cancellation_policy:
+          settings?.cancellation_policy || "No cancellation policy available",
+        cancellation_policy: await Setting.findOne({
+          where: { id: property.setting_id },
+          attributes: ["cancellation_policy"],
+        }),
         IS_FAVOURITE: isFavorite > 0,
         owner: {
           id: ownerDetails.id,
@@ -1224,6 +1225,34 @@ const searchProperties = async (req, res) => {
   }
 };
 
+const deleteUserProperty = async (req, res) => {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).message({ message: "User not found!" });
+  }
+  try {
+    const propertyId = req.params.propertyId;
+    if (!propertyId) {
+      return res.status(400).json({ message: "Property Id is required!" });
+    }
+    const property = await Property.findOne({
+      where: { id: propertyId, add_user_id: uid },
+    });
+    if (!property) {
+      return res.status(404).json({
+        message: "Property not found or you don't have permission to delete!",
+      });
+    }
+    await Property.destroy({ where: { id: propertyId } });
+    return res.status(200).json({ message: "Property deleted successfully!" });
+  } catch (error) {
+    console.error(object);
+    return res
+      .status(500)
+      .json({ message: "An error occurred while deleting the property!" });
+  }
+};
+
 module.exports = {
   addProperty,
   editProperty,
@@ -1235,4 +1264,5 @@ module.exports = {
   getSortedPropertiestitle,
   searchPropertyByLocationAndDate,
   searchProperties,
+  deleteUserProperty,
 };
