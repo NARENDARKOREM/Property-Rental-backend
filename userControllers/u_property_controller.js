@@ -1257,8 +1257,8 @@ const deleteUserProperty = async (req, res) => {
 };
 
 const nearByProperties = async (req, res) => {
-  const { latitude, longitude, maxDistance } = req.body;
-  console.log(req.body)
+  const { latitude, longitude, maxDistance,id } = req.body;
+  
 
   
   if (!latitude || !longitude || !maxDistance) {
@@ -1270,6 +1270,7 @@ const nearByProperties = async (req, res) => {
   }
 
   try {
+    if(id !== 0){
     const nearbyProperties = await Property.findAll({
       attributes: {
         include: [
@@ -1299,6 +1300,7 @@ const nearByProperties = async (req, res) => {
             ) < :maxDistance
           `),
         ],
+        ptype:id
       },
       order: [
         // Order results by proximity (ascending distance)
@@ -1325,7 +1327,66 @@ const nearByProperties = async (req, res) => {
       Result: "true",
       ResponseMsg: "Nearby properties found.",
     });
-  } catch (error) {
+  }
+  else{
+    const nearbyProperties = await Property.findAll({
+      attributes: {
+        include: [
+          
+          [
+            literal(`
+              6371 * acos(
+                cos(radians(:latitude))
+                * cos(radians(latitude))
+                * cos(radians(longtitude) - radians(:longitude))
+                + sin(radians(:latitude)) * sin(radians(latitude))
+              )
+            `),
+            "distance",
+          ],
+        ],
+      },
+      where: {
+        // Add filtering by calculated distance
+        [Op.and]: [
+          literal(`
+            6371 * acos(
+              cos(radians(:latitude))
+              * cos(radians(latitude))
+              * cos(radians(longtitude) - radians(:longitude))
+              + sin(radians(:latitude)) * sin(radians(latitude))
+            ) < :maxDistance
+          `),
+        ],
+        
+      },
+      order: [
+        // Order results by proximity (ascending distance)
+        [literal("distance"), "ASC"],
+      ],
+      replacements: {
+        latitude,
+        longitude,
+        maxDistance,
+      },
+    });
+
+    if (nearbyProperties.length === 0) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "No nearby properties found.",
+      });
+    }
+
+    return res.status(200).json({
+      typelist: nearbyProperties,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Nearby properties found.",
+    });
+  }
+ } catch (error) {
     console.error("Error fetching nearby properties:", error);
     return res.status(500).json({
       ResponseCode: "500",
