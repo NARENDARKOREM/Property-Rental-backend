@@ -492,7 +492,7 @@ const getBookingsByStatus = async (req, res) => {
     return sendResponse(res, 401, "false", "User Not Found!");
   }
 
-  if (!uid || !status) {
+  if (!status) {
     return sendResponse(res, 401, "false", "Missing parameters!");
   }
 
@@ -984,11 +984,134 @@ const upcomingBookings = async (req, res) => {
         ],
       },
     });
-    if(bookings.length === 0){
-      return res.status(404).json({message:"No Upcoming Bookings Found!"});
+    if (bookings.length === 0) {
+      return res.status(404).json({ message: "No Upcoming Bookings Found!" });
     }
-    res.status(201).json({message:"Upcoming Bookings Fetched Successfully!",bookings})
+    res
+      .status(201)
+      .json({ message: "Upcoming Bookings Fetched Successfully!", bookings });
   } catch (error) {}
+};
+
+const propertyBookingStatus = async (req, res) => {
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(401).json({ message: "User not found!" });
+  }
+
+  const { status } = req.body;
+  if (!status) {
+    return res.status(400).json({ message: "Booking Status is Required!" });
+  }
+
+  try {
+    let queryFilter = { uid };
+    let includeReviewList = false;
+
+    // Adjust query filters based on status
+    if (status === "active") {
+      queryFilter.book_status = { [Op.in]: ["Booked"] };
+    } else if (status === "Completed") {
+      queryFilter.book_status = { [Op.in]: ["Completed"] };
+      includeReviewList = true;
+    } else if (status === "Cancelled") {
+      queryFilter.book_status = { [Op.in]: ["Cancelled"] };
+    } else {
+      return res.status(400).json({ message: "Invalid status provided!" });
+    }
+
+    // Fetch bookings based on query filters
+    const bookings = await TblBook.findAll({
+      where: queryFilter,
+      order: [["id", "DESC"]],
+    });
+
+    if (!bookings.length) {
+      return res
+        .status(404)
+        .json({ message: "No bookings found for the specified status!" });
+    }
+
+    const bookingDetails = await Promise.all(
+      bookings.map(async (booking) => {
+        // Fetch the property details
+        const property = await Property.findByPk(booking.prop_id, {
+          attributes: ["id", "title", "image", "price"],
+        });
+
+        if (!property) {
+          console.warn(`Property with ID ${booking.prop_id} not found.`);
+          return null;
+        }
+
+        // Fetch reviews (if needed)
+        let reviewList = [];
+        let totalReviewCount = 0;
+
+        if (includeReviewList) {
+          const reviews = await TblBook.findAll({
+            where: {
+              prop_id: property.id,
+              book_status: { [Op.in]: ["Completed", "Confirmed"] },
+              is_rate: 1,
+            },
+            limit: 3,
+          });
+
+          reviewList = await Promise.all(
+            reviews.map(async (review) => {
+              const userData = await User.findOne({
+                where: { id: review.uid },
+                attributes: ["pro_pic", "name"],
+              });
+              return {
+                user_img: userData?.pro_pic || null,
+                user_title: userData?.name || null,
+                user_rate: review.total_rate,
+                user_desc: review.rate_text,
+              };
+            })
+          );
+
+          totalReviewCount = await TblBook.count({
+            where: {
+              prop_id: property.id,
+              book_status: "Completed",
+              is_rate: 1,
+            },
+          });
+        }
+
+        // Assemble booking details
+        return {
+          book_id: booking.id,
+          prop_id: property.id,
+          prop_img: property.image,
+          prop_title: property.title,
+          book_status: booking.book_status,
+          prop_price: booking.prop_price,
+          p_method_id: booking.p_method_id,
+          total_day: booking.total_day,
+          total_rate: booking.total_rate,
+          reviews: includeReviewList ? reviewList : undefined,
+          total_review_count: includeReviewList ? totalReviewCount : undefined,
+        };
+      })
+    );
+
+    // Filter out any null entries
+    const validBookingDetails = bookingDetails.filter(
+      (detail) => detail !== null
+    );
+
+    return res.status(200).json({
+      message: "Status Wise Property Details Found!",
+      data: { statuswise: validBookingDetails },
+    });
+  } catch (error) {
+    console.error("Error fetching bookings by status:", error);
+    return res.status(500).json({ message: "Internal Server Error!" });
+  }
 };
 
 module.exports = {
@@ -1003,6 +1126,7 @@ module.exports = {
   pendingBookings,
   pastBookings,
   upcomingBookings,
+  propertyBookingStatus,
 
   getMyUserBookings,
   getMyUserBookingDetails,

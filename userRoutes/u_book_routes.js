@@ -51,5 +51,6 @@ router.get("/current-bookings", authMiddleware.isAuthenticated,userBookings.curr
 router.get("/pending-bookings",authMiddleware.isAuthenticated,userBookings.pendingBookings);
 router.get("/past-bookings",authMiddleware.isAuthenticated,userBookings.pastBookings);
 router.get("/upcoming-bookings",authMiddleware.isAuthenticated,userBookings.upcomingBookings);
+router.post("/property-booking-status",authMiddleware.isAuthenticated, userBookings.propertyBookingStatus)
 
 module.exports = router;

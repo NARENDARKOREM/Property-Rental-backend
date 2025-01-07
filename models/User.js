@@ -99,6 +99,10 @@ const User = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    one_subscription:{
+      type:DataTypes.TEXT,
+      allowNull:true
+    }
   },
   {
     tableName: "tbl_user",

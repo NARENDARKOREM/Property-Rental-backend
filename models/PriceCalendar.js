@@ -22,6 +22,10 @@ const PriceCalendar = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    prop_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
   },
   {
     timestamps: false,

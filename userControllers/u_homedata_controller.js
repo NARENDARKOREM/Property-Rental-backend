@@ -27,7 +27,7 @@ const homeDataApi = async (req, res) => {
       categoryList.unshift({
         id: 0,
         title: "All",
-        img: "images/category/grid-circle.png",
+        img: "/uploads/all.svg",
         status: 1,
       });
 
@@ -135,7 +135,7 @@ const homeDataApi = async (req, res) => {
     categoryList.unshift({
       id: 0,
       title: "All",
-      img: "images/category/grid-circle.png",
+      img: "",
       status: 1,
     });
 
