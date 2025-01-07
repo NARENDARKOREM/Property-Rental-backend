@@ -26,8 +26,8 @@ router.post("/u_property_details", userPropertyController.getPropertyDetails);
 router.get("/all-properties",authMiddleware.isAuthenticated, userPropertyController.getAllProperties);
 router.get("/search", userPropertyController.searchPropertyByLocationAndDate);
 router.post("/search-properties", userPropertyController.searchProperties);
-router.get("/sort-price/:sort", userPropertyController.getSortedProperties);
-router.get(
+router.post("/sort-price/:sort", userPropertyController.getSortedProperties);
+router.post(
   "/sort-property-title/:sort",
   userPropertyController.getSortedPropertiestitle
 );
