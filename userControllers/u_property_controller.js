@@ -31,7 +31,6 @@ const addProperty = async (req, res) => {
     listing_date,
     rules,
     country_id,
-    plimit,
     is_sell,
     adults,
     children,
@@ -138,7 +137,6 @@ const addProperty = async (req, res) => {
 
 const editProperty = async (req, res) => {
   try {
-    // Destructure and log the request body
     const {
       status,
       title,
@@ -698,6 +696,7 @@ const getAllProperties = async (req, res) => {
   try {
     const properties = await Property.findAll({
       where: { status: 1, add_user_id: uid },
+      include:{model:PriceCalendar,as:"priceCalendars", attributes:["date","note","prop_id","price"]}
     });
 
     if (!properties || properties.length === 0) {
