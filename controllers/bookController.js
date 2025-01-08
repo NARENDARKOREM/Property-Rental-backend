@@ -3,6 +3,7 @@ const TblBook = require("../models/TblBook");
 const TblNotification = require("../models/TblNotification");
 const Property = require("../models/Property");
 const User = require("../models/User"); // Import the User model
+const sendPushNotification = require("../config/pushNotification");
 
 // Create a Booking
 const createBooking = async (req, res) => {
@@ -104,6 +105,7 @@ const createBooking = async (req, res) => {
       add_user_id:property.add_user_id , 
     });
 
+    await sendPushNotification(uid,newBooking);
 
     // const notificationContent = {
     //   app_id: process.env.ONESIGNAL_APP_ID,
