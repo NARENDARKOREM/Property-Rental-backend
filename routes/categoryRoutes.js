@@ -18,6 +18,6 @@ router.delete(
   adminMiddleware.isAdmin,
   categoryController.deleteCategory
 );
-router.patch("/toggle-status", categoryController.toggleCategoryStatus);
+router.patch("/toggle-status",adminMiddleware.isAdmin, categoryController.toggleCategoryStatus);
 
 module.exports = router;

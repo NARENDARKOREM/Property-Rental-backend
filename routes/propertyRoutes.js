@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const propertyController = require("../controllers/propertyController");
-const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/adminMiddleware");
 
 router.post(
@@ -10,18 +9,18 @@ router.post(
   propertyController.upsertProperty
 );
 router.get("/", propertyController.getAllProperties);
-router.get("/count", propertyController.getPropertyCount);
+router.get("/count",adminMiddleware.isAdmin, propertyController.getPropertyCount);
 router.get("/:id", propertyController.getPropertyById);
 router.delete(
   "/delete/:id",
   adminMiddleware.isAdmin,
   propertyController.deleteProperty
 );
-router.patch("/toggle-status", propertyController.togglePropertyStatus);
+router.patch("/toggle-status",adminMiddleware.isAdmin, propertyController.togglePropertyStatus);
 router.post(
   "/fetch-by-countries",
   propertyController.fetchPropertiesByCountries
 );
-router.patch("/toggle-panorama", propertyController.isPanoramaToggle);
+router.patch("/toggle-panorama",adminMiddleware.isAdmin, propertyController.isPanoramaToggle);
 
 module.exports = router;

@@ -294,6 +294,7 @@ const googleAuth = async (req, res) => {
     if (existingUserByEmail) {
       const token = generateToken(existingUserByEmail);
       return res.status(200).json({
+        user:existingUserByEmail,
         token,
         ResponseCode: "200",
         Result: "true",
@@ -314,6 +315,7 @@ const googleAuth = async (req, res) => {
     // Generate a token for the user
     const token = generateToken(newUser);
     return res.status(201).json({
+      user:newUser,
       token,
       ResponseCode: "200",
       Result: "true",

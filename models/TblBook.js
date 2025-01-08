@@ -104,15 +104,15 @@ const TblBook = sequelize.define(
     },
     prop_img: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     prop_title: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     add_user_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     check_intime: {
       type: DataTypes.DATE,
@@ -122,7 +122,7 @@ const TblBook = sequelize.define(
     },
     noguest: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     adults: {
       type: DataTypes.INTEGER,
