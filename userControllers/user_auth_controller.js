@@ -298,7 +298,7 @@ const googleAuth = async (req, res) => {
         token,
         ResponseCode: "200",
         Result: "true",
-        ResponseMsg: "Login Successfully!",
+        message: "Login Successfully!",
       });
     }
 
