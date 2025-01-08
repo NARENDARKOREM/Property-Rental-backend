@@ -33,6 +33,7 @@ const upsertProperty = async (req, res) => {
     children,
     infants,
     pets,
+    setting_id, 
   } = req.body;
 
   console.log(req.body,"from bodyyyyyyyyy")
@@ -69,6 +70,7 @@ const upsertProperty = async (req, res) => {
         children,
         infants,
         pets,
+        setting_id,
       });
 
       await property.save();
@@ -103,6 +105,7 @@ const upsertProperty = async (req, res) => {
         children,
         infants,
         pets,
+        setting_id,
         // add_user_id is omitted, so it will be NULL by default
       });
       res

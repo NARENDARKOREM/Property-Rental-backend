@@ -349,40 +349,64 @@ const getUserNotifications = async (req, res) => {
 };
 
 const seAllDetails = async (req, res) => {
-  const { id, status } = req.params;
+  const { status } = req.body;
+  const { id } = req.params;
 
   try {
     // Validate input
     if (!id || !status) {
-      return res.status(400).json({ error: 'Both id and status are required' });
+      return res.status(400).json({ 
+        error: 'Validation Error', 
+        message: 'Both ID and status are required to fetch booking details.' 
+      });
     }
 
-    // Fetch booking with associated data
+    // Fetch booking details
     const booking = await TblBook.findOne({
-      where: { id, book_status: status }, // Correct field name for `status`
+      where: { id, book_status: status }, 
       include: [
         {
           model: User,
-          as: 'userDetails', // Ensure this alias matches your association
-          attributes: ['id', 'name', 'email', 'phone'], // Only fetch necessary fields
+          as: 'User', 
+          attributes: ['id', 'name', 'email', 'mobile'], 
         },
         {
           model: Property,
-          as: 'property', // Ensure this alias matches your association
-          attributes: ['id', 'title', 'address', 'price', 'image'], // Only fetch necessary fields
+          as: 'properties',
+          attributes: ['id', 'title', 'address', 'price', 'image'],
         },
       ],
     });
 
-    // Handle no booking found
+    // Handle case when no booking is found
     if (!booking) {
-      return res.status(404).json({ error: 'Booking not found' });
+      return res.status(404).json({ 
+        error: 'Not Found', 
+        message: `No booking found with ID '${id}' and status '${status}'.` 
+      });
     }
 
-    // Return the booking details
-    res.status(200).json(booking);
+    // Return booking details
+    return res.status(200).json({
+      message: 'Booking details fetched successfully.',
+      data: booking,
+    });
+
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    // Handle specific error types (example: Sequelize or database errors)
+    if (error.name === 'SequelizeDatabaseError') {
+      return res.status(400).json({ 
+        error: 'Database Error', 
+        message: 'Invalid query or database operation. Please check your request.' 
+      });
+    }
+
+    // Catch-all for unexpected errors
+    return res.status(500).json({ 
+      error: 'Internal Server Error', 
+      message: 'Something went wrong while fetching booking details. Please try again later.', 
+      details: error.message 
+    });
   }
 };
 
