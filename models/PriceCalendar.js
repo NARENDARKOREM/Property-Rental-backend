@@ -11,9 +11,9 @@ const PriceCalendar = sequelize.define(
       allowNull: false,
     },
     date: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATEONLY,
       allowNull: false,
-    },
+  },  
     price: {
       type: DataTypes.FLOAT,
       allowNull: false,

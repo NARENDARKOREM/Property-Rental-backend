@@ -1,13 +1,8 @@
 const PriceCalendar = require("../models/PriceCalendar");
 const Property = require("../models/Property");
 
-/**
- * Add or update a price in the price calendar.
- * @param {*} req - Request object containing user and price calendar data.
- * @param {*} res - Response object.
- */
 const addPriceCalendar = async (req, res) => {
-  const uid = req.user.id; // Ensure the user is authenticated.
+  const uid = req.user.id;
   if (!uid) {
     return res.status(401).json({ message: "User not found" });
   }
@@ -20,11 +15,10 @@ const addPriceCalendar = async (req, res) => {
   }
 
   try {
-    // Verify if the property exists and is associated with the current user.
     const property = await Property.findOne({
       where: {
         id: prop_id,
-        add_user_id: uid, // Assumes `add_user_id` references the owner in the Property table.
+        add_user_id: uid,
       },
     });
 
@@ -35,7 +29,6 @@ const addPriceCalendar = async (req, res) => {
       });
     }
 
-    // Check if a price entry exists for the given date and property.
     const existingEntry = await PriceCalendar.findOne({
       where: {
         date: date,
@@ -44,7 +37,6 @@ const addPriceCalendar = async (req, res) => {
     });
 
     if (existingEntry) {
-      // Update the existing price entry.
       existingEntry.price = price;
       existingEntry.note = note;
       await existingEntry.save();
@@ -54,7 +46,6 @@ const addPriceCalendar = async (req, res) => {
         data: existingEntry,
       });
     } else {
-      // Create a new price entry.
       const newEntry = await PriceCalendar.create({
         date: date,
         price: price,
@@ -75,4 +66,24 @@ const addPriceCalendar = async (req, res) => {
   }
 };
 
-module.exports = { addPriceCalendar };
+const fetchAllDetails = async (req, res) => {
+    try {
+      const allDetails = await PriceCalendar.findAll();
+  
+      if (!allDetails || allDetails.length === 0) {
+        return res.status(404).json({ message: "No Price Calendar entries found!" });
+      }
+  
+      return res.status(200).json({
+        message: "Price Calendar details fetched successfully!",
+        data: allDetails,
+      });
+    } catch (error) {
+      console.error("Error fetching price calendar details:", error);
+      return res.status(500).json({
+        message: "An error occurred while fetching the price calendar details.",
+      });
+    }
+  };
+
+module.exports = { addPriceCalendar,fetchAllDetails };

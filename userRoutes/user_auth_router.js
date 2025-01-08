@@ -32,7 +32,7 @@ router.get("/user/getalluser",adminMiddleware.isAdmin, getAllusers);
 router.get("/user/count", adminMiddleware.isAdmin, getUsersCount);
 router.put("/user/basic-info", authMiddleware.isAuthenticated, updateUser);
 router.delete("/user/delete/:id", adminMiddleware.isAdmin,deleteUser);
-router.patch("/user/toggle-update",adminMiddleware.isAdmin, handleToggle);
+router.patch("/user/toggle-update", handleToggle);
 router.post("/user/pro_image",authMiddleware.isAuthenticated,upload.single("image"),uploadUserImage);
 router.put("/user/delete", authMiddleware.isAuthenticated, deleteUserAccount);
 
