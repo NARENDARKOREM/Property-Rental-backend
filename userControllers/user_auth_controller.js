@@ -321,14 +321,14 @@ const googleAuth = async (req, res) => {
       token,
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: "Sign Up Done Successfully!",
+      message: "Sign Up Done Successfully!",
     });
   } catch (error) {
     console.error(error);
     return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
-      ResponseMsg: "Internal Server Error",
+      message: "Internal Server Error",
     });
   }
 };
