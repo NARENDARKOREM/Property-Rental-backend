@@ -687,16 +687,99 @@ const getPropertyDetails = async (req, res) => {
   }
 };
 
+// const getAllProperties = async (req, res) => {
+//   const uid = req.user?.id;
+//   if (!uid) {
+//     return res.status(404).json({ message: "User not found!" });
+//   }
+//   try {
+//     const properties = await Property.findAll({
+//       where: { status: 1, add_user_id: uid },
+//       include:{model:PriceCalendar,as:"priceCalendars", attributes:["date","note","prop_id","price"]}
+//     });
+
+//     if (!properties || properties.length === 0) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "false",
+//         ResponseMsg: "Properties not found!",
+//       });
+//     }
+
+//     const ownerDetails = await User.findOne({
+//       where: { id: uid },
+//       attributes: ["id", "pro_pic", "name", "email", "mobile"],
+//     });
+
+//     if (!ownerDetails) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "False",
+//         ResponseMsg: "Owner not found!",
+//       });
+//     }
+
+//     const propertiesWithProcessedRules = properties.map((property) => {
+//       if (typeof property.rules === "string") {
+//         try {
+//           const parsedRules = JSON.parse(property.rules);
+//           if (Array.isArray(parsedRules)) {
+//             property.rules = parsedRules.join(", ");
+//           } else {
+//             property.rules = property.rules
+//               .split(",")
+//               .map((rule) => rule.trim())
+//               .join(", ");
+//           }
+//         } catch (error) {
+//           console.error("Error parsing rules:", error);
+//         }
+//       } else if (Array.isArray(property.rules)) {
+//         property.rules = property.rules.join(", ");
+//       }
+//       return property;
+//     });
+
+//     res.status(200).json({
+//       properties: propertiesWithProcessedRules,
+//       owner: {
+//         id: ownerDetails.id,
+//         name: ownerDetails.name,
+//         email: ownerDetails.email,
+//         phone: ownerDetails.mobile,
+//       },
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Properties fetched successfully!",
+//     });
+//   } catch (error) {
+//     console.error("Error in getAllProperties:", error);
+//     res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const getAllProperties = async (req, res) => {
-  // User added Properties
   const uid = req.user?.id;
   if (!uid) {
     return res.status(404).json({ message: "User not found!" });
   }
+
   try {
+    const today = new Date().toISOString().split("T")[0];
+
+    // Fetch properties along with associated PriceCalendar entries
     const properties = await Property.findAll({
       where: { status: 1, add_user_id: uid },
-      include:{model:PriceCalendar,as:"priceCalendars", attributes:["date","note","prop_id","price"]}
+      include: {
+        model: PriceCalendar,
+        as: "priceCalendars",
+        attributes: ["date", "note", "prop_id", "price"],
+      },
     });
 
     if (!properties || properties.length === 0) {
@@ -720,7 +803,24 @@ const getAllProperties = async (req, res) => {
       });
     }
 
-    const propertiesWithProcessedRules = properties.map((property) => {
+    const propertiesWithUpdatedPrices = properties.map((property) => {
+      // Default property price
+      let currentPrice = property.price;
+      let currentNote = null;
+
+      // Check if PriceCalendar entry exists for today's date
+      if (property.priceCalendars) {
+        const todayEntry = property.priceCalendars.find(
+          (calendar) => calendar.date === today
+        );
+
+        if (todayEntry) {
+          currentPrice = todayEntry.price; // Override with calendar price
+          currentNote = todayEntry.note;  // Include note if applicable
+        }
+      }
+
+      // Process rules (parse and join as a string)
       if (typeof property.rules === "string") {
         try {
           const parsedRules = JSON.parse(property.rules);
@@ -738,11 +838,24 @@ const getAllProperties = async (req, res) => {
       } else if (Array.isArray(property.rules)) {
         property.rules = property.rules.join(", ");
       }
-      return property;
+
+      return {
+        id: property.id,
+        title: property.title,
+        city: property.city,
+        price: currentPrice,
+        price_note: currentNote,
+        address: property.address,
+        rules: property.rules,
+        beds: property.beds,
+        bathroom: property.bathroom,
+        sqrft: property.sqrft,
+        description: property.description,
+      };
     });
 
     res.status(200).json({
-      properties: propertiesWithProcessedRules,
+      properties: propertiesWithUpdatedPrices,
       owner: {
         id: ownerDetails.id,
         name: ownerDetails.name,
@@ -763,6 +876,7 @@ const getAllProperties = async (req, res) => {
     });
   }
 };
+
 
 const getSortedProperties = async (req, res) => {
   try {
