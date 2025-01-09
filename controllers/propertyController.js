@@ -9,6 +9,7 @@ const upsertProperty = async (req, res) => {
   const {
     id,
     title,
+    is_panorama,
     image,
     price,
     status,
@@ -48,6 +49,7 @@ const upsertProperty = async (req, res) => {
         title,
         image,
         price,
+        is_panorama,
         status,
         address,
         facility,
