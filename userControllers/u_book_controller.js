@@ -31,7 +31,7 @@ const createBooking = async (req, res) => {
     total_day,
     add_note,
     transaction_id,
-    cou_amt,
+    cou_amt = 0,
     noguest,
     fname,
     lname,
@@ -46,7 +46,6 @@ const createBooking = async (req, res) => {
     pets,
   } = req.body;
 
-  // Validation
   if (
     !prop_id ||
     !check_in ||
@@ -58,41 +57,59 @@ const createBooking = async (req, res) => {
     !book_for ||
     !prop_price
   ) {
-    return sendResponse(res, 401, "false", "Something Went Wrong!");
+    return res
+      .status(401)
+      .json({ success: false, message: "Something Went Wrong!" });
+  }
+
+  if (book_for === "other") {
+    if (
+      !fname ||
+      !lname ||
+      !gender ||
+      !email ||
+      !mobile ||
+      !ccode ||
+      !country
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "All fields are required when booking for someone else. Please provide first name, last name, gender, email, mobile, country code, and country.",
+      });
+    }
   }
 
   try {
-    // Fetch user
     const user = await User.findByPk(uid);
     if (!user) {
-      return sendResponse(res, 401, "false", "User Not Found!");
+      return res
+        .status(401)
+        .json({ success: false, message: "User Not Found!" });
     }
 
-    // Fetch property details
     const property = await Property.findOne({
       where: { id: prop_id, status: 1 },
     });
-
     if (!property) {
-      return sendResponse(res, 401, "false", "Property Not Found!");
+      return res
+        .status(401)
+        .json({ success: false, message: "Property Not Found!" });
     }
+
     if (
       adults > property.adults ||
       children > property.children ||
       infants > property.infants ||
       pets > property.pets
     ) {
-      return sendResponse(
-        res,
-        401,
-        "false",
-        `Guests limit exceeded! Adults: ${property.adults}, Children: ${property.children}, Infants: ${property.infants}, Pets: ${property.pets}`
-      );
+      return res.status(401).json({
+        success: false,
+        message: `Guests limit exceeded! Adults: ${property.adults}, Children: ${property.children}, Infants: ${property.infants}, Pets: ${property.pets}`,
+      });
     }
 
-    
 
-    // Check date availability
     const existingBookings = await TblBook.findOne({
       where: {
         prop_id,
@@ -105,11 +122,14 @@ const createBooking = async (req, res) => {
     });
 
     if (existingBookings) {
-      return sendResponse(res, 401, "false", "That Date Range Already Booked!");
+      return res
+        .status(401)
+        .json({ success: false, message: "That Date Range Already Booked!" });
     }
 
-    
-    const booking = await TblBook.create({
+
+    const bookingData = {
+
       prop_id,
       uid,
       check_in,
@@ -133,10 +153,12 @@ const createBooking = async (req, res) => {
       children,
       infants,
       pets,
-      book_status: "Booked", 
-    });
 
-    
+      book_status: "Booked",
+    };
+
+    const booking = await TblBook.create(bookingData);
+
     if (book_for === "other") {
       await PersonRecord.create({
         fname,
@@ -151,16 +173,21 @@ const createBooking = async (req, res) => {
     }
 
 
+    return res.status(200).json({
+      success: true,
+      message: "Booking Booked Successfully!!!",
+      data: {
+        book_id: booking.id,
+        booking_details: booking,
+        property_details: property,
+      },
 
-    // Return booking details along with the property details
-    return sendResponse(res, 200, "true", "Booking Booked Successfully!!!", {
-      book_id: booking.id,
-      booking_details: booking,
-      property_details: property,
     });
   } catch (error) {
     console.error("Error creating booking:", error);
-    return sendResponse(res, 500, "false", "Internal Server Error!");
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error!" });
   }
 };
 
@@ -489,6 +516,7 @@ const getBookingsByStatus = async (req, res) => {
   if (!uid) {
     return res.status(401).json({ message: "User Not Found!" });
   }
+
   const { status } = req.body;
 
   const user = await User.findByPk(uid);
@@ -504,9 +532,9 @@ const getBookingsByStatus = async (req, res) => {
     let queryFilter = { uid: uid };
 
     if (status === "active") {
-      queryFilter.book_status = { [Op.notIn]: ["Completed", "Cancelled"] };
-    } else if (status === "inactive") {
-      queryFilter.book_status = { [Op.in]: ["Completed", "Cancelled"] };
+      queryFilter.book_status = { [Op.notIn]: ["Cancelled", "Completed"] };
+    } else if (status === "cancelled") {
+      queryFilter.book_status = { [Op.in]: ["Cancelled"] };
     } else {
       return sendResponse(res, 401, "false", "Invalid status provided!");
     }
@@ -518,7 +546,17 @@ const getBookingsByStatus = async (req, res) => {
 
     const bookingDetails = [];
     for (const booking of bookings) {
-      const property = await Property.findByPk(booking.prop_id);
+      const property = await Property.findOne({
+        where: {
+          id: booking.prop_id,
+          add_user_id: uid, // Ensure the property belongs to the logged-in user
+        },
+      });
+
+      if (!property) {
+        continue; // Skip bookings for properties not created by the user
+      }
+
       let totalRate = "5";
 
       if (booking.book_status === "Completed") {
@@ -836,64 +874,31 @@ const myUserCancelBookings = async (req, res) => {
   }
 };
 
-// Booking Status
-const currentBookingStatus = async (req, res) => {
-  const uid = req.user?.id;
+
+// Host Properties Bookings Status
+const hostPropertiesBookingStatus = async (req, res) => {
+  const uid = req.user?.id; // Fetch current user ID
 
   if (!uid) {
     return res.status(404).json({ message: "User not found!" });
   }
 
-  // Get today's date in YYYY-MM-DD format
-  const today = new Date();
-  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-  const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+  const { status } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ message: "Booking status is required!" });
+  }
 
   try {
-    // Fetch bookings confirmed for today
-    const bookings = await TblBook.findAll({
-      where: {
-        uid: uid,
-        book_status: "Confirmed",
-        book_date: {
-          [Op.between]: [startOfDay, endOfDay],
-        },
-      },
-    });
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
-    if (bookings.length === 0) {
-      return res
-        .status(200)
-        .json({ message: "No confirmed bookings for today." });
-    }
-
-    res.status(200).json({
-      message: "Confirmed bookings fetched successfully!",
-      bookings: bookings,
-    });
-  } catch (error) {
-    console.error("Error fetching current booking status:", error);
-    res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
-  }
-};
-
-const pendingBookings = async (req, res) => {
-  const uid = req.user.id;
-  if (!uid) {
-    return res.status(404).json({ message: "User not found!" });
-  }
-  try {
-    const bookings = await TblBook.findAll({
-      where: {
-        add_user_id: uid,
-        book_status: "Booked",
-      },
-      include: {
+    let whereCondition = { add_user_id: uid }; // Base condition to match current user
+    const includeCondition = [
+      {
         model: Property,
         as: "properties",
-        add_user_id: uid,
         attributes: [
           "id",
           "title",
@@ -904,97 +909,122 @@ const pendingBookings = async (req, res) => {
           "image",
         ],
       },
+      {
+        model: PersonRecord,
+        as: "travelerDetails", // Match this alias with the association
+        attributes: ["fname", "mobile", "email"],
+        // required: false,
+      },
+    ];
+
+    // Define conditions based on booking status
+    switch (status) {
+      case "current":
+        whereCondition = {
+          ...whereCondition,
+          book_status: "Check_in",
+          book_date: { [Op.between]: [startOfDay, endOfDay] },
+        };
+        break;
+
+      case "active":
+        whereCondition = {
+          ...whereCondition,
+          book_status: "Confirmed",
+          book_date: { [Op.between]: [startOfDay, endOfDay] },
+        };
+        break;
+
+      case "cancelled":
+        whereCondition = {
+          ...whereCondition,
+          book_status: "Cancelled",
+        };
+        break;
+
+      case "pending":
+        whereCondition = {
+          ...whereCondition,
+          book_status: "Booked",
+        };
+        break;
+
+      case "past":
+        whereCondition = {
+          ...whereCondition,
+          book_status: { [Op.in]: ["Completed", "Cancelled"] },
+        };
+        break;
+
+      case "check_in":
+        whereCondition = {
+          ...whereCondition,
+          book_status: "Confirmed",
+          check_in: { [Op.between]: [startOfDay, endOfDay] },
+        };
+        break;
+
+      case "check_out":
+        whereCondition = {
+          ...whereCondition,
+          book_status: "Check_in",
+          check_out: { [Op.between]: [startOfDay, endOfDay] },
+        };
+        break;
+
+      default:
+        return res.status(400).json({ message: "Invalid booking status!" });
+    }
+
+    // Fetch bookings from the database
+    const bookings = await TblBook.findAll({
+      where: whereCondition,
+      include: includeCondition,
+      order: [["id", "DESC"]],
     });
 
     if (bookings.length === 0) {
-      return res.status(404).json({ message: "No pending bookings found!" });
+      return res
+        .status(404)
+        .json({ message: `No bookings found for status: ${status}` });
     }
+
+    // Process booking data to calculate additional fields like no_of_days
+    const processedBookings = bookings.map((booking) => {
+      const no_of_days = Math.ceil(
+        (new Date(booking.check_out) - new Date(booking.check_in)) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      // Determine traveler details (either self or from PersonRecord)
+      const travelerDetails =
+        booking.book_for === "self"
+          ? {
+              name: req.user.name, // Get current user's details directly
+              contact: req.user.mobile,
+              email: req.user.email,
+            }
+          : booking.travelerDetails;
+
+      return {
+        ...booking.toJSON(),
+        no_of_days,
+        travelerDetails,
+      };
+    });
+
     res.status(200).json({
-      message: "Pending Bookings Fetched Successfully!",
-      bookings,
+      message: `${
+        status.charAt(0).toUpperCase() + status.slice(1)
+      } bookings fetched successfully!`,
+      bookings: processedBookings,
     });
   } catch (error) {
-    console.error("Error Fetching Pending Bookings.");
-    return res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
-  }
-};
-
-const pastBookings = async (req, res) => {
-  const uid = req.user.id;
-  if (!uid) {
-    return res.status(401).json({ message: "User not found!" });
-  }
-  try {
-    const bookings = await TblBook.findAll({
-      where: {
-        add_user_id: uid,
-        book_status: ["Completed", "Cancelled"],
-      },
-      include: {
-        model: Property,
-        as: "properties",
-        add_user_id: uid,
-        attributes: [
-          "id",
-          "title",
-          "price",
-          "facility",
-          "rules",
-          "price",
-          "image",
-        ],
-      },
-    });
-    if (bookings.length === 0) {
-      return res.status(401).json({ message: "No Past Bookings Found!" });
-    }
-    res.status(201).json({
-      message: "Past Bookings Fetched Successfullu!",
-      bookings,
-    });
-  } catch (error) {
-    console.error("Error fetching Past Bookings", error);
-    return res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
-  }
-};
-
-const upcomingBookings = async (req, res) => {
-  const uid = req.user.id;
-  if (!uid) {
-    return res.status(401).json({ message: "User not found!" });
-  }
-  try {
-    const bookings = await TblBook.findAll({
-      where: {
-        add_user_id: uid,
-        book_status: "Confirmed",
-      },
-      include: {
-        model: Property,
-        as: "properties",
-        add_user_id: uid,
-        attributes: [
-          "id",
-          "title",
-          "price",
-          "facility",
-          "rules",
-          "price",
-          "image",
-        ],
-      },
-    });
-    if (bookings.length === 0) {
-      return res.status(404).json({ message: "No Upcoming Bookings Found!" });
-    }
+    console.error("Error fetching bookings:", error);
     res
-      .status(201)
-      .json({ message: "Upcoming Bookings Fetched Successfully!", bookings });
-  } catch (error) {}
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
 };
 
 const propertyBookingStatus = async (req, res) => {
@@ -1126,10 +1156,11 @@ module.exports = {
   getBookingDetails,
   cancelBooking,
   getBookingsByStatus,
-  currentBookingStatus,
-  pendingBookings,
-  pastBookings,
-  upcomingBookings,
+  // currentBookingStatus,
+  // pendingBookings,
+  // pastBookings,
+  // upcomingBookings,
+  hostPropertiesBookingStatus,
   propertyBookingStatus,
 
   getMyUserBookings,

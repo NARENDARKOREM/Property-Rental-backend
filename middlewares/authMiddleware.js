@@ -41,15 +41,14 @@ exports.optionalAuth = async (req, res, next) => {
         return res.status(401).json({ error: "Unauthorized: User not found" });
       }
 
-      req.user = user; 
+      req.user = user;
     } catch (err) {
       console.error("Authentication error:", err.message);
       return res
         .status(401)
         .json({ error: "Unauthorized: Invalid or expired token" });
     }
-  }
-  else{
+  } else {
     req.user = null;
   }
 
@@ -81,63 +80,96 @@ exports.isGuest = (req, res, next) => {
   }
 };
 
-exports.isHost = async (req, res, next) => {
-  if (req.user && req.user.role === "host") {
-    next();
-  } else {
-    return res
-      .status(403)
-      .json({ error: "Permission denied. Host access only." });
-  }
-};
+// exports.isHost = async (req, res, next) => {
+//   if (req.user && req.user.role === "host") {
+//     next();
+//   } else {
+//     return res
+//       .status(403)
+//       .json({ error: "Permission denied. Host access only." });
+//   }
+// };
 
-exports.isStaff = (permission) => {
-  return (req, res, next) => {
-    if (
-      req.user &&
-      req.user.userType === "Staff" &&
-      !req.user.permissions.includes(permission)
-    ) {
-      return res
-        .status(403)
-        .json({ error: `Forbidden: ${permission} permission required` });
-    }
-    next();
-  };
-};
 
 exports.isAdminOrHost = async (req, res, next) => {
   try {
     const { id, userType } = req.user;
-    console.log(req.user, "from admin cred");
+    console.log("User Data from Token:", req.user);
 
     if (userType === "admin") {
       const admin = await Admin.findByPk(id);
 
       if (!admin) {
-        return res
-          .status(403)
-          .json({ error: "Permission denied. Admin access only." });
+        return res.status(403).json({ error: "Permission denied. Admin access only." });
       }
-      console.log("Admin access granted");
+      
+      console.log("Admin access granted.");
       return next();
-    } else if (userType === "user") {
+    } 
+
+    else if (userType === "user") {
       const user = await User.findByPk(id);
 
-      if (!user || (user.role !== "admin" && user.role !== "host")) {
-        return res
-          .status(403)
-          .json({ error: "Permission denied. Admin or Host access only." });
+      if (!user) {
+        return res.status(404).json({ error: "User not found." });
       }
-      console.log("Host access granted");
+
+      if (user.role !== "admin" && user.role !== "host") {
+        return res.status(403).json({
+          error: "Permission denied. Admin or Host access only."
+        });
+      }
+
+      console.log("Host access granted.");
       return next();
-    } else {
+    } 
+
+    else {
       return res.status(403).json({ error: "Permission denied." });
     }
   } catch (error) {
     console.error("Error in isAdminOrHost middleware:", error);
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
+
+    res.status(500).json({
+      error: "Internal server error",
+      details: error.message,
+    });
   }
 };
+
+
+exports.isHost = async (req, res, next) => {
+  try {
+    const { id } = req.user; // Get the user ID from the request
+    const user = await User.findByPk(id);
+
+    // Check if user exists
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Check if the user has the "host" role
+    if (user.role !== "host") {
+      return res.status(403).json({ error: "Permission denied. Host role required." });
+    }
+
+    // Generate a JWT token after confirming the host role
+    const payload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+
+    // Proceed to the next middleware or route handler
+    return next(); // Uncomment if you need the middleware to allow further requests after token generation
+
+  } catch (error) {
+    console.error("Error in isHost middleware:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      details: error.message,
+    });
+  }
+};
+

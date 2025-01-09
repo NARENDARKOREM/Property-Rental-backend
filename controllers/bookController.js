@@ -389,7 +389,7 @@ const seAllDetails = async (req, res) => {
     // Return booking details
     return res.status(200).json({
       message: 'Booking details fetched successfully.',
-      data: booking,
+      data: booking, 
     });
 
   } catch (error) {

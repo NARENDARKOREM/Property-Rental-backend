@@ -26,6 +26,8 @@ router.post(
   authMiddleware.isAuthenticated,
   userBookings.cancelBooking
 );
+
+// Traveller
 router.post(
   "/booking-status",
   authMiddleware.isAuthenticated,
@@ -47,10 +49,10 @@ router.post(
   authMiddleware.isAuthenticated,
   userBookings.myUserCancelBookings
 );
-router.get("/current-bookings", authMiddleware.isAuthenticated,userBookings.currentBookingStatus);
-router.get("/pending-bookings",authMiddleware.isAuthenticated,userBookings.pendingBookings);
-router.get("/past-bookings",authMiddleware.isAuthenticated,userBookings.pastBookings);
-router.get("/upcoming-bookings",authMiddleware.isAuthenticated,userBookings.upcomingBookings);
+
+router.post("/host-property-booking-status", authMiddleware.isAuthenticated, userBookings.hostPropertiesBookingStatus)
+
+
 router.post("/property-booking-status",authMiddleware.isAuthenticated, userBookings.propertyBookingStatus)
 
 module.exports = router;

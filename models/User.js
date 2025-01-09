@@ -28,7 +28,7 @@ const User = sequelize.define(
     },
     mobile: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     otp: {
       type: DataTypes.STRING,
