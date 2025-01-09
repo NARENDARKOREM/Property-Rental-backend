@@ -139,27 +139,31 @@ exports.isAdminOrHost = async (req, res, next) => {
 
 
 exports.isHost = async (req, res, next) => {
+ 
+
+    const token = req.headers.authorization?.split(" ")[1];
+  console.log("Token received:", token);
+
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: No token provided" });
+  }
+
   try {
-    const { id } = req.user; // Get the user ID from the request
-    const user = await User.findByPk(id);
-
-    // Check if user exists
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.userId);
+    console.log("User  found:", user); // Log the user
+    
     if (!user) {
-      return res.status(404).json({ error: "User not found." });
+      return res.status(401).json({ error: ": User Not Found" });
     }
-
+  
     // Check if the user has the "host" role
     if (user.role !== "host") {
       return res.status(403).json({ error: "Permission denied. Host role required." });
     }
 
     // Generate a JWT token after confirming the host role
-    const payload = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    };
+    req.user = user;
 
     // Proceed to the next middleware or route handler
     return next(); // Uncomment if you need the middleware to allow further requests after token generation
