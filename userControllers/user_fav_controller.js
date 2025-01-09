@@ -173,7 +173,6 @@ const getFavoriteList = async (req, res) => {
           rate: await getPropertyRate(property.id),
           city: property.city,
           buyorrent: property.is_sell,
-          plimit: property.plimit,
           property_type: property.ptype,
           image: property.image,
           price: property.price,
