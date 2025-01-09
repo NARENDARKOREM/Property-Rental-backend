@@ -772,6 +772,7 @@ const getAllProperties = async (req, res) => {
       return {
         id: property.id,
         title: property.title,
+        image:property.image,
         city: property.city,
         priceInfo, // Return the price object
         address: property.address,
