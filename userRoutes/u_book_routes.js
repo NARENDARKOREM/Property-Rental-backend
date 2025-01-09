@@ -27,7 +27,7 @@ router.post(
   userBookings.cancelBooking
 );
 
-// 
+// Traveller
 router.post(
   "/booking-status",
   authMiddleware.isAuthenticated,

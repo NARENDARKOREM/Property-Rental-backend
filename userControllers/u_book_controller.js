@@ -1081,6 +1081,21 @@ const hostPropertiesBookingStatus = async (req, res) => {
         };
         break;
 
+      case "active":
+        whereCondition = {
+          ...whereCondition,
+          book_status: "Confirmed",
+          book_date: { [Op.between]: [startOfDay, endOfDay] },
+        };
+        break;
+
+      case "cancelled":
+        whereCondition = {
+          ...whereCondition,
+          book_status: "Cancelled",
+        };
+        break;
+
       case "pending":
         whereCondition = {
           ...whereCondition,
@@ -1092,13 +1107,6 @@ const hostPropertiesBookingStatus = async (req, res) => {
         whereCondition = {
           ...whereCondition,
           book_status: { [Op.in]: ["Completed", "Cancelled"] },
-        };
-        break;
-
-      case "upcoming":
-        whereCondition = {
-          ...whereCondition,
-          book_status: "Confirmed",
         };
         break;
 
@@ -1138,18 +1146,19 @@ const hostPropertiesBookingStatus = async (req, res) => {
     // Process booking data to calculate additional fields like no_of_days
     const processedBookings = bookings.map((booking) => {
       const no_of_days = Math.ceil(
-        (new Date(booking.check_out) - new Date(booking.check_in)) / 
-        (1000 * 60 * 60 * 24)
+        (new Date(booking.check_out) - new Date(booking.check_in)) /
+          (1000 * 60 * 60 * 24)
       );
 
       // Determine traveler details (either self or from PersonRecord)
-      const travelerDetails = booking.book_for === "self"
-        ? {
-            name: req.user.name, // Get current user's details directly
-            contact: req.user.mobile,
-            email: req.user.email,
-          }
-        : booking.travelerDetails;
+      const travelerDetails =
+        booking.book_for === "self"
+          ? {
+              name: req.user.name, // Get current user's details directly
+              contact: req.user.mobile,
+              email: req.user.email,
+            }
+          : booking.travelerDetails;
 
       return {
         ...booking.toJSON(),
@@ -1159,15 +1168,18 @@ const hostPropertiesBookingStatus = async (req, res) => {
     });
 
     res.status(200).json({
-      message: `${status.charAt(0).toUpperCase() + status.slice(1)} bookings fetched successfully!`,
+      message: `${
+        status.charAt(0).toUpperCase() + status.slice(1)
+      } bookings fetched successfully!`,
       bookings: processedBookings,
     });
   } catch (error) {
     console.error("Error fetching bookings:", error);
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
-
 
 const propertyBookingStatus = async (req, res) => {
   const uid = req.user.id;
