@@ -688,17 +688,14 @@ const getPropertyDetails = async (req, res) => {
 };
 
 const getAllProperties = async (req, res) => {
-  const uid = req.user?.id;
-  if (!uid) {
-    return res.status(404).json({ message: "User not found!" });
-  }
+  const uid = req.user?.id || null;
 
   try {
     const today = new Date().toISOString().split("T")[0];
 
     // Fetch properties along with associated PriceCalendar entries
     const properties = await Property.findAll({
-      where: { status: 1, add_user_id: uid },
+      where: { status: 1, ...(uid ? { add_user_id: uid } : {}) },
       include: {
         model: PriceCalendar,
         as: "priceCalendars",
@@ -714,23 +711,29 @@ const getAllProperties = async (req, res) => {
       });
     }
 
-    const ownerDetails = await User.findOne({
-      where: { id: uid },
-      attributes: ["id", "pro_pic", "name", "email", "mobile"],
-    });
-
-    if (!ownerDetails) {
-      return res.status(404).json({
-        ResponseCode: "404",
-        Result: "False",
-        ResponseMsg: "Owner not found!",
+    // Fetch owner details if `uid` is available
+    let ownerDetails = null;
+    if (uid) {
+      ownerDetails = await User.findOne({
+        where: { id: uid },
+        attributes: ["id", "pro_pic", "name", "email", "mobile"],
       });
+
+      if (!ownerDetails) {
+        return res.status(404).json({
+          ResponseCode: "404",
+          Result: "false",
+          ResponseMsg: "Owner not found!",
+        });
+      }
     }
 
     const propertiesWithUpdatedPrices = properties.map((property) => {
-      // Default property price
-      let currentPrice = property.price;
-      let currentNote = null;
+      let priceInfo = {
+        date: null,
+        price: property.price, // Default property price
+        note: null,
+      };
 
       // Check if PriceCalendar entry exists for today's date
       if (property.priceCalendars) {
@@ -739,8 +742,11 @@ const getAllProperties = async (req, res) => {
         );
 
         if (todayEntry) {
-          currentPrice = todayEntry.price; // Override with calendar price
-          currentNote = todayEntry.note;  // Include note if applicable
+          priceInfo = {
+            date: todayEntry.date,
+            price: todayEntry.price, // Override with calendar price
+            note: todayEntry.note, // Include note if applicable
+          };
         }
       }
 
@@ -767,8 +773,7 @@ const getAllProperties = async (req, res) => {
         id: property.id,
         title: property.title,
         city: property.city,
-        price: currentPrice,
-        price_note: currentNote,
+        priceInfo, // Return the price object
         address: property.address,
         rules: property.rules,
         beds: property.beds,
@@ -780,12 +785,16 @@ const getAllProperties = async (req, res) => {
 
     res.status(200).json({
       properties: propertiesWithUpdatedPrices,
-      owner: {
-        id: ownerDetails.id,
-        name: ownerDetails.name,
-        email: ownerDetails.email,
-        phone: ownerDetails.mobile,
-      },
+      ...(ownerDetails
+        ? {
+            owner: {
+              id: ownerDetails.id,
+              name: ownerDetails.name,
+              email: ownerDetails.email,
+              phone: ownerDetails.mobile,
+            },
+          }
+        : {}),
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Properties fetched successfully!",
