@@ -91,8 +91,7 @@ const addProperty = async (req, res) => {
     }
 
     const imageUrl = await uploadToS3(req.file, "id-proof");
-    console.log(imageUrl, "from imageeeeeeeeeeeeee");
-
+    
 
     // Create new property
     const newProperty = await Property.create({
@@ -203,7 +202,6 @@ const editProperty = async (req, res) => {
       !mobile ||
       !listing_date ||
       !price ||
-      !image ||
       !plimit ||
       !country_id ||
       is_sell === undefined // Ensure boolean is not `undefined`
