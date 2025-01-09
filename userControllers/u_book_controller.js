@@ -471,7 +471,7 @@ const cancelBooking = async (req, res) => {
   const { book_id, cancle_reason } = req.body;
 
   if (!book_id || !uid) {
-    return sendResponse(res, 401, "false", "Something Went Wrong!");
+    return sendResponse(res, 401, "false", "book_id and uid is required!");
   }
 
   const user = await User.findByPk(uid);
@@ -481,7 +481,7 @@ const cancelBooking = async (req, res) => {
 
   try {
     const booking = await TblBook.findOne({
-      where: { id: book_id, uid: uid, book_status: "Confirmed" },
+      where: { id: book_id, uid: uid, book_status:  { [Op.in]: ["Confirmed", "Booked"] } },
     });
 
     if (!booking) {
