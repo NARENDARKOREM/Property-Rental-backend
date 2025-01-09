@@ -27,11 +27,11 @@ router.post(
   userBookings.cancelBooking
 );
 
-// Traveller
+// Traveller booking status
 router.post(
-  "/booking-status",
+  "/traveler-booking-status",
   authMiddleware.isAuthenticated,
-  userBookings.getBookingsByStatus
+  userBookings.getTravelerBookingsByStatus
 );
 
 router.get(
