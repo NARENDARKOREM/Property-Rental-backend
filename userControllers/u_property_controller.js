@@ -729,26 +729,43 @@ const getAllProperties = async (req, res) => {
     }
 
     const propertiesWithUpdatedPrices = properties.map((property) => {
-      let priceInfo = {
-        date: null,
-        price: property.price, // Default property price
-        note: null,
-      };
+      // Define the original price from the property table
+      const originalPrice = property.price;
 
-      // Check if PriceCalendar entry exists for today's date
+      // List for upcoming prices
+      let upcomingPrices = [];
+
+      // Check if PriceCalendar entry exists for today's date and future dates
       if (property.priceCalendars) {
+        const futureEntries = property.priceCalendars.filter(
+          (calendar) => calendar.date > today // Only future prices
+        );
         const todayEntry = property.priceCalendars.find(
           (calendar) => calendar.date === today
         );
 
+        // If today's price exists, include it in upcomingPrices
         if (todayEntry) {
-          priceInfo = {
+          upcomingPrices.push({
             date: todayEntry.date,
-            price: todayEntry.price, // Override with calendar price
-            note: todayEntry.note, // Include note if applicable
-          };
+            price: todayEntry.price,
+            note: todayEntry.note,
+          });
         }
+
+        // Store price and note for future price changes
+        upcomingPrices = [
+          ...upcomingPrices,
+          ...futureEntries.map((entry) => ({
+            date: entry.date,
+            price: entry.price,
+            note: entry.note,
+          })),
+        ];
       }
+
+      // Here, outside of the upcomingPrices array, the original price from the Property table is used
+      const finalPrice = originalPrice;
 
       // Process rules (parse and join as a string)
       if (typeof property.rules === "string") {
@@ -772,9 +789,10 @@ const getAllProperties = async (req, res) => {
       return {
         id: property.id,
         title: property.title,
-        image:property.image,
+        image: property.image,
         city: property.city,
-        priceInfo, // Return the price object
+        price: finalPrice, // Display the original price from the Property table
+        upcomingPrices, // Including today's price and future entries
         address: property.address,
         rules: property.rules,
         beds: property.beds,
