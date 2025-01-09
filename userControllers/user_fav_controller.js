@@ -148,7 +148,6 @@ const getFavoriteList = async (req, res) => {
             "price",
             "city",
             "is_sell",
-            "plimit",
             "ptype",
           ],
         },
