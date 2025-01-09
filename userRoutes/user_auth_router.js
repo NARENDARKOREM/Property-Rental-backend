@@ -36,4 +36,4 @@ router.patch("/user/toggle-update",adminMiddleware.isAdmin, handleToggle);
 router.post("/user/pro_image",authMiddleware.isAuthenticated,upload.single("image"),uploadUserImage);
 router.put("/user/delete", authMiddleware.isAuthenticated, deleteUserAccount);
 
-module.exports = router;
+module.exports = router;  

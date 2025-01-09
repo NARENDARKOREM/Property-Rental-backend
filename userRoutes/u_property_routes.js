@@ -5,7 +5,7 @@ const userPropertyController = require("../userControllers/u_property_controller
 
 router.post(
   "/add",
-  authMiddleware.isAuthenticated,
+  authMiddleware.isHost,
   userPropertyController.addProperty
 );
 router.patch(

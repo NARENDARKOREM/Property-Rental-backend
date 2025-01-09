@@ -193,7 +193,9 @@ async function requestRoleChange(req, res) {
       return res.status(404).json({ message: "User not found!" });
     }
     if (user.role === requested_role) {
-      return res.status(400).json({ message: "User already has the requested role." });
+      return res
+        .status(400)
+        .json({ message: "User already has the requested role." });
     }
 
     let imageUrl = null;
@@ -203,8 +205,6 @@ async function requestRoleChange(req, res) {
       if (!req.file) {
         return res.status(400).json({ message: "ID proof image is required." });
       }
-
-
 
       try {
         const s3Params = {
@@ -217,15 +217,15 @@ async function requestRoleChange(req, res) {
         imageUrl = `https://${s3Params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Params.Key}`;
       } catch (uploadError) {
         console.error("Error uploading to S3:", uploadError);
-        return res.status(500).json({ message: "Failed to upload ID proof image." });
+        return res
+          .status(500)
+          .json({ message: "Failed to upload ID proof image." });
       }
-
     }
 
     const existingPendingRequest = await RoleChangeRequest.findOne({
       where: { user_id: userId, status: "pending" },
     });
-
 
     if (existingPendingRequest) {
       return res.status(400).json({
@@ -234,9 +234,10 @@ async function requestRoleChange(req, res) {
       });
     }
 
-
     // Check for existing role change requests
-    const existingRequest = await RoleChangeRequest.findOne({ where: { user_id: userId }});
+    const existingRequest = await RoleChangeRequest.findOne({
+      where: { user_id: userId },
+    });
 
     if (existingRequest) {
       // Update existing request
@@ -270,15 +271,16 @@ async function requestRoleChange(req, res) {
   } catch (error) {
     console.error("Error processing role change request:", error);
 
-
-    return res.status(500).json({ message: "Failed to process role change request." });
-
+    return res
+      .status(500)
+      .json({ message: "Failed to process role change request." });
   }
 }
 
-
 const googleAuth = async (req, res) => {
   const { name, email, pro_pic } = req.body;
+
+  console.log(req.body, "Userrtyui");
 
   if (!name || !email) {
     return res.status(400).json({
@@ -294,10 +296,11 @@ const googleAuth = async (req, res) => {
     if (existingUserByEmail) {
       const token = generateToken(existingUserByEmail);
       return res.status(200).json({
+        user: existingUserByEmail,
         token,
         ResponseCode: "200",
         Result: "true",
-        ResponseMsg: "Login Successfully!",
+        message: "Login Successfully!",
       });
     }
 
@@ -314,17 +317,18 @@ const googleAuth = async (req, res) => {
     // Generate a token for the user
     const token = generateToken(newUser);
     return res.status(201).json({
+      user: newUser,
       token,
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: "Sign Up Done Successfully!",
+      message: "Sign Up Done Successfully!",
     });
   } catch (error) {
     console.error(error);
     return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
-      ResponseMsg: "Internal Server Error",
+      message: "Internal Server Error",
     });
   }
 };
@@ -725,7 +729,7 @@ const uploadUserImage = async (req, res) => {
     user.pro_pic = imageUrl;
     await user.save();
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       userDetails: user,
       ResponseCode: "200",
       Result: "true",

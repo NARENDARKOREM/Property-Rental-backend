@@ -31,7 +31,6 @@ const addProperty = async (req, res) => {
     listing_date,
     rules,
     country_id,
-    plimit,
     is_sell,
     adults,
     children,
@@ -138,7 +137,6 @@ const addProperty = async (req, res) => {
 
 const editProperty = async (req, res) => {
   try {
-    // Destructure and log the request body
     const {
       status,
       title,
@@ -504,195 +502,6 @@ const getPropertyTypes = async (req, res) => {
   }
 };
 
-// const getPropertyDetails = async (req, res) => {
-//   const uid = req.user?.id || null;
-//   const { pro_id } = req.body;
-
-//   if (!pro_id) {
-//     return res.status(400).json({
-//       ResponseCode: "401",
-//       Result: "false",
-//       ResponseMsg: "Invalid input data!",
-//     });
-//   }
-
-//   try {
-//     const property = await Property.findOne({
-//       where: { id: pro_id },
-//     });
-
-//     if (!property) {
-//       return res.status(404).json({
-//         ResponseCode: "404",
-//         Result: "false",
-//         ResponseMsg: "Property not found!",
-//       });
-//     }
-
-//     const today = new Date().toISOString().split("T")[0];
-
-//     // Fetch price from PriceCalendar for the given date and property
-//     const priceEntry = await PriceCalendar.findOne({
-//       where: {
-//         prop_id: pro_id,
-//         date: today,
-//       },
-//     });
-
-//     // If a price entry exists for today, override the default price
-//     if (priceEntry) {
-//       property.price = priceEntry.price; // Override the price with the new one from PriceCalendar
-//     }
-
-//     const rulesArray = JSON.parse(property.rules);
-
-//     const extraImages = await TblExtra.findAll({
-//       where: { pid: property.id },
-//       include: [{ model: TblExtraImage, as: "images", attributes: ["url"] }],
-//       attributes: ["status"],
-//     });
-
-//     const completedBookings = await TblBook.findAll({
-//       where: {
-//         prop_id: property.id,
-//         book_status: "Completed",
-//         total_rate: { [Op.ne]: 0 },
-//       },
-//     });
-
-//     const category = await TblCategory.findOne({
-//       where: { id: property.ptype },
-//       attributes: ["title"],
-//     });
-
-//     const settings = await Setting.findOne({
-//       where: { id: property.setting_id },
-//       attributes: ["cancellation_policy"],
-//       paranoid: false,
-//     });
-
-//     const rate =
-//       completedBookings.length > 0
-//         ? (
-//             completedBookings.reduce(
-//               (sum, booking) => sum + booking.total_rate,
-//               0
-//             ) / completedBookings.length
-//           ).toFixed(2)
-//         : property.rate;
-
-//     let ownerDetails = null;
-//     if (property.add_user_id !== 0) {
-//       ownerDetails = await User.findOne({
-//         where: { id: property.add_user_id },
-//         attributes: ["id", "pro_pic", "name", "email", "mobile"],
-//       });
-//     }
-
-//     const facilities = await TblFacility.findAll({
-//       where: {
-//         id: { [Op.in]: property.facility.split(",") },
-//       },
-//       attributes: ["img", "title"],
-//     });
-
-//     const isFavorite = await TblFav.count({
-//       where: { uid: uid, property_id: property.id },
-//     });
-
-//     const reviews = await TblBook.findAll({
-//       where: {
-//         prop_id: pro_id,
-//         book_status: ["Completed", "Confirmed"],
-//         is_rate: 1,
-//       },
-//       limit: 3,
-//     });
-
-//     const reviewList = await Promise.all(
-//       reviews.map(async (review) => {
-//         const userData = await User.findOne({
-//           where: { id: review.uid },
-//           attributes: ["pro_pic", "name"],
-//         });
-//         return {
-//           user_img: userData?.pro_pic || null,
-//           user_title: userData?.name || null,
-//           user_rate: review.total_rate,
-//           user_desc: review.rate_text,
-//         };
-//       })
-//     );
-
-//     const totalReviewCount = await TblBook.count({
-//       where: { prop_id: pro_id, book_status: "Completed", is_rate: 1 },
-//     });
-
-//     const propertyImage = property.image;
-//     const panoramaStatus = property.is_panorama;
-//     const gallery = extraImages.flatMap((extraImage) =>
-//       extraImage.images.map((image) => image.url)
-//     );
-
-//     const response = {
-//       propetydetails: {
-//         id: property.id,
-//         title: property.title,
-//         rate: rate,
-//         city: property.city,
-//         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
-//         property_type: property.ptype,
-//         property_title: category?.title,
-//         price: property.price,
-//         buyorrent: property.pbuysell,
-//         address: property.address,
-//         beds: property.beds,
-//         bathroom: property.bathroom,
-//         rules: rulesArray,
-//         sqrft: property.sqrft,
-//         description: property.description,
-//         latitude: property.latitude,
-//         mobile: property.mobile,
-//         plimit: property.plimit,
-//         longtitude: property.longtitude,
-//         adults: property.adults,
-//         children: property.children,
-//         infants: property.infants,
-//         pets: property.pets,
-//         cancellation_policy:
-//           settings?.cancellation_policy || "No cancellation policy available",
-//         IS_FAVOURITE: isFavorite > 0,
-//         owner: ownerDetails
-//           ? {
-//               id: ownerDetails.id,
-//               name: ownerDetails.name,
-//               pro_pic: ownerDetails.pro_pic,
-//               email: ownerDetails.email,
-//               phone: ownerDetails.mobile,
-//             }
-//           : null,
-//       },
-//       facility: facilities,
-//       gallery: gallery,
-//       reviewlist: reviewList,
-//       total_review: totalReviewCount,
-//       ResponseCode: "200",
-//       Result: "true",
-//       ResponseMsg: "Property details fetched successfully!",
-//     };
-
-//     res.json(response);
-//   } catch (error) {
-//     console.error("Error fetching property details:", error);
-//     res.status(500).json({
-//       ResponseCode: "500",
-//       Result: "false",
-//       ResponseMsg: "Internal Server Error",
-//       error: error.message,
-//     });
-//   }
-// };
-
 const getPropertyDetails = async (req, res) => {
   const uid = req.user?.id || null;
   const { pro_id } = req.body;
@@ -718,27 +527,17 @@ const getPropertyDetails = async (req, res) => {
       });
     }
 
-    // Check today's date
     const today = new Date().toISOString().split("T")[0];
-
+    console.log(today, "from calendar tableeeeee");
     const priceEntry = await PriceCalendar.findOne({
       where: {
         prop_id: pro_id,
-        date: today,
       },
     });
 
-    let previousPrice = property.price;
-    if (priceEntry) {
-      property.price = priceEntry.price;
-      const isToday =
-        new Date().toISOString().split("T")[0] === priceEntry.date;
-      if (priceEntry && !isToday) {
-        property.price = previousPrice;
-      }
-    } else {
-      property.price = previousPrice;
-    }
+    console.log(priceEntry, "from calanderrrrrrrrrrrr ");
+
+    const previousPrice = priceEntry ? priceEntry.price : property.price;
 
     const rulesArray = JSON.parse(property.rules);
     const extraImages = await TblExtra.findAll({
@@ -838,7 +637,7 @@ const getPropertyDetails = async (req, res) => {
         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
         property_type: property.ptype,
         property_title: category?.title,
-        price: property.price, // This will be the updated price if found in the PriceCalendar
+        price: previousPrice,
         buyorrent: property.pbuysell,
         address: property.address,
         beds: property.beds,
@@ -848,7 +647,6 @@ const getPropertyDetails = async (req, res) => {
         description: property.description,
         latitude: property.latitude,
         mobile: property.mobile,
-        plimit: property.plimit,
         longtitude: property.longtitude,
         adults: property.adults,
         children: property.children,
@@ -889,15 +687,99 @@ const getPropertyDetails = async (req, res) => {
   }
 };
 
+// const getAllProperties = async (req, res) => {
+//   const uid = req.user?.id;
+//   if (!uid) {
+//     return res.status(404).json({ message: "User not found!" });
+//   }
+//   try {
+//     const properties = await Property.findAll({
+//       where: { status: 1, add_user_id: uid },
+//       include:{model:PriceCalendar,as:"priceCalendars", attributes:["date","note","prop_id","price"]}
+//     });
+
+//     if (!properties || properties.length === 0) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "false",
+//         ResponseMsg: "Properties not found!",
+//       });
+//     }
+
+//     const ownerDetails = await User.findOne({
+//       where: { id: uid },
+//       attributes: ["id", "pro_pic", "name", "email", "mobile"],
+//     });
+
+//     if (!ownerDetails) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "False",
+//         ResponseMsg: "Owner not found!",
+//       });
+//     }
+
+//     const propertiesWithProcessedRules = properties.map((property) => {
+//       if (typeof property.rules === "string") {
+//         try {
+//           const parsedRules = JSON.parse(property.rules);
+//           if (Array.isArray(parsedRules)) {
+//             property.rules = parsedRules.join(", ");
+//           } else {
+//             property.rules = property.rules
+//               .split(",")
+//               .map((rule) => rule.trim())
+//               .join(", ");
+//           }
+//         } catch (error) {
+//           console.error("Error parsing rules:", error);
+//         }
+//       } else if (Array.isArray(property.rules)) {
+//         property.rules = property.rules.join(", ");
+//       }
+//       return property;
+//     });
+
+//     res.status(200).json({
+//       properties: propertiesWithProcessedRules,
+//       owner: {
+//         id: ownerDetails.id,
+//         name: ownerDetails.name,
+//         email: ownerDetails.email,
+//         phone: ownerDetails.mobile,
+//       },
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Properties fetched successfully!",
+//     });
+//   } catch (error) {
+//     console.error("Error in getAllProperties:", error);
+//     res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const getAllProperties = async (req, res) => {
-  // User added Properties
   const uid = req.user?.id;
   if (!uid) {
     return res.status(404).json({ message: "User not found!" });
   }
+
   try {
+    const today = new Date().toISOString().split("T")[0];
+
+    // Fetch properties along with associated PriceCalendar entries
     const properties = await Property.findAll({
       where: { status: 1, add_user_id: uid },
+      include: {
+        model: PriceCalendar,
+        as: "priceCalendars",
+        attributes: ["date", "note", "prop_id", "price"],
+      },
     });
 
     if (!properties || properties.length === 0) {
@@ -921,7 +803,24 @@ const getAllProperties = async (req, res) => {
       });
     }
 
-    const propertiesWithProcessedRules = properties.map((property) => {
+    const propertiesWithUpdatedPrices = properties.map((property) => {
+      // Default property price
+      let currentPrice = property.price;
+      let currentNote = null;
+
+      // Check if PriceCalendar entry exists for today's date
+      if (property.priceCalendars) {
+        const todayEntry = property.priceCalendars.find(
+          (calendar) => calendar.date === today
+        );
+
+        if (todayEntry) {
+          currentPrice = todayEntry.price; // Override with calendar price
+          currentNote = todayEntry.note;  // Include note if applicable
+        }
+      }
+
+      // Process rules (parse and join as a string)
       if (typeof property.rules === "string") {
         try {
           const parsedRules = JSON.parse(property.rules);
@@ -939,11 +838,24 @@ const getAllProperties = async (req, res) => {
       } else if (Array.isArray(property.rules)) {
         property.rules = property.rules.join(", ");
       }
-      return property;
+
+      return {
+        id: property.id,
+        title: property.title,
+        city: property.city,
+        price: currentPrice,
+        price_note: currentNote,
+        address: property.address,
+        rules: property.rules,
+        beds: property.beds,
+        bathroom: property.bathroom,
+        sqrft: property.sqrft,
+        description: property.description,
+      };
     });
 
     res.status(200).json({
-      properties: propertiesWithProcessedRules,
+      properties: propertiesWithUpdatedPrices,
       owner: {
         id: ownerDetails.id,
         name: ownerDetails.name,
@@ -964,6 +876,7 @@ const getAllProperties = async (req, res) => {
     });
   }
 };
+
 
 const getSortedProperties = async (req, res) => {
   try {
@@ -1312,6 +1225,8 @@ const searchProperties = async (req, res) => {
     const { location, check_in, check_out, adults, children, infants, pets } =
       req.body;
 
+    const uid = req.user?.id || null;
+
     if (!location) {
       return res.status(400).json({
         ResponseCode: "400",
@@ -1376,6 +1291,14 @@ const searchProperties = async (req, res) => {
       );
     }
 
+    let favoriteProperties = [];
+    if (uid) {
+      favoriteProperties = await TblFav.findAll({
+        where: { uid: uid },
+        attributes: ["property_id"],
+      }).then((favs) => favs.map((fav) => fav.property_id));
+    }
+
     // Return response if no properties found
     if (!properties.length) {
       return res.status(404).json({
@@ -1385,9 +1308,24 @@ const searchProperties = async (req, res) => {
       });
     }
 
+    const searchedProperties = properties.map((property) => ({
+      id: property.id,
+      title: property.title,
+      rate: property.rate,
+      adults: property.adults,
+      children: property.children,
+      infants: property.infants,
+      pets: property.pets,
+      city: property.city,
+      image: property.image,
+      propertyType: property.ptype,
+      price: property.price,
+      favorite: favoriteProperties.includes(property.id) ? 1 : 0,
+    }));
+
     // Return matched properties
     return res.status(200).json({
-      properties,
+      searchedProperties,
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Properties fetched successfully!",
