@@ -109,6 +109,7 @@ const createBooking = async (req, res) => {
       });
     }
 
+
     const existingBookings = await TblBook.findOne({
       where: {
         prop_id,
@@ -126,7 +127,9 @@ const createBooking = async (req, res) => {
         .json({ success: false, message: "That Date Range Already Booked!" });
     }
 
+
     const bookingData = {
+
       prop_id,
       uid,
       check_in,
@@ -150,6 +153,7 @@ const createBooking = async (req, res) => {
       children,
       infants,
       pets,
+
       book_status: "Booked",
     };
 
@@ -168,6 +172,7 @@ const createBooking = async (req, res) => {
       });
     }
 
+
     return res.status(200).json({
       success: true,
       message: "Booking Booked Successfully!!!",
@@ -176,6 +181,7 @@ const createBooking = async (req, res) => {
         booking_details: booking,
         property_details: property,
       },
+
     });
   } catch (error) {
     console.error("Error creating booking:", error);
@@ -868,166 +874,6 @@ const myUserCancelBookings = async (req, res) => {
   }
 };
 
-// Booking Status
-// const currentBookingStatus = async (req, res) => {
-//   const uid = req.user?.id;
-
-//   if (!uid) {
-//     return res.status(404).json({ message: "User not found!" });
-//   }
-
-//   // Get today's date in YYYY-MM-DD format
-//   const today = new Date();
-//   const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-//   const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-
-//   try {
-//     // Fetch bookings confirmed for today
-//     const bookings = await TblBook.findAll({
-//       where: {
-//         uid: uid,
-//         book_status: "Confirmed",
-//         book_date: {
-//           [Op.between]: [startOfDay, endOfDay],
-//         },
-//       },
-//     });
-
-//     if (bookings.length === 0) {
-//       return res
-//         .status(200)
-//         .json({ message: "No confirmed bookings for today." });
-//     }
-
-//     res.status(200).json({
-//       message: "Confirmed bookings fetched successfully!",
-//       bookings: bookings,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching current booking status:", error);
-//     res
-//       .status(500)
-//       .json({ message: "Internal Server Error", error: error.message });
-//   }
-// };
-
-// const pendingBookings = async (req, res) => {
-//   const uid = req.user.id;
-//   if (!uid) {
-//     return res.status(404).json({ message: "User not found!" });
-//   }
-//   try {
-//     const bookings = await TblBook.findAll({
-//       where: {
-//         add_user_id: uid,
-//         book_status: "Booked",
-//       },
-//       include: {
-//         model: Property,
-//         as: "properties",
-//         add_user_id: uid,
-//         attributes: [
-//           "id",
-//           "title",
-//           "address",
-//           "price",
-//           "facility",
-//           "rules",
-//           "image",
-//         ],
-//       },
-//     });
-
-//     if (bookings.length === 0) {
-//       return res.status(404).json({ message: "No pending bookings found!" });
-//     }
-//     res.status(200).json({
-//       message: "Pending Bookings Fetched Successfully!",
-//       bookings,
-//     });
-//   } catch (error) {
-//     console.error("Error Fetching Pending Bookings.");
-//     return res
-//       .status(500)
-//       .json({ message: "Internal server error", error: error.message });
-//   }
-// };
-
-// const pastBookings = async (req, res) => {
-//   const uid = req.user.id;
-//   if (!uid) {
-//     return res.status(401).json({ message: "User not found!" });
-//   }
-//   try {
-//     const bookings = await TblBook.findAll({
-//       where: {
-//         add_user_id: uid,
-//         book_status: ["Completed", "Cancelled"],
-//       },
-//       include: {
-//         model: Property,
-//         as: "properties",
-//         add_user_id: uid,
-//         attributes: [
-//           "id",
-//           "title",
-//           "price",
-//           "facility",
-//           "rules",
-//           "price",
-//           "image",
-//         ],
-//       },
-//     });
-//     if (bookings.length === 0) {
-//       return res.status(401).json({ message: "No Past Bookings Found!" });
-//     }
-//     res.status(201).json({
-//       message: "Past Bookings Fetched Successfullu!",
-//       bookings,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching Past Bookings", error);
-//     return res
-//       .status(500)
-//       .json({ message: "Internal server error", error: error.message });
-//   }
-// };
-
-// const upcomingBookings = async (req, res) => {
-//   const uid = req.user.id;
-//   if (!uid) {
-//     return res.status(401).json({ message: "User not found!" });
-//   }
-//   try {
-//     const bookings = await TblBook.findAll({
-//       where: {
-//         add_user_id: uid,
-//         book_status: "Confirmed",
-//       },
-//       include: {
-//         model: Property,
-//         as: "properties",
-//         add_user_id: uid,
-//         attributes: [
-//           "id",
-//           "title",
-//           "price",
-//           "facility",
-//           "rules",
-//           "price",
-//           "image",
-//         ],
-//       },
-//     });
-//     if (bookings.length === 0) {
-//       return res.status(404).json({ message: "No Upcoming Bookings Found!" });
-//     }
-//     res
-//       .status(201)
-//       .json({ message: "Upcoming Bookings Fetched Successfully!", bookings });
-//   } catch (error) {}
-// };
 
 // Host Properties Bookings Status
 const hostPropertiesBookingStatus = async (req, res) => {
