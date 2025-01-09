@@ -693,7 +693,7 @@ const getPropertyDetails = async (req, res) => {
   }
 };
 
-const getAllProperties = async (req, res) => {
+const getAllHostAddedProperties = async (req, res) => {
   const uid = req.user?.id || null;
 
   try {
@@ -825,7 +825,7 @@ const getAllProperties = async (req, res) => {
       ResponseMsg: "Properties fetched successfully!",
     });
   } catch (error) {
-    console.error("Error in getAllProperties:", error);
+    console.error("Error in getAllHostAddedProperties:", error);
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
@@ -1461,17 +1461,148 @@ const nearByProperties = async (req, res) => {
   }
 };
 
+const getAllProperties = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0]; // Get today's date in ISO format
+
+    // Fetch all properties with associated PriceCalendar entries
+    const properties = await Property.findAll({
+      where: { status: 1 }, // Optional condition to filter properties by status
+      include: {
+        model: PriceCalendar,
+        as: "priceCalendars",
+        attributes: ["date", "note", "prop_id", "price"],
+      },
+    });
+
+    if (!properties || properties.length === 0) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "Properties not found!",
+      });
+    }
+
+    const propertiesWithDetails = await Promise.all(
+      properties.map(async (property) => {
+        // Define the original price from the property table
+        const originalPrice = property.price;
+
+        // List for upcoming prices
+        let upcomingPrices = [];
+
+        // Check if PriceCalendar entry exists for today's date and future dates
+        if (property.priceCalendars) {
+          const futureEntries = property.priceCalendars.filter(
+            (calendar) => calendar.date > today // Only future prices
+          );
+          const todayEntry = property.priceCalendars.find(
+            (calendar) => calendar.date === today
+          );
+
+          // If today's price exists, include it in upcomingPrices
+          if (todayEntry) {
+            upcomingPrices.push({
+              date: todayEntry.date,
+              price: todayEntry.price,
+              note: todayEntry.note,
+            });
+          }
+
+          // Store price and note for future price changes
+          upcomingPrices = [
+            ...upcomingPrices,
+            ...futureEntries.map((entry) => ({
+              date: entry.date,
+              price: entry.price,
+              note: entry.note,
+            })),
+          ];
+        }
+
+        // Fetch owner details based on `add_user_id` (if exists)
+        let ownerDetails = null;
+        if (property.add_user_id) {
+          const owner = await User.findOne({
+            where: { id: property.add_user_id },
+            attributes: ["id", "pro_pic", "name", "email", "mobile"],
+          });
+          if (owner) {
+            ownerDetails = {
+              id: owner.id,
+              name: owner.name,
+              email: owner.email,
+              phone: owner.mobile,
+            };
+          }
+        }
+
+        // Process rules (parse and join as a string)
+        if (typeof property.rules === "string") {
+          try {
+            const parsedRules = JSON.parse(property.rules);
+            if (Array.isArray(parsedRules)) {
+              property.rules = parsedRules.join(", ");
+            } else {
+              property.rules = property.rules
+                .split(",")
+                .map((rule) => rule.trim())
+                .join(", ");
+            }
+          } catch (error) {
+            console.error("Error parsing rules:", error);
+          }
+        } else if (Array.isArray(property.rules)) {
+          property.rules = property.rules.join(", ");
+        }
+
+        return {
+          id: property.id,
+          title: property.title,
+          image: property.image,
+          city: property.city,
+          price: originalPrice, // Display the original price from the Property table
+          upcomingPrices, // Including today's price and future entries
+          address: property.address,
+          rules: property.rules,
+          beds: property.beds,
+          bathroom: property.bathroom,
+          sqrft: property.sqrft,
+          description: property.description,
+          owner: ownerDetails, // Include owner details or null
+        };
+      })
+    );
+
+    res.status(200).json({
+      properties: propertiesWithDetails,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Properties fetched successfully!",
+    });
+  } catch (error) {
+    console.error("Error in getAllProperties:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   addProperty,
   editProperty,
   getPropertyList,
   getPropertyTypes,
   getPropertyDetails,
-  getAllProperties,
+  getAllHostAddedProperties,
   getSortedProperties,
   getSortedPropertiestitle,
   searchPropertyByLocationAndDate,
   searchProperties,
   deleteUserProperty,
   nearByProperties,
+  getAllProperties
 };
