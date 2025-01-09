@@ -226,7 +226,6 @@ async function requestRoleChange(req, res) {
       where: { user_id: userId, status: "pending" },
     });
 
-
     if (existingPendingRequest) {
       return res.status(400).json({
         message: "You already have a pending role change request.",

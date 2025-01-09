@@ -90,6 +90,8 @@ const createBooking = async (req, res) => {
       );
     }
 
+    
+
     // Check date availability
     const existingBookings = await TblBook.findOne({
       where: {
@@ -106,7 +108,7 @@ const createBooking = async (req, res) => {
       return sendResponse(res, 401, "false", "That Date Range Already Booked!");
     }
 
-    // Create booking with status as 'Confirmed'
+    
     const booking = await TblBook.create({
       prop_id,
       uid,
@@ -131,10 +133,10 @@ const createBooking = async (req, res) => {
       children,
       infants,
       pets,
-      book_status: "Booked", // Set status to Booked
+      book_status: "Booked", 
     });
 
-    // If booking is for another person, save their details
+    
     if (book_for === "other") {
       await PersonRecord.create({
         fname,
@@ -147,6 +149,8 @@ const createBooking = async (req, res) => {
         book_id: booking.id,
       });
     }
+
+
 
     // Return booking details along with the property details
     return sendResponse(res, 200, "true", "Booking Booked Successfully!!!", {

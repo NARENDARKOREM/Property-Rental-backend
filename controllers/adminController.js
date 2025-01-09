@@ -35,11 +35,7 @@ const registerAdmin = async (req, res) => {
       userType,
     });
 
-    const token = generateToken(admin);
-
-    res.cookie("token", token, { httpOnly: true });
-
-    req.session.admin = admin;
+    
 
     res.status(201).json({ message: "Admin created successfully", admin });
   } catch (error) {
