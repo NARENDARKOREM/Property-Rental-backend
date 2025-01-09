@@ -9,11 +9,11 @@ const TblGallery = require("../models/TblGallery");
 const TblEnquiry = require("../models/TblEnquiry");
 const Setting = require("../models/Setting");
 const TblExtraImage = require("../models/TableExtraImages");
+const uploadToS3 = require("../config/fileUpload.aws");
 
 const addProperty = async (req, res) => {
   const {
     title,
-    image,
     price,
     status,
     address,
@@ -56,7 +56,6 @@ const addProperty = async (req, res) => {
     !country_id ||
     !status ||
     !title ||
-    !image ||
     !listing_date ||
     !rules ||
     !address ||
@@ -75,11 +74,12 @@ const addProperty = async (req, res) => {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "Fields Required!",
+      ResponseMsg: " All Fields Required!",
     });
   }
 
   try {
+
     // Check if country_id exists in TblCountry
     const country = await TblCountry.findByPk(country_id);
     if (!country) {
@@ -90,10 +90,14 @@ const addProperty = async (req, res) => {
       });
     }
 
+    const imageUrl = await uploadToS3(req.file, "id-proof");
+    console.log(imageUrl, "from imageeeeeeeeeeeeee");
+
+
     // Create new property
     const newProperty = await Property.create({
       title,
-      image,
+      image:imageUrl,
       price,
       status,
       address,
@@ -158,7 +162,7 @@ const editProperty = async (req, res) => {
       prop_id,
       country_id,
       is_sell,
-      image,
+      
       adults,
       children,
       infants,
@@ -247,6 +251,10 @@ const editProperty = async (req, res) => {
       });
     }
 
+    const imageUrl = await uploadToS3(req.file, "id-proof");
+
+    
+
     // Update the property
     await property.update({
       is_sell,
@@ -268,7 +276,7 @@ const editProperty = async (req, res) => {
       mobile,
       city: ccount,
       listing_date,
-      image,
+      image:imageUrl,
       adults,
       children,
       infants,

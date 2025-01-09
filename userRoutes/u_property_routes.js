@@ -2,15 +2,17 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middlewares/authMiddleware");
 const userPropertyController = require("../userControllers/u_property_controller");
+const upload = require("../config/multer");
 
 router.post(
   "/add",
-  authMiddleware.isHost,
+  authMiddleware.isAuthenticated,upload.single("image"),
   userPropertyController.addProperty
 );
 router.patch(
   "/edit",
   authMiddleware.isAuthenticated,
+  upload.single("image"),
   userPropertyController.editProperty
 );
 router.get(

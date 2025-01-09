@@ -154,7 +154,7 @@ const TotalEarningsByMonth = async (req, res) => {
 
     // Build the condition for fetching bookings
     const whereCondition = {
-      prop_id: propertyId ? propertyId : { [Op.in]: userPropertyIds }, // Filter by property ID if provided
+      prop_id: propertyId ? propertyId : { [Op.in]: userPropertyIds }, 
       book_status: "Completed",
     };
 
