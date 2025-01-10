@@ -751,7 +751,13 @@ const getUserData = async(req, res)=>{
     res.status(400).json({message:"User Not Found!"})
   }
   try {
-    const user = await User.findByPk(uid);
+    const user = await User.findByPk(uid,{include:[
+      {
+        model:RoleChangeRequest,
+        as:"roleChangeRequests",
+        attributes:["status"],
+      }
+    ]});
     if(!user){
       res.status(401).json({message:"User Not Found!"});
     }

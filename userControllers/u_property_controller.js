@@ -699,14 +699,32 @@ const getAllHostAddedProperties = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
 
-    // Fetch properties along with associated PriceCalendar entries
+    // Fetch properties along with associated PriceCalendar and Booking entries
     const properties = await Property.findAll({
       where: { status: 1, ...(uid ? { add_user_id: uid } : {}) },
-      include: {
-        model: PriceCalendar,
-        as: "priceCalendars",
-        attributes: ["date", "note", "prop_id", "price"],
-      },
+      include: [
+        {
+          model: PriceCalendar,
+          as: "priceCalendars",
+          attributes: ["date", "note", "prop_id", "price"],
+        },
+        {
+          model: TblBook,
+          as: "properties", // Use the correct alias
+          attributes: ["check_in", "check_out", "uid", "book_status"],
+          where: {
+            check_in: { [Op.gte]: today }, // Only include bookings starting from today
+          },
+          required: false, // Allow properties without bookings to be included
+          include: [
+            {
+              model: User,
+              as: "User",
+              attributes: ["name", "email", "mobile", "ccode"], // Fetch user details
+            },
+          ],
+        },
+      ],
     });
 
     if (!properties || properties.length === 0) {
@@ -717,7 +735,6 @@ const getAllHostAddedProperties = async (req, res) => {
       });
     }
 
-    // Fetch owner details if `uid` is available
     let ownerDetails = null;
     if (uid) {
       ownerDetails = await User.findOne({
@@ -735,22 +752,17 @@ const getAllHostAddedProperties = async (req, res) => {
     }
 
     const propertiesWithUpdatedPrices = properties.map((property) => {
-      // Define the original price from the property table
       const originalPrice = property.price;
-
-      // List for upcoming prices
       let upcomingPrices = [];
 
-      // Check if PriceCalendar entry exists for today's date and future dates
       if (property.priceCalendars) {
         const futureEntries = property.priceCalendars.filter(
-          (calendar) => calendar.date > today // Only future prices
+          (calendar) => calendar.date > today
         );
         const todayEntry = property.priceCalendars.find(
           (calendar) => calendar.date === today
         );
 
-        // If today's price exists, include it in upcomingPrices
         if (todayEntry) {
           upcomingPrices.push({
             date: todayEntry.date,
@@ -759,7 +771,6 @@ const getAllHostAddedProperties = async (req, res) => {
           });
         }
 
-        // Store price and note for future price changes
         upcomingPrices = [
           ...upcomingPrices,
           ...futureEntries.map((entry) => ({
@@ -770,21 +781,15 @@ const getAllHostAddedProperties = async (req, res) => {
         ];
       }
 
-      // Here, outside of the upcomingPrices array, the original price from the Property table is used
-      const finalPrice = originalPrice;
-
-      // Process rules (parse and join as a string)
       if (typeof property.rules === "string") {
         try {
           const parsedRules = JSON.parse(property.rules);
-          if (Array.isArray(parsedRules)) {
-            property.rules = parsedRules.join(", ");
-          } else {
-            property.rules = property.rules
-              .split(",")
-              .map((rule) => rule.trim())
-              .join(", ");
-          }
+          property.rules = Array.isArray(parsedRules)
+            ? parsedRules.join(", ")
+            : property.rules
+                .split(",")
+                .map((rule) => rule.trim())
+                .join(", ");
         } catch (error) {
           console.error("Error parsing rules:", error);
         }
@@ -792,19 +797,42 @@ const getAllHostAddedProperties = async (req, res) => {
         property.rules = property.rules.join(", ");
       }
 
+      // Fetch booking details, but only if the booking status is Booked or Confirmed
+      const bookingDetails = property.properties
+        .filter((booking) => ["Booked", "Confirmed"].includes(booking.book_status))
+        .map((booking) => ({
+          book_status: booking.book_status,
+          check_in: booking.check_in,
+          check_out: booking.check_out,
+          user: {
+            name: booking.User.name,
+            email: booking.User.email,
+            mobile: booking.User.mobile,
+            ccode: booking.User.ccode,
+          },
+        }));
+
+      // Determine if property is available for booking
+      const isAvailableForBooking =
+        property.properties.some(
+          (booking) => ["Completed", "Cancelled"].includes(booking.book_status)
+        ) || bookingDetails.length === 0;
+
       return {
         id: property.id,
         title: property.title,
         image: property.image,
         city: property.city,
-        price: finalPrice, // Display the original price from the Property table
-        upcomingPrices, // Including today's price and future entries
+        price: originalPrice,
+        upcomingPrices,
         address: property.address,
         rules: property.rules,
         beds: property.beds,
         bathroom: property.bathroom,
         sqrft: property.sqrft,
         description: property.description,
+        bookingDetails,
+        status: isAvailableForBooking ? "Available" : "Not Available",
       };
     });
 
@@ -834,6 +862,7 @@ const getAllHostAddedProperties = async (req, res) => {
     });
   }
 };
+
 
 
 const getSortedProperties = async (req, res) => {
