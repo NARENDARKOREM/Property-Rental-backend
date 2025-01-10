@@ -2,15 +2,17 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middlewares/authMiddleware");
 const userPropertyController = require("../userControllers/u_property_controller");
+const upload = require("../config/multer");
 
 router.post(
   "/add",
-  authMiddleware.isHost,
+  authMiddleware.isHost,upload.single("image"),
   userPropertyController.addProperty
 );
 router.patch(
   "/edit",
   authMiddleware.isAuthenticated,
+  upload.single("image"),
   userPropertyController.editProperty
 );
 router.get(
@@ -23,11 +25,7 @@ router.post("/types", userPropertyController.getPropertyTypes);
 
 router.post("/u_property_details", userPropertyController.getPropertyDetails);
 
-router.get(
-  "/all-properties",
-  authMiddleware.isAuthenticated,
-  userPropertyController.getAllProperties
-);
+router.get("/all-properties",authMiddleware.isAuthenticated, userPropertyController.getAllHostAddedProperties);
 router.get("/search", userPropertyController.searchPropertyByLocationAndDate);
 router.post("/search-properties", userPropertyController.searchProperties);
 router.post("/sort-price/:sort", userPropertyController.getSortedProperties);
@@ -44,5 +42,6 @@ router.delete(
   authMiddleware.isAuthenticated,
   userPropertyController.deleteUserProperty
 );
+router.get("/properties", userPropertyController.getAllProperties)
 
 module.exports = router;

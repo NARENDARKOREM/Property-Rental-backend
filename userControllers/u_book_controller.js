@@ -150,6 +150,7 @@ const createBooking = async (req, res) => {
       children,
       infants,
       pets,
+
       book_status: "Booked",
     };
 
@@ -470,7 +471,7 @@ const cancelBooking = async (req, res) => {
   const { book_id, cancle_reason } = req.body;
 
   if (!book_id || !uid) {
-    return sendResponse(res, 401, "false", "Something Went Wrong!");
+    return sendResponse(res, 401, "false", "book_id and uid is required!");
   }
 
   const user = await User.findByPk(uid);
@@ -480,7 +481,7 @@ const cancelBooking = async (req, res) => {
 
   try {
     const booking = await TblBook.findOne({
-      where: { id: book_id, uid: uid, book_status: "Confirmed" },
+      where: { id: book_id, uid: uid, book_status:  { [Op.in]: ["Confirmed", "Booked"] } },
     });
 
     if (!booking) {
@@ -504,101 +505,92 @@ const cancelBooking = async (req, res) => {
   }
 };
 
-// Get Bookings By its Status
-const getBookingsByStatus = async (req, res) => {
-  const uid = req.user.id;
+// Get Traveller Bookings Status
+const getTravelerBookingsByStatus = async (req, res) => {
+  const uid = req.user?.id; // Ensure user is authenticated
   if (!uid) {
     return res.status(401).json({ message: "User Not Found!" });
   }
 
   const { status } = req.body;
 
-  const user = await User.findByPk(uid);
-  if (!user) {
-    return sendResponse(res, 401, "false", "User Not Found!");
-  }
-
-  if (!status) {
-    return sendResponse(res, 401, "false", "Missing parameters!");
+  // Validate the `status` parameter
+  if (!status || !["active", "completed", "cancelled"].includes(status)) {
+    return res.status(400).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "Invalid or missing status parameter!",
+    });
   }
 
   try {
+    // Build query filter based on status
     let queryFilter = { uid: uid };
 
     if (status === "active") {
-      queryFilter.book_status = { [Op.notIn]: ["Cancelled", "Completed"] };
+      queryFilter.book_status = { [Op.in]: ["Booked", "Confirmed"] };
+    } else if (status === "completed") {
+      queryFilter.book_status = { [Op.eq]: "Completed" };
     } else if (status === "cancelled") {
-      queryFilter.book_status = { [Op.in]: ["Cancelled"] };
-    } else {
-      return sendResponse(res, 401, "false", "Invalid status provided!");
+      queryFilter.book_status = { [Op.eq]: "Cancelled" };
     }
 
+    // Fetch bookings
     const bookings = await TblBook.findAll({
       where: queryFilter,
       order: [["id", "DESC"]],
     });
 
-    const bookingDetails = [];
-    for (const booking of bookings) {
-      const property = await Property.findOne({
-        where: {
-          id: booking.prop_id,
-          add_user_id: uid, // Ensure the property belongs to the logged-in user
-        },
+    if (bookings.length === 0) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "No bookings found for the specified status.",
       });
-
-      if (!property) {
-        continue; // Skip bookings for properties not created by the user
-      }
-
-      let totalRate = "5";
-
-      if (booking.book_status === "Completed") {
-        const completedBookings = await TblBook.findAll({
-          where: {
-            prop_id: booking.prop_id,
-            book_status: "Completed",
-            total_rate: { [Op.ne]: 0 },
-          },
-        });
-
-        if (completedBookings.length > 0) {
-          const avgRate =
-            completedBookings.reduce(
-              (acc, b) => acc + parseFloat(b.total_rate),
-              0
-            ) / completedBookings.length;
-          totalRate = avgRate.toFixed(0);
-        }
-      }
-
-      const bookingInfo = {
-        book_id: booking.id,
-        prop_id: booking.prop_id,
-        prop_img: booking.prop_img,
-        prop_title: booking.prop_title,
-        book_status: booking.book_status,
-        prop_price: booking.prop_price,
-        p_method_id: booking.p_method_id,
-        total_day: booking.total_day,
-        total_rate: totalRate,
-      };
-
-      bookingDetails.push(bookingInfo);
     }
 
-    return sendResponse(
-      res,
-      200,
-      "true",
-      "Status Wise Property Details Found!",
-      { statuswise: bookingDetails }
+    // Fetch property details for each booking
+    const bookingDetails = await Promise.all(
+      bookings.map(async (booking) => {
+        const property = await Property.findOne({
+          where: { id: booking.prop_id },
+          attributes: ["id", "title", "image"],
+        });
+
+        if (!property) return null; // Skip if the property does not exist
+
+        return {
+          book_id: booking.id,
+          prop_id: booking.prop_id,
+          prop_title: property.title,
+          prop_img: property.image,
+          book_status: booking.book_status,
+          prop_price: booking.prop_price,
+          p_method_id: booking.p_method_id,
+          total_day: booking.total_day,
+        };
+      })
     );
+
+    // Filter out null values (e.g., if property is not found)
+    const filteredBookingDetails = bookingDetails.filter((detail) => detail);
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Bookings fetched successfully!",
+      statuswise: filteredBookingDetails,
+    });
   } catch (error) {
     console.error("Error fetching bookings by status:", error);
-    return sendResponse(res, 500, "false", "Internal Server Error!");
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error!",
+    });
   }
 };
+
 
 // After Becoming Host
 const getMyUserBookings = async (req, res) => {
@@ -867,167 +859,6 @@ const myUserCancelBookings = async (req, res) => {
     });
   }
 };
-
-// Booking Status
-// const currentBookingStatus = async (req, res) => {
-//   const uid = req.user?.id;
-
-//   if (!uid) {
-//     return res.status(404).json({ message: "User not found!" });
-//   }
-
-//   // Get today's date in YYYY-MM-DD format
-//   const today = new Date();
-//   const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-//   const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-
-//   try {
-//     // Fetch bookings confirmed for today
-//     const bookings = await TblBook.findAll({
-//       where: {
-//         uid: uid,
-//         book_status: "Confirmed",
-//         book_date: {
-//           [Op.between]: [startOfDay, endOfDay],
-//         },
-//       },
-//     });
-
-//     if (bookings.length === 0) {
-//       return res
-//         .status(200)
-//         .json({ message: "No confirmed bookings for today." });
-//     }
-
-//     res.status(200).json({
-//       message: "Confirmed bookings fetched successfully!",
-//       bookings: bookings,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching current booking status:", error);
-//     res
-//       .status(500)
-//       .json({ message: "Internal Server Error", error: error.message });
-//   }
-// };
-
-// const pendingBookings = async (req, res) => {
-//   const uid = req.user.id;
-//   if (!uid) {
-//     return res.status(404).json({ message: "User not found!" });
-//   }
-//   try {
-//     const bookings = await TblBook.findAll({
-//       where: {
-//         add_user_id: uid,
-//         book_status: "Booked",
-//       },
-//       include: {
-//         model: Property,
-//         as: "properties",
-//         add_user_id: uid,
-//         attributes: [
-//           "id",
-//           "title",
-//           "address",
-//           "price",
-//           "facility",
-//           "rules",
-//           "image",
-//         ],
-//       },
-//     });
-
-//     if (bookings.length === 0) {
-//       return res.status(404).json({ message: "No pending bookings found!" });
-//     }
-//     res.status(200).json({
-//       message: "Pending Bookings Fetched Successfully!",
-//       bookings,
-//     });
-//   } catch (error) {
-//     console.error("Error Fetching Pending Bookings.");
-//     return res
-//       .status(500)
-//       .json({ message: "Internal server error", error: error.message });
-//   }
-// };
-
-// const pastBookings = async (req, res) => {
-//   const uid = req.user.id;
-//   if (!uid) {
-//     return res.status(401).json({ message: "User not found!" });
-//   }
-//   try {
-//     const bookings = await TblBook.findAll({
-//       where: {
-//         add_user_id: uid,
-//         book_status: ["Completed", "Cancelled"],
-//       },
-//       include: {
-//         model: Property,
-//         as: "properties",
-//         add_user_id: uid,
-//         attributes: [
-//           "id",
-//           "title",
-//           "price",
-//           "facility",
-//           "rules",
-//           "price",
-//           "image",
-//         ],
-//       },
-//     });
-//     if (bookings.length === 0) {
-//       return res.status(401).json({ message: "No Past Bookings Found!" });
-//     }
-//     res.status(201).json({
-//       message: "Past Bookings Fetched Successfullu!",
-//       bookings,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching Past Bookings", error);
-//     return res
-//       .status(500)
-//       .json({ message: "Internal server error", error: error.message });
-//   }
-// };
-
-// const upcomingBookings = async (req, res) => {
-//   const uid = req.user.id;
-//   if (!uid) {
-//     return res.status(401).json({ message: "User not found!" });
-//   }
-//   try {
-//     const bookings = await TblBook.findAll({
-//       where: {
-//         add_user_id: uid,
-//         book_status: "Confirmed",
-//       },
-//       include: {
-//         model: Property,
-//         as: "properties",
-//         add_user_id: uid,
-//         attributes: [
-//           "id",
-//           "title",
-//           "price",
-//           "facility",
-//           "rules",
-//           "price",
-//           "image",
-//         ],
-//       },
-//     });
-//     if (bookings.length === 0) {
-//       return res.status(404).json({ message: "No Upcoming Bookings Found!" });
-//     }
-//     res
-//       .status(201)
-//       .json({ message: "Upcoming Bookings Fetched Successfully!", bookings });
-//   } catch (error) {}
-// };
 
 // Host Properties Bookings Status
 const hostPropertiesBookingStatus = async (req, res) => {
@@ -1309,11 +1140,7 @@ module.exports = {
   userCheckOut,
   getBookingDetails,
   cancelBooking,
-  getBookingsByStatus,
-  // currentBookingStatus,
-  // pendingBookings,
-  // pastBookings,
-  // upcomingBookings,
+  getTravelerBookingsByStatus,
   hostPropertiesBookingStatus,
   propertyBookingStatus,
 

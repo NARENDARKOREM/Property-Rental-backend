@@ -43,6 +43,25 @@ exports.handleRoleChangeRequest = async (req, res) => {
       user.role = request.requested_role;
       await user.save();
 
+      const notificationContent = {
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_player_ids: [user.one_subscription], 
+        data: { user_id: user.id, type: "role_change" },
+        contents: { en: `${user.name}, Your role change to '${user.role}' has been approved.` },
+        headings: { en: "Role Change Approved!" },
+      };
+
+      const response = await axios.post("https://onesignal.com/api/v1/notifications", notificationContent, {
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+        },
+      });
+
+      console.log("Notification sent successfully:", response.data);
+
+
+
     }
 
     request.status = status;

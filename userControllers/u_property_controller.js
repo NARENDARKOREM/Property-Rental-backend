@@ -9,11 +9,11 @@ const TblGallery = require("../models/TblGallery");
 const TblEnquiry = require("../models/TblEnquiry");
 const Setting = require("../models/Setting");
 const TblExtraImage = require("../models/TableExtraImages");
+const uploadToS3 = require("../config/fileUpload.aws");
 
 const addProperty = async (req, res) => {
   const {
     title,
-    image,
     price,
     status,
     address,
@@ -56,7 +56,6 @@ const addProperty = async (req, res) => {
     !country_id ||
     !status ||
     !title ||
-    !image ||
     !listing_date ||
     !rules ||
     !address ||
@@ -75,11 +74,12 @@ const addProperty = async (req, res) => {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "Fields Required!",
+      ResponseMsg: " All Fields Required!",
     });
   }
 
   try {
+
     // Check if country_id exists in TblCountry
     const country = await TblCountry.findByPk(country_id);
     if (!country) {
@@ -90,10 +90,13 @@ const addProperty = async (req, res) => {
       });
     }
 
+    const imageUrl = await uploadToS3(req.file, "id-proof");
+  
+
     // Create new property
     const newProperty = await Property.create({
       title,
-      image,
+      image:imageUrl,
       price,
       status,
       address,
@@ -158,7 +161,7 @@ const editProperty = async (req, res) => {
       prop_id,
       country_id,
       is_sell,
-      image,
+      
       adults,
       children,
       infants,
@@ -199,7 +202,6 @@ const editProperty = async (req, res) => {
       !mobile ||
       !listing_date ||
       !price ||
-      !image ||
       !plimit ||
       !country_id ||
       is_sell === undefined // Ensure boolean is not `undefined`
@@ -247,6 +249,10 @@ const editProperty = async (req, res) => {
       });
     }
 
+    const imageUrl = await uploadToS3(req.file, "id-proof");
+
+    
+
     // Update the property
     await property.update({
       is_sell,
@@ -268,7 +274,7 @@ const editProperty = async (req, res) => {
       mobile,
       city: ccount,
       listing_date,
-      image,
+      image:imageUrl,
       adults,
       children,
       infants,
@@ -687,94 +693,15 @@ const getPropertyDetails = async (req, res) => {
   }
 };
 
-// const getAllProperties = async (req, res) => {
-//   const uid = req.user?.id;
-//   if (!uid) {
-//     return res.status(404).json({ message: "User not found!" });
-//   }
-//   try {
-//     const properties = await Property.findAll({
-//       where: { status: 1, add_user_id: uid },
-//       include:{model:PriceCalendar,as:"priceCalendars", attributes:["date","note","prop_id","price"]}
-//     });
-
-//     if (!properties || properties.length === 0) {
-//       return res.status(404).json({
-//         ResponseCode: "404",
-//         Result: "false",
-//         ResponseMsg: "Properties not found!",
-//       });
-//     }
-
-//     const ownerDetails = await User.findOne({
-//       where: { id: uid },
-//       attributes: ["id", "pro_pic", "name", "email", "mobile"],
-//     });
-
-//     if (!ownerDetails) {
-//       return res.status(404).json({
-//         ResponseCode: "404",
-//         Result: "False",
-//         ResponseMsg: "Owner not found!",
-//       });
-//     }
-
-//     const propertiesWithProcessedRules = properties.map((property) => {
-//       if (typeof property.rules === "string") {
-//         try {
-//           const parsedRules = JSON.parse(property.rules);
-//           if (Array.isArray(parsedRules)) {
-//             property.rules = parsedRules.join(", ");
-//           } else {
-//             property.rules = property.rules
-//               .split(",")
-//               .map((rule) => rule.trim())
-//               .join(", ");
-//           }
-//         } catch (error) {
-//           console.error("Error parsing rules:", error);
-//         }
-//       } else if (Array.isArray(property.rules)) {
-//         property.rules = property.rules.join(", ");
-//       }
-//       return property;
-//     });
-
-//     res.status(200).json({
-//       properties: propertiesWithProcessedRules,
-//       owner: {
-//         id: ownerDetails.id,
-//         name: ownerDetails.name,
-//         email: ownerDetails.email,
-//         phone: ownerDetails.mobile,
-//       },
-//       ResponseCode: "200",
-//       Result: "true",
-//       ResponseMsg: "Properties fetched successfully!",
-//     });
-//   } catch (error) {
-//     console.error("Error in getAllProperties:", error);
-//     res.status(500).json({
-//       ResponseCode: "500",
-//       Result: "false",
-//       ResponseMsg: "Internal Server Error",
-//       error: error.message,
-//     });
-//   }
-// };
-
-const getAllProperties = async (req, res) => {
-  const uid = req.user?.id;
-  if (!uid) {
-    return res.status(404).json({ message: "User not found!" });
-  }
+const getAllHostAddedProperties = async (req, res) => {
+  const uid = req.user?.id || null;
 
   try {
     const today = new Date().toISOString().split("T")[0];
 
     // Fetch properties along with associated PriceCalendar entries
     const properties = await Property.findAll({
-      where: { status: 1, add_user_id: uid },
+      where: { status: 1, ...(uid ? { add_user_id: uid } : {}) },
       include: {
         model: PriceCalendar,
         as: "priceCalendars",
@@ -790,35 +717,61 @@ const getAllProperties = async (req, res) => {
       });
     }
 
-    const ownerDetails = await User.findOne({
-      where: { id: uid },
-      attributes: ["id", "pro_pic", "name", "email", "mobile"],
-    });
-
-    if (!ownerDetails) {
-      return res.status(404).json({
-        ResponseCode: "404",
-        Result: "False",
-        ResponseMsg: "Owner not found!",
+    // Fetch owner details if `uid` is available
+    let ownerDetails = null;
+    if (uid) {
+      ownerDetails = await User.findOne({
+        where: { id: uid },
+        attributes: ["id", "pro_pic", "name", "email", "mobile"],
       });
+
+      if (!ownerDetails) {
+        return res.status(404).json({
+          ResponseCode: "404",
+          Result: "false",
+          ResponseMsg: "Owner not found!",
+        });
+      }
     }
 
     const propertiesWithUpdatedPrices = properties.map((property) => {
-      // Default property price
-      let currentPrice = property.price;
-      let currentNote = null;
+      // Define the original price from the property table
+      const originalPrice = property.price;
 
-      // Check if PriceCalendar entry exists for today's date
+      // List for upcoming prices
+      let upcomingPrices = [];
+
+      // Check if PriceCalendar entry exists for today's date and future dates
       if (property.priceCalendars) {
+        const futureEntries = property.priceCalendars.filter(
+          (calendar) => calendar.date > today // Only future prices
+        );
         const todayEntry = property.priceCalendars.find(
           (calendar) => calendar.date === today
         );
 
+        // If today's price exists, include it in upcomingPrices
         if (todayEntry) {
-          currentPrice = todayEntry.price; // Override with calendar price
-          currentNote = todayEntry.note;  // Include note if applicable
+          upcomingPrices.push({
+            date: todayEntry.date,
+            price: todayEntry.price,
+            note: todayEntry.note,
+          });
         }
+
+        // Store price and note for future price changes
+        upcomingPrices = [
+          ...upcomingPrices,
+          ...futureEntries.map((entry) => ({
+            date: entry.date,
+            price: entry.price,
+            note: entry.note,
+          })),
+        ];
       }
+
+      // Here, outside of the upcomingPrices array, the original price from the Property table is used
+      const finalPrice = originalPrice;
 
       // Process rules (parse and join as a string)
       if (typeof property.rules === "string") {
@@ -842,9 +795,10 @@ const getAllProperties = async (req, res) => {
       return {
         id: property.id,
         title: property.title,
+        image: property.image,
         city: property.city,
-        price: currentPrice,
-        price_note: currentNote,
+        price: finalPrice, // Display the original price from the Property table
+        upcomingPrices, // Including today's price and future entries
         address: property.address,
         rules: property.rules,
         beds: property.beds,
@@ -856,18 +810,22 @@ const getAllProperties = async (req, res) => {
 
     res.status(200).json({
       properties: propertiesWithUpdatedPrices,
-      owner: {
-        id: ownerDetails.id,
-        name: ownerDetails.name,
-        email: ownerDetails.email,
-        phone: ownerDetails.mobile,
-      },
+      ...(ownerDetails
+        ? {
+            owner: {
+              id: ownerDetails.id,
+              name: ownerDetails.name,
+              email: ownerDetails.email,
+              phone: ownerDetails.mobile,
+            },
+          }
+        : {}),
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Properties fetched successfully!",
     });
   } catch (error) {
-    console.error("Error in getAllProperties:", error);
+    console.error("Error in getAllHostAddedProperties:", error);
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
@@ -1503,17 +1461,148 @@ const nearByProperties = async (req, res) => {
   }
 };
 
+const getAllProperties = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0]; // Get today's date in ISO format
+
+    // Fetch all properties with associated PriceCalendar entries
+    const properties = await Property.findAll({
+      where: { status: 1 }, // Optional condition to filter properties by status
+      include: {
+        model: PriceCalendar,
+        as: "priceCalendars",
+        attributes: ["date", "note", "prop_id", "price"],
+      },
+    });
+
+    if (!properties || properties.length === 0) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "Properties not found!",
+      });
+    }
+
+    const propertiesWithDetails = await Promise.all(
+      properties.map(async (property) => {
+        // Define the original price from the property table
+        const originalPrice = property.price;
+
+        // List for upcoming prices
+        let upcomingPrices = [];
+
+        // Check if PriceCalendar entry exists for today's date and future dates
+        if (property.priceCalendars) {
+          const futureEntries = property.priceCalendars.filter(
+            (calendar) => calendar.date > today // Only future prices
+          );
+          const todayEntry = property.priceCalendars.find(
+            (calendar) => calendar.date === today
+          );
+
+          // If today's price exists, include it in upcomingPrices
+          if (todayEntry) {
+            upcomingPrices.push({
+              date: todayEntry.date,
+              price: todayEntry.price,
+              note: todayEntry.note,
+            });
+          }
+
+          // Store price and note for future price changes
+          upcomingPrices = [
+            ...upcomingPrices,
+            ...futureEntries.map((entry) => ({
+              date: entry.date,
+              price: entry.price,
+              note: entry.note,
+            })),
+          ];
+        }
+
+        // Fetch owner details based on `add_user_id` (if exists)
+        let ownerDetails = null;
+        if (property.add_user_id) {
+          const owner = await User.findOne({
+            where: { id: property.add_user_id },
+            attributes: ["id", "pro_pic", "name", "email", "mobile"],
+          });
+          if (owner) {
+            ownerDetails = {
+              id: owner.id,
+              name: owner.name,
+              email: owner.email,
+              phone: owner.mobile,
+            };
+          }
+        }
+
+        // Process rules (parse and join as a string)
+        if (typeof property.rules === "string") {
+          try {
+            const parsedRules = JSON.parse(property.rules);
+            if (Array.isArray(parsedRules)) {
+              property.rules = parsedRules.join(", ");
+            } else {
+              property.rules = property.rules
+                .split(",")
+                .map((rule) => rule.trim())
+                .join(", ");
+            }
+          } catch (error) {
+            console.error("Error parsing rules:", error);
+          }
+        } else if (Array.isArray(property.rules)) {
+          property.rules = property.rules.join(", ");
+        }
+
+        return {
+          id: property.id,
+          title: property.title,
+          image: property.image,
+          city: property.city,
+          price: originalPrice, // Display the original price from the Property table
+          upcomingPrices, // Including today's price and future entries
+          address: property.address,
+          rules: property.rules,
+          beds: property.beds,
+          bathroom: property.bathroom,
+          sqrft: property.sqrft,
+          description: property.description,
+          owner: ownerDetails, // Include owner details or null
+        };
+      })
+    );
+
+    res.status(200).json({
+      properties: propertiesWithDetails,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Properties fetched successfully!",
+    });
+  } catch (error) {
+    console.error("Error in getAllProperties:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   addProperty,
   editProperty,
   getPropertyList,
   getPropertyTypes,
   getPropertyDetails,
-  getAllProperties,
+  getAllHostAddedProperties,
   getSortedProperties,
   getSortedPropertiestitle,
   searchPropertyByLocationAndDate,
   searchProperties,
   deleteUserProperty,
   nearByProperties,
+  getAllProperties
 };

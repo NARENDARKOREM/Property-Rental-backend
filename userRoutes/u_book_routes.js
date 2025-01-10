@@ -16,22 +16,14 @@ router.post(
 );
 router.post("/check-in",authMiddleware.isAuthenticated, userBookings.userCheckIn);
 router.post("/check-out",authMiddleware.isAuthenticated, userBookings.userCheckOut);
-router.get(
-  "/booking-details",
-  authMiddleware.isAuthenticated,
-  userBookings.getBookingDetails
-);
-router.post(
-  "/booking-cancel",
-  authMiddleware.isAuthenticated,
-  userBookings.cancelBooking
-);
+router.post("/booking-details", authMiddleware.isAuthenticated, userBookings.getBookingDetails);
+router.post("/booking-cancel", authMiddleware.isAuthenticated, userBookings.cancelBooking);
 
-// Traveller
+// Traveller booking status
 router.post(
-  "/booking-status",
+  "/traveler-booking-status",
   authMiddleware.isAuthenticated,
-  userBookings.getBookingsByStatus
+  userBookings.getTravelerBookingsByStatus
 );
 
 router.get(
