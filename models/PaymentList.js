@@ -45,7 +45,6 @@ const PaymentList = sequelize.define(
   {
     tableName: "tbl_payment_list",
     charset: "latin1",
-    paranoid: true,
   }
 );
 
