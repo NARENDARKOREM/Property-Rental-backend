@@ -1,4 +1,4 @@
-const { User } = require("../models");
+const { User, Property } = require("../models");
 const TblBook = require("../models/TblBook");
 const { Op } = require("sequelize");
 
@@ -129,7 +129,7 @@ const createReview = async (req, res) => {
     const booking = await TblBook.findOne({
       where: {
         prop_id,
-        uid,
+        uid:uid,
         book_status: {
           [Op.or]: ["Confirmed", "Completed"], // Only allow reviews for confirmed or completed bookings
         },
@@ -183,28 +183,39 @@ const createReview = async (req, res) => {
 };
 
 const fetchReviews = async (req, res) => {
-  const { prop_id } = req.params; // Fetch property ID from the URL parameters
-
-  if (!prop_id) {
-    return res.status(400).json({
-      ResponseCode: "400",
-      Result: "false",
-      ResponseMsg: "Property ID is required!",
-    });
-  }
-
   try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "Unauthorized! Please login to access reviews.",
+      });
+    }
+
     const reviews = await TblBook.findAll({
       where: {
-        prop_id,
-        is_rate: 1, 
+        is_rate: 1,
       },
-      attributes: ["uid", "total_rate", "rate_text", "createdAt"], 
+      attributes: ["uid", "total_rate", "rate_text", "createdAt"],
       include: [
         {
           model: User,
           as: "User",
           attributes: ["name", "email"],
+        },
+        {
+          model: Property, 
+          as: "properties",
+          attributes: ["id", "add_user_id"],
+          include:[
+            {
+              model:User,
+              as:"Owner",
+              attributes:["name","email","mobile"]
+            }
+          ]
         },
       ],
       order: [["createdAt", "DESC"]], 
@@ -214,7 +225,7 @@ const fetchReviews = async (req, res) => {
       return res.status(404).json({
         ResponseCode: "404",
         Result: "false",
-        ResponseMsg: "No reviews found for this property!",
+        ResponseMsg: "No reviews found!",
       });
     }
 
@@ -228,6 +239,12 @@ const fetchReviews = async (req, res) => {
         rating: review.total_rate,
         review: review.rate_text,
         createdAt: review.createdAt,
+        propertyId: review.properties.id,
+        ownerDetails:{
+          name:review.properties.Owner.name,
+          email:review.properties.Owner.email,
+          mobile:review.properties.Owner.mobile,
+        }
       })),
     });
   } catch (error) {
