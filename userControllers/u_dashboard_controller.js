@@ -228,11 +228,7 @@ const listingProperties = async (req, res) => {
     const uid = req.user.id; // Get user ID from request
     const { propertyId } = req.query;
 
-    if(!propertyId){
-      res.status(401).json({message:"Property Not Found!"})
-    }
-
-    // Check if the user exists
+    // Validate user ID
     if (!uid) {
       return res.status(401).json({
         ResponseCode: "401",
@@ -241,7 +237,7 @@ const listingProperties = async (req, res) => {
       });
     }
 
-    // Fetch properties owned by the user
+    // Fetch user properties
     const hostProperties = await Property.findAll({
       where: { add_user_id: uid },
       attributes: ["id"],
@@ -249,7 +245,7 @@ const listingProperties = async (req, res) => {
 
     const hostPropertyIds = hostProperties.map((property) => property.id);
 
-    // If no properties are found for the user
+    // If no properties found
     if (hostPropertyIds.length === 0) {
       const allMonths = [
         "January", "February", "March", "April", "May",
@@ -269,13 +265,18 @@ const listingProperties = async (req, res) => {
       });
     }
 
-    // Build the condition for fetching bookings
+    // Build condition
+    const currentYear = new Date().getFullYear();
     const whereCondition = {
       prop_id: propertyId ? propertyId : { [Op.in]: hostPropertyIds },
       book_status: "Completed",
+      createdAt: {
+        [Op.gte]: new Date(`${currentYear}-01-01`),
+        [Op.lte]: new Date(`${currentYear}-12-31`),
+      },
     };
 
-    // Fetch monthly bookings
+    // Fetch bookings grouped by month
     const monthlyBookings = await TblBook.findAll({
       attributes: [
         [fn("COUNT", col("id")), "no_of_bookings"], // Count bookings
@@ -283,26 +284,26 @@ const listingProperties = async (req, res) => {
       ],
       where: whereCondition,
       group: ["month"],
-      order: [[fn("MONTH", col("createdAt")), "ASC"]], // Order by month number
+      order: [[fn("MONTH", col("createdAt")), "ASC"]], // Order by month
     });
 
-    // Map the bookings to a dictionary
+    // Map bookings to a dictionary
     const bookingsMap = monthlyBookings.reduce((acc, booking) => {
       acc[booking.getDataValue("month")] = booking.getDataValue("no_of_bookings");
       return acc;
     }, {});
 
-    // List all months of the year
+    // Define all months
     const allMonths = [
       "January", "February", "March", "April", "May",
       "June", "July", "August", "September", "October",
       "November", "December",
     ];
 
-    // Prepare the final response
+    // Format final response
     const formattedMonthlyBookings = allMonths.map((month) => ({
       month,
-      no_of_bookings: bookingsMap[month] || 0, // Default to 0 if no bookings
+      no_of_bookings: bookingsMap[month] || 0, // Default to 0 if no data
     }));
 
     res.json({

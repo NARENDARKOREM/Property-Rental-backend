@@ -549,6 +549,9 @@ const getTravelerBookingsByStatus = async (req, res) => {
       });
     }
 
+    const reviews = await TblBook.findAll({where:{is_rate:1},attributes:["is_rate","total_rate","rate_text"]})
+    const review = reviews.length > 0 ? reviews : 0;
+
     // Fetch property details for each booking
     const bookingDetails = await Promise.all(
       bookings.map(async (booking) => {
@@ -580,6 +583,7 @@ const getTravelerBookingsByStatus = async (req, res) => {
       Result: "true",
       ResponseMsg: "Bookings fetched successfully!",
       statuswise: filteredBookingDetails,
+      review
     });
   } catch (error) {
     console.error("Error fetching bookings by status:", error);
