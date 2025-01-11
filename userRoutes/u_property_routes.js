@@ -25,8 +25,9 @@ router.post("/types", userPropertyController.getPropertyTypes);
 
 router.post("/u_property_details", userPropertyController.getPropertyDetails);
 
+// Host Added Properties
 router.get("/all-properties",authMiddleware.isAuthenticated, userPropertyController.getAllHostAddedProperties);
-router.get("/search", userPropertyController.searchPropertyByLocationAndDate);
+router.get("/search", userPropertyController.searchPropertyByLocationAndDate); 
 router.post("/search-properties", userPropertyController.searchProperties);
 router.post("/sort-price/:sort", userPropertyController.getSortedProperties);
 router.post(

@@ -173,7 +173,7 @@ const TotalEarningsByMonth = async (req, res) => {
     const earningsMap = monthlyEarnings.reduce((acc, earning) => {
       acc[earning.getDataValue("month")] = earning.getDataValue("totalEarnings");
       return acc;
-    }, {});
+    }, {}); 
 
     // Define all months
     const allMonths = [
@@ -225,10 +225,10 @@ const TotalEarningsByMonth = async (req, res) => {
 
 const listingProperties = async (req, res) => {
   try {
-    const uid = req.user.id;
+    const uid = req.user.id; // Get user ID from request
     const { propertyId } = req.query;
 
-    // Check if the user exists
+    // Validate user ID
     if (!uid) {
       return res.status(401).json({
         ResponseCode: "401",
@@ -237,7 +237,7 @@ const listingProperties = async (req, res) => {
       });
     }
 
-    // Fetch properties owned by the user
+    // Fetch user properties
     const hostProperties = await Property.findAll({
       where: { add_user_id: uid },
       attributes: ["id"],
@@ -245,21 +245,12 @@ const listingProperties = async (req, res) => {
 
     const hostPropertyIds = hostProperties.map((property) => property.id);
 
-    // If the user has no properties, return zero bookings for all months
+    // If no properties found
     if (hostPropertyIds.length === 0) {
       const allMonths = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
+        "January", "February", "March", "April", "May",
+        "June", "July", "August", "September", "October",
+        "November", "December",
       ];
       const responseData = allMonths.map((month) => ({
         month,
@@ -274,68 +265,57 @@ const listingProperties = async (req, res) => {
       });
     }
 
-    // Build the condition for fetching bookings
+    // Build condition
+    const currentYear = new Date().getFullYear();
     const whereCondition = {
-      prop_id: propertyId ? propertyId : { [Op.in]: hostPropertyIds }, // Filter by property ID if provided
+      prop_id: propertyId ? propertyId : { [Op.in]: hostPropertyIds },
       book_status: "Completed",
+      createdAt: {
+        [Op.gte]: new Date(`${currentYear}-01-01`),
+        [Op.lte]: new Date(`${currentYear}-12-31`),
+      },
     };
 
-    // Fetch the number of bookings grouped by month
+    // Fetch bookings grouped by month
     const monthlyBookings = await TblBook.findAll({
       attributes: [
-        [fn("COUNT", col("id")), "no_of_bookings"], // Count the number of bookings
-        [fn("DATE_FORMAT", col("createdAt"), "%M"), "month"], // Get the month name
+        [fn("COUNT", col("id")), "no_of_bookings"], // Count bookings
+        [fn("DATE_FORMAT", col("createdAt"), "%M"), "month"], // Get month name
       ],
       where: whereCondition,
       group: ["month"],
-      order: [[fn("MONTH", col("createdAt")), "ASC"]],
+      order: [[fn("MONTH", col("createdAt")), "ASC"]], // Order by month
     });
 
-    // Map bookings to all months
+    // Map bookings to a dictionary
     const bookingsMap = monthlyBookings.reduce((acc, booking) => {
-      acc[booking.getDataValue("month")] = booking.getDataValue(
-        "no_of_bookings"
-      );
+      acc[booking.getDataValue("month")] = booking.getDataValue("no_of_bookings");
       return acc;
     }, {});
 
     // Define all months
     const allMonths = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
+      "January", "February", "March", "April", "May",
+      "June", "July", "August", "September", "October",
+      "November", "December",
     ];
 
-    // Format the final monthly bookings response
+    // Format final response
     const formattedMonthlyBookings = allMonths.map((month) => ({
       month,
-      no_of_bookings: bookingsMap[month] || 0,
+      no_of_bookings: bookingsMap[month] || 0, // Default to 0 if no data
     }));
-
-    // Final response
-    const reportData = [
-      {
-        title: propertyId
-          ? `Monthly Bookings for Property ID: ${propertyId}`
-          : "Total Monthly Bookings for All Properties",
-        report_data: formattedMonthlyBookings,
-      },
-    ];
 
     res.json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Report List Get Successfully!!!",
-      report_data: reportData,
+      report_data: {
+        title: propertyId
+          ? `Monthly Bookings for Property ID: ${propertyId}`
+          : "Total Monthly Bookings for All Properties",
+        report_data: formattedMonthlyBookings,
+      },
     });
   } catch (error) {
     console.error("Error fetching report data:", error);
@@ -346,11 +326,6 @@ const listingProperties = async (req, res) => {
     });
   }
 };
-
-
-
-
-
 
 module.exports = {
   dashboardData,

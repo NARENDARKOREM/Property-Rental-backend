@@ -15,6 +15,6 @@ router.post(
   authMiddleware.isAuthenticated,
   reviewController.createReview
 );
-router.get("/fetch-reviews/:prop_id", reviewController.fetchReviews);
+router.get("/fetch-reviews",authMiddleware.isAuthenticated, reviewController.fetchReviews);
 
 module.exports = router;
