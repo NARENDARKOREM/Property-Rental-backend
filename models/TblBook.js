@@ -140,6 +140,14 @@ const TblBook = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    id_proof:{
+      type:DataTypes.TEXT,
+      allowNull:true,
+    },
+    id_proof_img:{
+      type:DataTypes.TEXT,
+      allowNull:true
+    }
   },
   {
     tableName: "tbl_book",

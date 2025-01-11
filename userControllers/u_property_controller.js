@@ -11,6 +11,134 @@ const Setting = require("../models/Setting");
 const TblExtraImage = require("../models/TableExtraImages");
 const uploadToS3 = require("../config/fileUpload.aws");
 
+// const addProperty = async (req, res) => {
+//   const {
+//     title,
+//     price,
+//     status,
+//     address,
+//     facility,
+//     description,
+//     beds,
+//     bathroom,
+//     sqrft,
+//     rate,
+//     ptype,
+//     latitude,
+//     longtitude,
+//     mobile,
+//     city,
+//     listing_date,
+//     rules,
+//     country_id,
+//     is_sell,
+//     adults,
+//     children,
+//     infants,
+//     pets,
+//     setting_id,
+//   } = req.body;
+
+//   const images = req.files;
+
+//   const add_user_id = req.user.id;
+//   if (!add_user_id) {
+//     return res.status(401).json({
+//       ResponseCode: "401",
+//       Result: "false",
+//       ResponseMsg: "User ID not provided",
+//     });
+//   }
+
+//   console.log(add_user_id);
+
+//   // Validate the necessary fields
+//   if (
+//     !is_sell ||
+//     !country_id ||
+//     !status ||
+//     !title ||
+//     !listing_date ||
+//     !rules ||
+//     !address ||
+//     !description ||
+//     !city ||
+//     !facility ||
+//     !ptype ||
+//     !beds ||
+//     !bathroom ||
+//     !sqrft ||
+//     !rate ||
+//     !latitude ||
+//     !mobile ||
+//     !price ||
+//     !images
+//   ) {
+//     return res.status(401).json({
+//       ResponseCode: "401",
+//       Result: "false",
+//       ResponseMsg: " All Fields Required!",
+//     });
+//   }
+
+//   try {
+//     // Check if country_id exists in TblCountry
+//     const country = await TblCountry.findByPk(country_id);
+//     if (!country) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "false",
+//         ResponseMsg: "Country not found!",
+//       });
+//     }
+
+//     const imageUrl = await uploadToS3(req.file, "id-proof");
+
+//     // Create new property
+//     const newProperty = await Property.create({
+//       title,
+//       image: imageUrl,
+//       price,
+//       status,
+//       address,
+//       facility: JSON.stringify(facility),
+//       description,
+//       beds,
+//       bathroom,
+//       sqrft,
+//       rate,
+//       rules,
+//       ptype,
+//       latitude,
+//       longtitude,
+//       mobile,
+//       city,
+//       listing_date: new Date(),
+//       add_user_id,
+//       country_id,
+//       is_sell,
+//       adults,
+//       children,
+//       infants,
+//       pets,
+//       setting_id,
+//     });
+//     res.status(201).json({
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Property Add Successfully",
+//       newProperty,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error",
+//     });
+//   }
+// };
+
 const addProperty = async (req, res) => {
   const {
     title,
@@ -39,7 +167,9 @@ const addProperty = async (req, res) => {
     setting_id,
   } = req.body;
 
+  const files = req.files; // Extract all uploaded files
   const add_user_id = req.user.id;
+
   if (!add_user_id) {
     return res.status(401).json({
       ResponseCode: "401",
@@ -48,9 +178,6 @@ const addProperty = async (req, res) => {
     });
   }
 
-  console.log(add_user_id);
-
-  // Validate the necessary fields
   if (
     !is_sell ||
     !country_id ||
@@ -69,18 +196,19 @@ const addProperty = async (req, res) => {
     !rate ||
     !latitude ||
     !mobile ||
-    !price
+    !price ||
+    !files ||
+    files.length === 0
   ) {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: " All Fields Required!",
+      ResponseMsg: "All Fields and at least one file are required!",
     });
   }
 
   try {
-
-    // Check if country_id exists in TblCountry
+    // Validate country
     const country = await TblCountry.findByPk(country_id);
     if (!country) {
       return res.status(404).json({
@@ -90,13 +218,19 @@ const addProperty = async (req, res) => {
       });
     }
 
-    const imageUrl = await uploadToS3(req.file, "id-proof");
-  
+    // Separate images and videos from files
+    const images = files.filter((file) => file.mimetype.startsWith("image/"));
+    const videos = files.filter((file) => file.mimetype.startsWith("video/"));
+
+    // Upload images and videos to S3
+    const imageUrls = await uploadToS3(images, "property-images");
+    const videoUrls = await uploadToS3(videos, "property-videos");
 
     // Create new property
     const newProperty = await Property.create({
       title,
-      image:imageUrl,
+      image: JSON.stringify(imageUrls), // Store as JSON array
+      video: JSON.stringify(videoUrls), // Store as JSON array
       price,
       status,
       address,
@@ -122,14 +256,15 @@ const addProperty = async (req, res) => {
       pets,
       setting_id,
     });
+
     res.status(201).json({
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: "Property Add Successfully",
+      ResponseMsg: "Property added successfully!",
       newProperty,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error adding property:", error);
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
@@ -137,9 +272,9 @@ const addProperty = async (req, res) => {
     });
   }
 };
-
 const editProperty = async (req, res) => {
   try {
+    // Destructure fields from req.body
     const {
       status,
       title,
@@ -161,7 +296,6 @@ const editProperty = async (req, res) => {
       prop_id,
       country_id,
       is_sell,
-      
       adults,
       children,
       infants,
@@ -179,7 +313,7 @@ const editProperty = async (req, res) => {
         ResponseMsg: "Authorization failed: User ID missing",
       });
     }
-
+    const files = req.files;
     const user_id = req.user.id;
 
     // Validate required fields
@@ -202,28 +336,15 @@ const editProperty = async (req, res) => {
       !mobile ||
       !listing_date ||
       !price ||
-      !plimit ||
       !country_id ||
-      is_sell === undefined // Ensure boolean is not `undefined`
+      is_sell || // Ensure boolean is not `undefined`
+      !files ||
+      files.length === 0
     ) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
         ResponseMsg: "Missing or invalid fields",
-      });
-    }
-
-    // Validate JSON parsing for `facility` and `rules`
-    let parsedFacility;
-    let parsedRules;
-    try {
-      parsedFacility = JSON.parse(facility);
-      parsedRules = JSON.parse(rules);
-    } catch (err) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Invalid JSON format in facility or rules",
       });
     }
 
@@ -249,9 +370,12 @@ const editProperty = async (req, res) => {
       });
     }
 
-    const imageUrl = await uploadToS3(req.file, "id-proof");
+    // Separate image and video files
+    const images = files.filter(file => file.mimetype && file.mimetype.startsWith("image/"));
+    const videos = files.filter(file => file.mimetype && file.mimetype.startsWith("video/"));
 
-    
+    const imageUrls = await uploadToS3(images, "property-images");
+    const videoUrls = await uploadToS3(videos, "property-videos");
 
     // Update the property
     await property.update({
@@ -259,22 +383,23 @@ const editProperty = async (req, res) => {
       country_id,
       status,
       title,
+      image: JSON.stringify(imageUrls),
+      video: JSON.stringify(videoUrls),
       price,
       address,
-      facility: JSON.stringify(parsedFacility),
+      facility,
       description,
       beds,
       bathroom,
       sqrft: sqft,
       rate,
-      rules: JSON.stringify(parsedRules),
+      rules,
       ptype,
       latitude,
       longtitude,
       mobile,
       city: ccount,
       listing_date,
-      image:imageUrl,
       adults,
       children,
       infants,
@@ -298,6 +423,7 @@ const editProperty = async (req, res) => {
     });
   }
 };
+
 
 const getPropertyList = async (req, res) => {
   try {
@@ -799,7 +925,9 @@ const getAllHostAddedProperties = async (req, res) => {
 
       // Fetch booking details, but only if the booking status is Booked or Confirmed
       const bookingDetails = property.properties
-        .filter((booking) => ["Booked", "Confirmed"].includes(booking.book_status))
+        .filter((booking) =>
+          ["Booked", "Confirmed"].includes(booking.book_status)
+        )
         .map((booking) => ({
           book_status: booking.book_status,
           check_in: booking.check_in,
@@ -814,8 +942,8 @@ const getAllHostAddedProperties = async (req, res) => {
 
       // Determine if property is available for booking
       const isAvailableForBooking =
-        property.properties.some(
-          (booking) => ["Completed", "Cancelled"].includes(booking.book_status)
+        property.properties.some((booking) =>
+          ["Completed", "Cancelled"].includes(booking.book_status)
         ) || bookingDetails.length === 0;
 
       return {
@@ -862,8 +990,6 @@ const getAllHostAddedProperties = async (req, res) => {
     });
   }
 };
-
-
 
 const getSortedProperties = async (req, res) => {
   try {
@@ -1633,5 +1759,5 @@ module.exports = {
   searchProperties,
   deleteUserProperty,
   nearByProperties,
-  getAllProperties
+  getAllProperties,
 };
