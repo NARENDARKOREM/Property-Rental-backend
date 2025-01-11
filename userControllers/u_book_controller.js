@@ -6,6 +6,7 @@ const { Op, or, where } = require("sequelize");
 // const { sendResponse } = require("../utils");
 const PaymentList = require("../models/PaymentList");
 const TblNotification = require("../models/TblNotification");
+const uploadToS3 = require("../config/fileUpload.aws");
 
 const sendResponse = (res, code, result, msg, additionalData = {}) => {
   res.status(code).json({
@@ -44,7 +45,10 @@ const createBooking = async (req, res) => {
     children,
     infants,
     pets,
+    id_proof,
   } = req.body;
+
+  const id_proof_img = req.file; // Single file uploaded via Multer
 
   if (
     !prop_id ||
@@ -55,7 +59,9 @@ const createBooking = async (req, res) => {
     !tax ||
     !p_method_id ||
     !book_for ||
-    !prop_price
+    !prop_price ||
+    !id_proof ||
+    !id_proof_img
   ) {
     return res
       .status(401)
@@ -126,6 +132,19 @@ const createBooking = async (req, res) => {
         .json({ success: false, message: "That Date Range Already Booked!" });
     }
 
+    let idProofUrl;
+    try {
+      // Wrap the single file into an array to work with uploadToS3
+      const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
+      idProofUrl = uploadedFiles[0]; // Extract the first URL (only one file uploaded)
+    } catch (error) {
+      console.error("Error uploading ID proof to S3:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload ID proof. Please try again later.",
+      });
+    }
+
     const bookingData = {
       prop_id,
       uid,
@@ -150,7 +169,8 @@ const createBooking = async (req, res) => {
       children,
       infants,
       pets,
-
+      id_proof,
+      id_proof_img: idProofUrl,
       book_status: "Booked",
     };
 

@@ -7,10 +7,10 @@ const addPriceCalendar = async (req, res) => {
     return res.status(401).json({ message: "User not found" });
   }
 
-  const { date, price, note, prop_id } = req.body;
-  if (!date || !price || !note || !prop_id) {
+  const { prop_id, entries } = req.body;
+  if (!prop_id || !entries || !Array.isArray(entries) || entries.length === 0) {
     return res.status(400).json({
-      message: "All Fields Required!",
+      message: "Property ID and entries are required!",
     });
   }
 
@@ -24,47 +24,53 @@ const addPriceCalendar = async (req, res) => {
 
     if (!property) {
       return res.status(404).json({
-        message:
-          "Property not found! or You don't have permission to add price to this property.",
+        message: "Property not found or you don't have permission to add price to this property.",
       });
     }
 
-    const existingEntry = await PriceCalendar.findOne({
-      where: {
-        date: date,
-        prop_id: prop_id,
-      },
+    for (const entry of entries) {
+      const { date, price, note } = entry;
+
+      if (!Array.isArray(date) || !price || !note) {
+        return res.status(400).json({
+          message: "Invalid entry format. Each entry must include date(s), price, and note.",
+        });
+      }
+
+      for (const singleDate of date) {
+        const existingEntry = await PriceCalendar.findOne({
+          where: {
+            date: singleDate,
+            prop_id: prop_id,
+          },
+        });
+
+        if (existingEntry) {
+          existingEntry.price = price;
+          existingEntry.note = note;
+          await existingEntry.save();
+        } else {
+          await PriceCalendar.create({
+            date: singleDate,
+            price: price,
+            note: note,
+            prop_id: prop_id,
+          });
+        }
+      }
+    }
+
+    return res.status(200).json({
+      message: "Property prices added/updated successfully!",
     });
-
-    if (existingEntry) {
-      existingEntry.price = price;
-      existingEntry.note = note;
-      await existingEntry.save();
-
-      return res.status(200).json({
-        message: "Property Price Updated Successfully!",
-        data: existingEntry,
-      });
-    } else {
-      const newEntry = await PriceCalendar.create({
-        date: date,
-        price: price,
-        note: note,
-        prop_id: prop_id,
-      });
-
-      return res.status(201).json({
-        message: "Property Price Added Successfully!",
-        data: newEntry,
-      });
-    }
   } catch (error) {
-    console.error("Error adding or updating price:", error);
+    console.error("Error adding or updating prices:", error);
     return res.status(500).json({
-      message: "An error occurred while adding the price.",
+      message: "An error occurred while adding or updating prices.",
     });
   }
 };
+
 
 const fetchAllDetails = async (req, res) => {
     try {
