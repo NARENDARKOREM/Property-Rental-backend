@@ -39,9 +39,9 @@ const uploadToS3 = require("../config/fileUpload.aws");
 //     setting_id,
 //   } = req.body;
 
-//   const images = req.files;
-
+//   const files = req.files; // Extract all uploaded files
 //   const add_user_id = req.user.id;
+
 //   if (!add_user_id) {
 //     return res.status(401).json({
 //       ResponseCode: "401",
@@ -50,9 +50,6 @@ const uploadToS3 = require("../config/fileUpload.aws");
 //     });
 //   }
 
-//   console.log(add_user_id);
-
-//   // Validate the necessary fields
 //   if (
 //     !is_sell ||
 //     !country_id ||
@@ -72,17 +69,18 @@ const uploadToS3 = require("../config/fileUpload.aws");
 //     !latitude ||
 //     !mobile ||
 //     !price ||
-//     !images
+//     !files ||
+//     files.length === 0
 //   ) {
 //     return res.status(401).json({
 //       ResponseCode: "401",
 //       Result: "false",
-//       ResponseMsg: " All Fields Required!",
+//       ResponseMsg: "All Fields and at least one file are required!",
 //     });
 //   }
 
 //   try {
-//     // Check if country_id exists in TblCountry
+//     // Validate country
 //     const country = await TblCountry.findByPk(country_id);
 //     if (!country) {
 //       return res.status(404).json({
@@ -92,12 +90,19 @@ const uploadToS3 = require("../config/fileUpload.aws");
 //       });
 //     }
 
-//     const imageUrl = await uploadToS3(req.file, "id-proof");
+//     // Separate images and videos from files
+//     const images = files.filter((file) => file.mimetype.startsWith("image/"));
+//     const videos = files.filter((file) => file.mimetype.startsWith("video/"));
+
+//     // Upload images and videos to S3
+//     const imageUrls = await uploadToS3(images, "property-images");
+//     const videoUrls = await uploadToS3(videos, "property-videos");
 
 //     // Create new property
 //     const newProperty = await Property.create({
 //       title,
-//       image: imageUrl,
+//       image: JSON.stringify(imageUrls), // Store as JSON array
+//       video: JSON.stringify(videoUrls), // Store as JSON array
 //       price,
 //       status,
 //       address,
@@ -123,14 +128,15 @@ const uploadToS3 = require("../config/fileUpload.aws");
 //       pets,
 //       setting_id,
 //     });
+
 //     res.status(201).json({
 //       ResponseCode: "200",
 //       Result: "true",
-//       ResponseMsg: "Property Add Successfully",
+//       ResponseMsg: "Property added successfully!",
 //       newProperty,
 //     });
 //   } catch (error) {
-//     console.error(error);
+//     console.error("Error adding property:", error);
 //     res.status(500).json({
 //       ResponseCode: "500",
 //       Result: "false",
@@ -203,7 +209,7 @@ const addProperty = async (req, res) => {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "All Fields and at least one file are required!",
+      ResponseMsg: "All fields and at least one file are required!",
     });
   }
 
@@ -218,19 +224,31 @@ const addProperty = async (req, res) => {
       });
     }
 
-    // Separate images and videos from files
-    const images = files.filter((file) => file.mimetype.startsWith("image/"));
-    const videos = files.filter((file) => file.mimetype.startsWith("video/"));
+    // Separate main image and extra images
+    const mainImage = files.find((file) => file.fieldname === "main_image");
+    const extraImages = files.filter(
+      (file) => file.fieldname === "extra_images"
+    );
 
-    // Upload images and videos to S3
-    const imageUrls = await uploadToS3(images, "property-images");
-    const videoUrls = await uploadToS3(videos, "property-videos");
+    if (!mainImage) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Main image is required!",
+      });
+    }
+
+    // Upload main image and extra images to S3
+    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
+    const extraImageUrls = extraImages.length
+      ? await uploadToS3(extraImages, "property-extra-images")
+      : [];
 
     // Create new property
     const newProperty = await Property.create({
       title,
-      image: JSON.stringify(imageUrls), // Store as JSON array
-      video: JSON.stringify(videoUrls), // Store as JSON array
+      image: mainImageUrl[0], // Store main image URL
+      extra_images: JSON.stringify(extraImageUrls), // Store extra images as JSON array
       price,
       status,
       address,
@@ -272,6 +290,8 @@ const addProperty = async (req, res) => {
     });
   }
 };
+
+
 const editProperty = async (req, res) => {
   try {
     // Destructure fields from req.body

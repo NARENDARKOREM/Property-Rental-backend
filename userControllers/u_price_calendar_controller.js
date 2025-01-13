@@ -7,10 +7,10 @@ const addPriceCalendar = async (req, res) => {
     return res.status(401).json({ message: "User not found" });
   }
 
-  const { prop_id, entries } = req.body;
-  if (!prop_id || !entries || !Array.isArray(entries) || entries.length === 0) {
+  const { prop_id, date, price, note } = req.body;
+  if (!prop_id || !Array.isArray(date) || date.length === 0 || !price || !note) {
     return res.status(400).json({
-      message: "Property ID and entries are required!",
+      message: "Property ID, date(s), price, and note are required!",
     });
   }
 
@@ -28,35 +28,25 @@ const addPriceCalendar = async (req, res) => {
       });
     }
 
-    for (const entry of entries) {
-      const { date, price, note } = entry;
+    for (const singleDate of date) {
+      const existingEntry = await PriceCalendar.findOne({
+        where: {
+          date: singleDate,
+          prop_id: prop_id,
+        },
+      });
 
-      if (!Array.isArray(date) || !price || !note) {
-        return res.status(400).json({
-          message: "Invalid entry format. Each entry must include date(s), price, and note.",
+      if (existingEntry) {
+        existingEntry.price = price;
+        existingEntry.note = note;
+        await existingEntry.save();
+      } else {
+        await PriceCalendar.create({
+          date: singleDate,
+          price: price,
+          note: note,
+          prop_id: prop_id,
         });
-      }
-
-      for (const singleDate of date) {
-        const existingEntry = await PriceCalendar.findOne({
-          where: {
-            date: singleDate,
-            prop_id: prop_id,
-          },
-        });
-
-        if (existingEntry) {
-          existingEntry.price = price;
-          existingEntry.note = note;
-          await existingEntry.save();
-        } else {
-          await PriceCalendar.create({
-            date: singleDate,
-            price: price,
-            note: note,
-            prop_id: prop_id,
-          });
-        }
       }
     }
 
