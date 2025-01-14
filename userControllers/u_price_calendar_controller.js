@@ -8,7 +8,7 @@ const addPriceCalendar = async (req, res) => {
   }
 
   const { prop_id, date, price, note } = req.body;
-  if (!prop_id || !Array.isArray(date) || date.length === 0 || !price || !note) {
+  if (!prop_id || !Array.isArray(date) || date.length === 0 || !price) {
     return res.status(400).json({
       message: "Property ID, date(s), price, and note are required!",
     });

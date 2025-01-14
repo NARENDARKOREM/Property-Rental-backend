@@ -173,7 +173,7 @@ const addProperty = async (req, res) => {
     setting_id,
   } = req.body;
 
-  const files = req.files; // Extract all uploaded files
+  const files = req.files; // Extract uploaded files
   const add_user_id = req.user.id;
 
   if (!add_user_id) {
@@ -204,12 +204,12 @@ const addProperty = async (req, res) => {
     !mobile ||
     !price ||
     !files ||
-    files.length === 0
+    !files.main_image
   ) {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "All fields and at least one file are required!",
+      ResponseMsg: "All fields and at least the main image are required!",
     });
   }
 
@@ -224,24 +224,30 @@ const addProperty = async (req, res) => {
       });
     }
 
-    // Separate main image and extra images
-    const mainImage = files.find((file) => file.fieldname === "main_image");
-    const extraImages = files.filter(
-      (file) => file.fieldname === "extra_images"
-    );
+    // Separate main image
+    const mainImage = files.main_image[0]; // Single main image file
 
-    if (!mainImage) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Main image is required!",
+    // Separate extra images and videos based on MIME type
+    const extraImages = [];
+    const videos = [];
+
+    if (files.extra_files) {
+      files.extra_files.forEach((file) => {
+        if (file.mimetype.startsWith("image/")) {
+          extraImages.push(file);
+        } else if (file.mimetype.startsWith("video/")) {
+          videos.push(file);
+        }
       });
     }
 
-    // Upload main image and extra images to S3
+    // Upload files to S3
     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
     const extraImageUrls = extraImages.length
       ? await uploadToS3(extraImages, "property-extra-images")
+      : [];
+    const videoUrls = videos.length
+      ? await uploadToS3(videos, "property-videos")
       : [];
 
     // Create new property
@@ -249,6 +255,7 @@ const addProperty = async (req, res) => {
       title,
       image: mainImageUrl[0], // Store main image URL
       extra_images: JSON.stringify(extraImageUrls), // Store extra images as JSON array
+      video: JSON.stringify(videoUrls), // Store video URLs as JSON array
       price,
       status,
       address,
@@ -290,7 +297,6 @@ const addProperty = async (req, res) => {
     });
   }
 };
-
 
 const editProperty = async (req, res) => {
   try {
