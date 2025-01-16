@@ -11,6 +11,7 @@ const TblFav = require("./TblFav");
 const Setting = require("./Setting");
 const PriceCalendar = require("./PriceCalendar");
 const PersonRecord = require("./PersonRecord");
+const TravelerHostReview = require("./TravelerHostReview");
 
 RoleChangeRequest.belongsTo(User, { foreignKey: "user_id", as: "user" });
 User.hasMany(RoleChangeRequest, {
@@ -56,6 +57,10 @@ TblBook.hasMany(PersonRecord, { foreignKey: "book_id", as: "travelerDetails" });
 
 Property.belongsTo(User, { foreignKey: "add_user_id", as: "Owner" });
 User.hasMany(Property, { foreignKey: "add_user_id", as: "properties" });
+
+// Reviews
+TravelerHostReview.belongsTo(User, { foreignKey: "traveler_id", as: "traveler" });
+User.hasMany(TravelerHostReview, { foreignKey: "traveler_id", as: "travelerReviews" });
 
 module.exports = {
   User,

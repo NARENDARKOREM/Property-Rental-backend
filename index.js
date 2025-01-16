@@ -45,6 +45,8 @@ const Page = require("./models/Page");
 const RoleChangeRequest = require("./models/RoleChangeRequest");
 const foreignKeysetup = require("./models/index");
 const PriceCalendar = require("./models/PriceCalendar");
+const TravelerHostReview = require('./models/TravelerHostReview');
+const HostTravelerReview = require('./models/HostTravelerReview');
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 // Routes
@@ -132,6 +134,7 @@ const userPropertyRoutes = require("./userRoutes/u_property_routes");
 const userBookings = require("./userRoutes/u_book_routes");
 const checkInAvailabilityRoutes = require("./userRoutes/user_check_availablity_routes");
 const priceCalendarRoutes = require('./userRoutes/u_price_calendar_routes');
+const traverlerReviewRoutes = require('./userRoutes/traveler_host_review_route');
 
 app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/u_paymentgateway", require("./userRoutes/user_paymentgateway_route"));
@@ -149,6 +152,7 @@ app.use("/faq", require("./userRoutes/u_faq_route"));
 app.use("/u_homedata", require("./userRoutes/u_homedata_route"));
 app.use("/check-availability", checkInAvailabilityRoutes);
 app.use("/price-calendar", priceCalendarRoutes);
+app.use("/traveler-review", traverlerReviewRoutes);
 
 app.get("/", (req, res) => {
   // const query
