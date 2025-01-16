@@ -17,10 +17,14 @@ router.post(
 
 router.patch(
   "/edit",
-  authMiddleware.isAuthenticated,
-  upload.array("files", 10),
+  authMiddleware.isHost,
+  upload.fields([
+    { name: "main_image", maxCount: 1 },
+    { name: "extra_files", maxCount: 10 },
+  ]),
   userPropertyController.editProperty
 );
+
 router.get(
   "/list",
   authMiddleware.isAuthenticated,

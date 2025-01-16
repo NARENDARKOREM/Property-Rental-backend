@@ -10,6 +10,7 @@ const TblEnquiry = require("../models/TblEnquiry");
 const Setting = require("../models/Setting");
 const TblExtraImage = require("../models/TableExtraImages");
 const uploadToS3 = require("../config/fileUpload.aws");
+const TravelerHostReview = require("../models/TravelerHostReview");
 
 // const addProperty = async (req, res) => {
 //   const {
@@ -156,7 +157,7 @@ const addProperty = async (req, res) => {
     beds,
     bathroom,
     sqrft,
-    rate,
+    // rate,
     ptype,
     latitude,
     longtitude,
@@ -199,7 +200,7 @@ const addProperty = async (req, res) => {
     !beds ||
     !bathroom ||
     !sqrft ||
-    !rate ||
+    // !rate ||
     !latitude ||
     !mobile ||
     !price ||
@@ -264,7 +265,7 @@ const addProperty = async (req, res) => {
       beds,
       bathroom,
       sqrft,
-      rate,
+      // rate,
       rules,
       ptype,
       latitude,
@@ -297,6 +298,7 @@ const addProperty = async (req, res) => {
     });
   }
 };
+
 
 const editProperty = async (req, res) => {
   try {
@@ -339,7 +341,8 @@ const editProperty = async (req, res) => {
         ResponseMsg: "Authorization failed: User ID missing",
       });
     }
-    const files = req.files;
+
+    const files = req.files; // Extract uploaded files
     const user_id = req.user.id;
 
     // Validate required fields
@@ -363,9 +366,8 @@ const editProperty = async (req, res) => {
       !listing_date ||
       !price ||
       !country_id ||
-      is_sell || // Ensure boolean is not `undefined`
-      !files ||
-      files.length === 0
+      is_sell === undefined || // Ensure boolean is not `undefined`
+      (!files.main_image && !files.extra_files)
     ) {
       return res.status(400).json({
         ResponseCode: "400",
@@ -396,12 +398,32 @@ const editProperty = async (req, res) => {
       });
     }
 
-    // Separate image and video files
-    const images = files.filter(file => file.mimetype && file.mimetype.startsWith("image/"));
-    const videos = files.filter(file => file.mimetype && file.mimetype.startsWith("video/"));
+    // Separate main image
+    const mainImage = files.main_image ? files.main_image[0] : null;
 
-    const imageUrls = await uploadToS3(images, "property-images");
-    const videoUrls = await uploadToS3(videos, "property-videos");
+    // Separate extra images and videos based on MIME type
+    const extraImages = [];
+    const videos = [];
+    if (files.extra_files) {
+      files.extra_files.forEach((file) => {
+        if (file.mimetype.startsWith("image/")) {
+          extraImages.push(file);
+        } else if (file.mimetype.startsWith("video/")) {
+          videos.push(file);
+        }
+      });
+    }
+
+    // Upload files to S3
+    const mainImageUrl = mainImage
+      ? await uploadToS3([mainImage], "property-main-image")
+      : property.image; // Keep the existing main image if no new one is provided
+    const extraImageUrls = extraImages.length
+      ? await uploadToS3(extraImages, "property-extra-images")
+      : JSON.parse(property.extra_images || "[]");
+    const videoUrls = videos.length
+      ? await uploadToS3(videos, "property-videos")
+      : JSON.parse(property.video || "[]");
 
     // Update the property
     await property.update({
@@ -409,8 +431,9 @@ const editProperty = async (req, res) => {
       country_id,
       status,
       title,
-      image: JSON.stringify(imageUrls),
-      video: JSON.stringify(videoUrls),
+      image: mainImageUrl[0] || property.image, // Update main image URL
+      extra_images: JSON.stringify(extraImageUrls), // Update extra images
+      video: JSON.stringify(videoUrls), // Update videos
       price,
       address,
       facility,
@@ -686,23 +709,35 @@ const getPropertyDetails = async (req, res) => {
     }
 
     const today = new Date().toISOString().split("T")[0];
-    console.log(today, "from calendar tableeeeee");
+
+    // Fetch original property price
+    const originalPrice = property.price;
+
+    // Fetch the price entry for today or the most recent calendar price
     const priceEntry = await PriceCalendar.findOne({
       where: {
         prop_id: pro_id,
       },
     });
 
-    console.log(priceEntry, "from calanderrrrrrrrrrrr ");
+    const currentPrice = priceEntry ? priceEntry.price : originalPrice;
 
-    const previousPrice = priceEntry ? priceEntry.price : property.price;
-
-    const rulesArray = JSON.parse(property.rules);
-    const extraImages = await TblExtra.findAll({
-      where: { pid: property.id },
-      include: [{ model: TblExtraImage, as: "images", attributes: ["url"] }],
-      attributes: ["status"],
+    // Fetch upcoming prices from the calendar
+    const upcomingPrices = await PriceCalendar.findAll({
+      where: {
+        prop_id: pro_id,
+        date: { [Op.gt]: today }, // Only fetch future dates
+      },
+      attributes: ["date", "price"], // Include only necessary fields
+      order: [["date", "ASC"]], // Sort by date
     });
+
+    const upcomingPricesArray = upcomingPrices.map((entry) => ({
+      date: entry.date,
+      price: entry.price,
+    }));
+
+    const rulesArray = JSON.parse(property.rules || "[]");
 
     const completedBookings = await TblBook.findAll({
       where: {
@@ -738,8 +773,23 @@ const getPropertyDetails = async (req, res) => {
       ownerDetails = await User.findOne({
         where: { id: property.add_user_id },
         attributes: ["id", "pro_pic", "name", "email", "mobile"],
-      });
+      });     
     }
+
+    const travelerReviews = await TravelerHostReview.findAll({
+      where: {
+        host_id: property.add_user_id,
+        property_id: pro_id,
+      },
+      attributes: ["rating", "review"],
+    });
+
+    // Prepare reviews array
+    const reviewsArray = travelerReviews.map((review) => ({
+      rating: review.rating,
+      review: review.review,
+      created_at: review.created_at,
+    }));
 
     const facilities = await TblFacility.findAll({
       where: {
@@ -782,9 +832,17 @@ const getPropertyDetails = async (req, res) => {
 
     const propertyImage = property.image;
     const panoramaStatus = property.is_panorama;
-    const gallery = extraImages.flatMap((extraImage) =>
-      extraImage.images.map((image) => image.url)
-    );
+
+    // Fetch extra images and video from property table
+    const extraImages = property.extra_images
+      ? JSON.parse(property.extra_images)
+      : [];
+    const video = property.video ? {url: property.video } : null;
+
+    const gallery = {
+      extra_images: extraImages,
+      video: video,
+    };
 
     const response = {
       propetydetails: {
@@ -795,7 +853,11 @@ const getPropertyDetails = async (req, res) => {
         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
         property_type: property.ptype,
         property_title: category?.title,
-        price: previousPrice,
+        price: {
+          originalPrice,
+          currentPrice,
+          upcomingPrices: upcomingPricesArray,
+        },
         buyorrent: property.pbuysell,
         address: property.address,
         beds: property.beds,
@@ -820,6 +882,7 @@ const getPropertyDetails = async (req, res) => {
               pro_pic: ownerDetails.pro_pic,
               email: ownerDetails.email,
               phone: ownerDetails.mobile,
+              traveler_reviews:reviewsArray
             }
           : null,
       },
@@ -844,6 +907,7 @@ const getPropertyDetails = async (req, res) => {
     });
   }
 };
+
 
 const getAllHostAddedProperties = async (req, res) => {
   const uid = req.user?.id || null;

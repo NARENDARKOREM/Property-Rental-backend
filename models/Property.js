@@ -61,7 +61,7 @@ const Property = sequelize.define(
     },
     rate: {
       type: DataTypes.FLOAT,
-      allowNull: false,
+      allowNull: true,
     },
     ptype: {
       type: DataTypes.INTEGER,
