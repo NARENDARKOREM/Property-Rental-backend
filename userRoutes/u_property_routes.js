@@ -55,5 +55,6 @@ router.delete(
   userPropertyController.deleteUserProperty
 );
 router.get("/properties", userPropertyController.getAllProperties);
+router.get("/property-types", userPropertyController.getPropertyCategories)
 
 module.exports = router;
