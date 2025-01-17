@@ -157,7 +157,7 @@ const addProperty = async (req, res) => {
     beds,
     bathroom,
     sqrft,
-    // rate,
+    rate,
     ptype,
     latitude,
     longtitude,
@@ -172,6 +172,7 @@ const addProperty = async (req, res) => {
     infants,
     pets,
     setting_id,
+    standard_rules
   } = req.body;
 
   const files = req.files; // Extract uploaded files
@@ -192,6 +193,7 @@ const addProperty = async (req, res) => {
     !title ||
     !listing_date ||
     !rules ||
+    !standard_rules ||
     !address ||
     !description ||
     !city ||
@@ -224,6 +226,8 @@ const addProperty = async (req, res) => {
         ResponseMsg: "Country not found!",
       });
     }
+
+    const standardRules = JSON.parse(standard_rules)
 
     // Separate main image
     const mainImage = files.main_image[0]; // Single main image file
@@ -265,8 +269,9 @@ const addProperty = async (req, res) => {
       beds,
       bathroom,
       sqrft,
-      // rate,
+      rate,
       rules,
+      standard_rules:standardRules,
       ptype,
       latitude,
       longtitude,
@@ -316,6 +321,7 @@ const editProperty = async (req, res) => {
       sqft,
       rate,
       rules,
+      standard_rules,
       latitude,
       longtitude,
       mobile,
@@ -443,6 +449,7 @@ const editProperty = async (req, res) => {
       sqrft: sqft,
       rate,
       rules,
+      standard_rules:JSON.stringify(),
       ptype,
       latitude,
       longtitude,
@@ -482,14 +489,13 @@ const getPropertyList = async (req, res) => {
       return res.status(400).json({
         ResponseCode: "401",
         Result: "false",
-        ResponseMsg: "User ID not provided",
+        ResponseMsg: "User  ID not provided",
       });
     }
 
     console.log("Fetching properties for user ID:", uid);
 
     // Fetch properties
-
     const properties = await Property.findAll({
       where: { add_user_id: uid, status: 1 },
       include: [
@@ -505,24 +511,23 @@ const getPropertyList = async (req, res) => {
       properties.map(async (property) => {
         console.log("Processing property:", property);
 
-        const facilityIds = property.facility
-          ? property.facility.split(",")
-          : [];
+        const facilityIds = property.facility ? property.facility.split(",") : [];
         console.log("Facility IDs:", facilityIds);
 
         const facilityTitles = await TblFacility.findAll({
           where: { id: { [Op.in]: facilityIds } },
-
           attributes: ["title"],
         });
 
         console.log("Facility titles:", facilityTitles);
 
+        // Parse standard_rules from JSON string to object
+        const standardRules = property.standard_rules ? JSON.parse(property.standard_rules) : null;
+        console.log("standard rulessssssssssssssssssssss: ",JSON.stringify(standardRules))
         const completedBookings = await TblBook.findAll({
           where: {
             prop_id: property.id,
             book_status: "Completed",
-
             total_rate: { [Op.ne]: 0 },
           },
         });
@@ -552,6 +557,7 @@ const getPropertyList = async (req, res) => {
           sqrft: property.sqrft,
           is_sell: property.is_sell,
           facility_select: facilityTitles.map((f) => f.title),
+          standard_rules: standardRules, // This will now be a JSON object
           rules: property.rules,
           status: property.status,
           latitude: property.latitude,
@@ -566,6 +572,8 @@ const getPropertyList = async (req, res) => {
         };
       })
     );
+
+    console.log(propertyList,"propertiesssssssssssssssssssssssssssss")
 
     if (propertyList.length === 0) {
       return res.status(200).json({
@@ -708,6 +716,8 @@ const getPropertyDetails = async (req, res) => {
       });
     }
 
+    const standardRules = property.standard_rules ? JSON.parse(property.standard_rules) : null;
+
     const today = new Date().toISOString().split("T")[0];
 
     // Fetch original property price
@@ -781,14 +791,21 @@ const getPropertyDetails = async (req, res) => {
         host_id: property.add_user_id,
         property_id: pro_id,
       },
-      attributes: ["rating", "review"],
+      include: [
+        {
+          model: User,
+          as: 'traveler',
+          attributes: ["name"],
+        },
+      ],
+      attributes: ["rating", "review", "createdAt"],
     });
 
-    // Prepare reviews array
     const reviewsArray = travelerReviews.map((review) => ({
+      traveler_name: review.traveler.name,
+      posting_on: review.createdAt,
       rating: review.rating,
       review: review.review,
-      created_at: review.created_at,
     }));
 
     const facilities = await TblFacility.findAll({
@@ -862,6 +879,7 @@ const getPropertyDetails = async (req, res) => {
         address: property.address,
         beds: property.beds,
         bathroom: property.bathroom,
+        standard_rules: standardRules,
         rules: rulesArray,
         sqrft: property.sqrft,
         description: property.description,
