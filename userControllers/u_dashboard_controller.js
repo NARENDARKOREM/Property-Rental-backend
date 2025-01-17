@@ -278,7 +278,7 @@ const listingProperties = async (req, res) => {
     const currentYear = new Date().getFullYear();
     const whereCondition = {
       prop_id: propertyId ? propertyId : { [Op.in]: hostPropertyIds },
-      book_status: "Completed",
+      book_status: "Completed" || "Booked" || "Confirmed",
       createdAt: {
         [Op.gte]: new Date(`${currentYear}-01-01`),
         [Op.lte]: new Date(`${currentYear}-12-31`),
