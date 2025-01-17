@@ -351,6 +351,8 @@ const editProperty = async (req, res) => {
     const files = req.files; // Extract uploaded files
     const user_id = req.user.id;
 
+    const standardRules = JSON.parse(standard_rules);
+
     // Validate required fields
     if (
       !prop_id ||
@@ -449,7 +451,7 @@ const editProperty = async (req, res) => {
       sqrft: sqft,
       rate,
       rules,
-      standard_rules:JSON.stringify(),
+      standard_rules:standardRules,
       ptype,
       latitude,
       longtitude,
