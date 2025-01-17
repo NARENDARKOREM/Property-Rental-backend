@@ -579,6 +579,8 @@ const getPropertyList = async (req, res) => {
           address: property.address,
           country_name: property.country?.title || "Unknown",
           setting_id: property.setting_id,
+          extra_images:property.extra_images,
+          video:property.video
         };
       })
     );
@@ -730,34 +732,72 @@ const getPropertyDetails = async (req, res) => {
       ? JSON.parse(property.standard_rules)
       : null;
 
-    const today = new Date().toISOString().split("T")[0];
+    // const today = new Date().toISOString().split("T")[0];
+    // const originalPrice = property.price;
 
-    // Fetch original property price
+    // // Fetch the price entry for today or the most recent calendar price
+    // const priceEntry = await PriceCalendar.findOne({
+    //   where: {
+    //     prop_id: pro_id,
+    //   },
+    // });
+
+    // const currentPrice = priceEntry ? priceEntry.price : originalPrice;
+
+    // // Fetch upcoming prices from the calendar
+    // const upcomingPrices = await PriceCalendar.findAll({
+    //   where: {
+    //     prop_id: pro_id,
+    //     date: { [Op.gt]: today }, // Only fetch future dates
+    //   },
+    //   attributes: ["date", "price"], // Include only necessary fields
+    //   order: [["date", "ASC"]], // Sort by date
+    // });
+
+    // const upcomingPricesArray = upcomingPrices.map((entry) => ({
+    //   date: entry.date,
+    //   price: entry.price,
+    // }));
+
+    // const price = upcomingPricesArray.length > 0 
+    // ? {
+    //     originalPrice,
+    //     currentPrice,
+    //     upcomingPrices: upcomingPricesArray,
+    //   } 
+    // : originalPrice;
+
+    const today = new Date().toISOString().split("T")[0];
     const originalPrice = property.price;
 
     // Fetch the price entry for today or the most recent calendar price
-    const priceEntry = await PriceCalendar.findOne({
-      where: {
-        prop_id: pro_id,
-      },
-    });
-
-    const currentPrice = priceEntry ? priceEntry.price : originalPrice;
-
-    // Fetch upcoming prices from the calendar
     const upcomingPrices = await PriceCalendar.findAll({
       where: {
         prop_id: pro_id,
-        date: { [Op.gt]: today }, // Only fetch future dates
       },
-      attributes: ["date", "price"], // Include only necessary fields
-      order: [["date", "ASC"]], // Sort by date
+      attributes: ["date", "price"],
+      order: [["date", "ASC"]],
     });
 
-    const upcomingPricesArray = upcomingPrices.map((entry) => ({
-      date: entry.date,
-      price: entry.price,
-    }));
+    let currentPrice = originalPrice;
+
+    for (let entry of upcomingPrices) {
+      if (entry.date === today) {
+        currentPrice = entry.price;
+        break;
+      }
+      if (new Date(entry.date) > new Date(today)) {
+        break;
+      }
+    }
+
+    // Construct the price object based on the current date
+    let price;
+    if (upcomingPrices.length > 0 && new Date(upcomingPrices[0].date) >= new Date(today)) {
+      price = currentPrice;
+    } else {
+      price = originalPrice;
+    }
 
     const rulesArray = JSON.parse(property.rules || "[]");
 
@@ -882,11 +922,12 @@ const getPropertyDetails = async (req, res) => {
         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
         property_type: property.ptype,
         property_title: category?.title,
-        price: {
-          originalPrice,
-          currentPrice,
-          upcomingPrices: upcomingPricesArray,
-        },
+        // price: {
+        //   originalPrice,
+        //   currentPrice,
+        //   upcomingPrices: upcomingPricesArray,
+        // },
+        price:price,
         buyorrent: property.pbuysell,
         address: property.address,
         beds: property.beds,
