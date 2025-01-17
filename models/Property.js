@@ -128,6 +128,10 @@ const Property = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
+    },
+    standard_rules:{
+      type:DataTypes.JSON,
+      allowNull:true
     }
   },
   {
