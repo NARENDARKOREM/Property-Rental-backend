@@ -291,11 +291,13 @@ const getBookingDetails = async (req, res) => {
   try {
     const booking = await TblBook.findOne({
       where: { id: book_id },
-      include:[{
-        model:Property,
-        as:"properties",
-        attributes:["add_user_id"]
-      }]
+      include: [
+        {
+          model: Property,
+          as: "properties",
+          attributes: ["add_user_id"],
+        },
+      ],
     });
 
     if (!booking) {
@@ -379,20 +381,31 @@ const getBookingDetails = async (req, res) => {
       fp.country = "";
     }
 
-    if(booking.properties.add_user_id === uid){
+    if (booking.properties.add_user_id === uid) {
       const travelerReviews = await HostTravelerReview.findAll({
         where: { traveler_id: booking.uid },
         attributes: ["rating", "review", "createdAt"],
         include: [
           {
             model: User,
+            as: "traveler",
+            attributes: ["name"],
+          },
+          {
+            model: User,
             as: "host",
-            attributes: ["name"], // Include host details
+            attributes: ["name"],
           },
         ],
       });
 
-      fp.traveler_reviews = travelerReviews;
+      fp.traveler_reviews = travelerReviews.map((review) => ({
+        host_name: review.host?.name || "Unknown Host",
+        rating: review.rating,
+        review: review.review,
+        createdAt: review.createdAt,
+        traveler_name: review.traveler?.name || "Unknown Traveler",
+      }));
     } else {
       fp.traveler_reviews = []; // Do not show reviews to the traveler
     }
@@ -525,7 +538,11 @@ const cancelBooking = async (req, res) => {
 
   try {
     const booking = await TblBook.findOne({
-      where: { id: book_id, uid: uid, book_status:  { [Op.in]: ["Confirmed", "Booked"] } },
+      where: {
+        id: book_id,
+        uid: uid,
+        book_status: { [Op.in]: ["Confirmed", "Booked"] },
+      },
     });
 
     if (!booking) {
@@ -593,7 +610,10 @@ const getTravelerBookingsByStatus = async (req, res) => {
       });
     }
 
-    const reviews = await TblBook.findAll({where:{is_rate:1},attributes:["is_rate","total_rate","rate_text"]})
+    const reviews = await TblBook.findAll({
+      where: { is_rate: 1 },
+      attributes: ["is_rate", "total_rate", "rate_text"],
+    });
     const review = reviews.length > 0 ? reviews : 0;
 
     // Fetch property details for each booking
@@ -627,7 +647,7 @@ const getTravelerBookingsByStatus = async (req, res) => {
       Result: "true",
       ResponseMsg: "Bookings fetched successfully!",
       statuswise: filteredBookingDetails,
-      review
+      review,
     });
   } catch (error) {
     console.error("Error fetching bookings by status:", error);
@@ -638,7 +658,6 @@ const getTravelerBookingsByStatus = async (req, res) => {
     });
   }
 };
-
 
 // After Becoming Host
 const getMyUserBookings = async (req, res) => {

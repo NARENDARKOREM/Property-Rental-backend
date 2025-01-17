@@ -63,8 +63,12 @@ User.hasMany(Property, { foreignKey: "add_user_id", as: "properties" });
 TravelerHostReview.belongsTo(User, { foreignKey: "traveler_id", as: "traveler" });
 User.hasMany(TravelerHostReview, { foreignKey: "traveler_id", as: "travelerReviews" });
 
-HostTravelerReview.belongsTo(User,{foreignKey:"host_id", as:"traveler"});
-User.hasMany(HostTravelerReview, { foreignKey: "host_id" });
+HostTravelerReview.belongsTo(User,{foreignKey:"traveler_id", as:"traveler"});
+User.hasMany(HostTravelerReview, { foreignKey: "traveler_id", as:"hostReviews"});
+
+HostTravelerReview.belongsTo(User, { foreignKey: "host_id", as: "host" });
+User.hasMany(HostTravelerReview, { foreignKey: "host_id", as: "hostedReviews" });
+
 
 module.exports = {
   User,

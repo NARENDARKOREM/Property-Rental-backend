@@ -172,7 +172,7 @@ const addProperty = async (req, res) => {
     infants,
     pets,
     setting_id,
-    standard_rules
+    standard_rules,
   } = req.body;
 
   const files = req.files; // Extract uploaded files
@@ -227,7 +227,10 @@ const addProperty = async (req, res) => {
       });
     }
 
-    const standardRules = JSON.parse(standard_rules)
+    const standardRules = JSON.parse(standard_rules);
+    const facilityIds = Array.isArray(facility)
+      ? facility
+      : facility.split(",").map((id) => parseInt(id));
 
     // Separate main image
     const mainImage = files.main_image[0]; // Single main image file
@@ -264,14 +267,14 @@ const addProperty = async (req, res) => {
       price,
       status,
       address,
-      facility: JSON.stringify(facility),
+      facility: JSON.stringify(facilityIds),
       description,
       beds,
       bathroom,
       sqrft,
       rate,
       rules,
-      standard_rules:standardRules,
+      standard_rules: standardRules,
       ptype,
       latitude,
       longtitude,
@@ -303,7 +306,6 @@ const addProperty = async (req, res) => {
     });
   }
 };
-
 
 const editProperty = async (req, res) => {
   try {
@@ -451,7 +453,7 @@ const editProperty = async (req, res) => {
       sqrft: sqft,
       rate,
       rules,
-      standard_rules:JSON.stringify(standardRules),
+      standard_rules: standardRules,
       ptype,
       latitude,
       longtitude,
@@ -481,7 +483,6 @@ const editProperty = async (req, res) => {
     });
   }
 };
-
 
 const getPropertyList = async (req, res) => {
   try {
@@ -513,7 +514,9 @@ const getPropertyList = async (req, res) => {
       properties.map(async (property) => {
         console.log("Processing property:", property);
 
-        const facilityIds = property.facility ? property.facility.split(",") : [];
+        const facilityIds = property.facility
+          ? property.facility.split(",")
+          : [];
         console.log("Facility IDs:", facilityIds);
 
         const facilityTitles = await TblFacility.findAll({
@@ -524,8 +527,13 @@ const getPropertyList = async (req, res) => {
         console.log("Facility titles:", facilityTitles);
 
         // Parse standard_rules from JSON string to object
-        const standardRules = property.standard_rules ? JSON.parse(property.standard_rules) : null;
-        console.log("standard rulessssssssssssssssssssss: ",JSON.stringify(standardRules))
+        const standardRules = property.standard_rules
+          ? JSON.parse(property.standard_rules)
+          : null;
+        console.log(
+          "standard rulessssssssssssssssssssss: ",
+          JSON.stringify(standardRules)
+        );
         const completedBookings = await TblBook.findAll({
           where: {
             prop_id: property.id,
@@ -575,7 +583,7 @@ const getPropertyList = async (req, res) => {
       })
     );
 
-    console.log(propertyList,"propertiesssssssssssssssssssssssssssss")
+    console.log(propertyList, "propertiesssssssssssssssssssssssssssss");
 
     if (propertyList.length === 0) {
       return res.status(200).json({
@@ -718,7 +726,9 @@ const getPropertyDetails = async (req, res) => {
       });
     }
 
-    const standardRules = property.standard_rules ? JSON.parse(property.standard_rules) : null;
+    const standardRules = property.standard_rules
+      ? JSON.parse(property.standard_rules)
+      : null;
 
     const today = new Date().toISOString().split("T")[0];
 
@@ -785,7 +795,7 @@ const getPropertyDetails = async (req, res) => {
       ownerDetails = await User.findOne({
         where: { id: property.add_user_id },
         attributes: ["id", "pro_pic", "name", "email", "mobile"],
-      });     
+      });
     }
 
     const travelerReviews = await TravelerHostReview.findAll({
@@ -796,7 +806,7 @@ const getPropertyDetails = async (req, res) => {
       include: [
         {
           model: User,
-          as: 'traveler',
+          as: "traveler",
           attributes: ["name"],
         },
       ],
@@ -856,7 +866,7 @@ const getPropertyDetails = async (req, res) => {
     const extraImages = property.extra_images
       ? JSON.parse(property.extra_images)
       : [];
-    const video = property.video ? {url: property.video } : null;
+    const video = property.video ? { url: property.video } : null;
 
     const gallery = {
       extra_images: extraImages,
@@ -902,7 +912,7 @@ const getPropertyDetails = async (req, res) => {
               pro_pic: ownerDetails.pro_pic,
               email: ownerDetails.email,
               phone: ownerDetails.mobile,
-              traveler_reviews:reviewsArray
+              traveler_reviews: reviewsArray,
             }
           : null,
       },
@@ -927,7 +937,6 @@ const getPropertyDetails = async (req, res) => {
     });
   }
 };
-
 
 const getAllHostAddedProperties = async (req, res) => {
   const uid = req.user?.id || null;
@@ -1856,6 +1865,24 @@ const getAllProperties = async (req, res) => {
   }
 };
 
+const getPropertyCategories = async (req, res) => {
+  try {
+    const categories = await TblCategory.findAll({ where: {status:1} });
+    if(!categories){
+      res.status(400).json({message:"Categories not found"})
+    }
+    res.status(201).json({message:"Categories fetched Successfully", categories})
+  } catch (error) {
+    console.error("Error in getPropertyCategories:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   addProperty,
   editProperty,
@@ -1870,4 +1897,5 @@ module.exports = {
   deleteUserProperty,
   nearByProperties,
   getAllProperties,
+  getPropertyCategories
 };

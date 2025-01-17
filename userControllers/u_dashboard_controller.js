@@ -123,7 +123,6 @@ const TotalEarningsByMonth = async (req, res) => {
 
     const userPropertyIds = userProperties.map((property) => property.id);
 
-    
     if (userPropertyIds.length === 0) {
       const allMonths = [
         "January",
@@ -154,7 +153,7 @@ const TotalEarningsByMonth = async (req, res) => {
 
     // Build the condition for fetching bookings
     const whereCondition = {
-      prop_id: propertyId ? propertyId : { [Op.in]: userPropertyIds }, 
+      prop_id: propertyId ? propertyId : { [Op.in]: userPropertyIds },
       book_status: "Completed",
     };
 
@@ -171,9 +170,10 @@ const TotalEarningsByMonth = async (req, res) => {
 
     // Map earnings to all months
     const earningsMap = monthlyEarnings.reduce((acc, earning) => {
-      acc[earning.getDataValue("month")] = earning.getDataValue("totalEarnings");
+      acc[earning.getDataValue("month")] =
+        earning.getDataValue("totalEarnings");
       return acc;
-    }, {}); 
+    }, {});
 
     // Define all months
     const allMonths = [
@@ -248,9 +248,18 @@ const listingProperties = async (req, res) => {
     // If no properties found
     if (hostPropertyIds.length === 0) {
       const allMonths = [
-        "January", "February", "March", "April", "May",
-        "June", "July", "August", "September", "October",
-        "November", "December",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
       ];
       const responseData = allMonths.map((month) => ({
         month,
@@ -289,15 +298,25 @@ const listingProperties = async (req, res) => {
 
     // Map bookings to a dictionary
     const bookingsMap = monthlyBookings.reduce((acc, booking) => {
-      acc[booking.getDataValue("month")] = booking.getDataValue("no_of_bookings");
+      acc[booking.getDataValue("month")] =
+        booking.getDataValue("no_of_bookings");
       return acc;
     }, {});
 
     // Define all months
     const allMonths = [
-      "January", "February", "March", "April", "May",
-      "June", "July", "August", "September", "October",
-      "November", "December",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
 
     // Format final response
@@ -330,5 +349,5 @@ const listingProperties = async (req, res) => {
 module.exports = {
   dashboardData,
   TotalEarningsByMonth,
-  listingProperties
+  listingProperties,
 };
