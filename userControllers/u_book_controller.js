@@ -7,6 +7,7 @@ const { Op, or, where } = require("sequelize");
 const PaymentList = require("../models/PaymentList");
 const TblNotification = require("../models/TblNotification");
 const uploadToS3 = require("../config/fileUpload.aws");
+const HostTravelerReview = require("../models/HostTravelerReview");
 
 const sendResponse = (res, code, result, msg, additionalData = {}) => {
   res.status(code).json({
@@ -289,7 +290,12 @@ const getBookingDetails = async (req, res) => {
 
   try {
     const booking = await TblBook.findOne({
-      where: { id: book_id, uid: uid },
+      where: { id: book_id },
+      include:[{
+        model:Property,
+        as:"properties",
+        attributes:["add_user_id"]
+      }]
     });
 
     if (!booking) {
@@ -371,6 +377,24 @@ const getBookingDetails = async (req, res) => {
       fp.mobile = "";
       fp.ccode = "";
       fp.country = "";
+    }
+
+    if(booking.properties.add_user_id === uid){
+      const travelerReviews = await HostTravelerReview.findAll({
+        where: { traveler_id: booking.uid },
+        attributes: ["rating", "review", "createdAt"],
+        include: [
+          {
+            model: User,
+            as: "host",
+            attributes: ["name"], // Include host details
+          },
+        ],
+      });
+
+      fp.traveler_reviews = travelerReviews;
+    } else {
+      fp.traveler_reviews = []; // Do not show reviews to the traveler
     }
 
     return sendResponse(res, 200, "true", "Book Property Details Found!", {

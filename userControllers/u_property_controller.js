@@ -451,7 +451,7 @@ const editProperty = async (req, res) => {
       sqrft: sqft,
       rate,
       rules,
-      standard_rules:standardRules,
+      standard_rules:JSON.stringify(standardRules),
       ptype,
       latitude,
       longtitude,
