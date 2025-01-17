@@ -45,8 +45,8 @@ const Page = require("./models/Page");
 const RoleChangeRequest = require("./models/RoleChangeRequest");
 const foreignKeysetup = require("./models/index");
 const PriceCalendar = require("./models/PriceCalendar");
-const TravelerHostReview = require('./models/TravelerHostReview');
-const HostTravelerReview = require('./models/HostTravelerReview');
+const TravelerHostReview = require("./models/TravelerHostReview");
+const HostTravelerReview = require("./models/HostTravelerReview");
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 // Routes
@@ -133,9 +133,9 @@ app.use("/u_dashboard", require("./userRoutes/user_dashboard_route"));
 const userPropertyRoutes = require("./userRoutes/u_property_routes");
 const userBookings = require("./userRoutes/u_book_routes");
 const checkInAvailabilityRoutes = require("./userRoutes/user_check_availablity_routes");
-const priceCalendarRoutes = require('./userRoutes/u_price_calendar_routes');
-const traverlerReviewRoutes = require('./userRoutes/traveler_host_review_route');
-const hostTravelerReviewRoutes = require('./userRoutes/host_traveler_review_routes');
+const priceCalendarRoutes = require("./userRoutes/u_price_calendar_routes");
+const traverlerReviewRoutes = require("./userRoutes/traveler_host_review_route");
+const hostTravelerReviewRoutes = require("./userRoutes/host_traveler_review_routes");
 
 app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/u_paymentgateway", require("./userRoutes/user_paymentgateway_route"));
@@ -161,6 +161,13 @@ app.get("/", (req, res) => {
   res.send("Server is Running");
 });
 
+const server = app.listen(PORT, () => {
+  console.log(`Server is Running on PORT http://localhost:${PORT}`);
+  console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
+});
+
+server.timeout = 1200000;
+
 sequelize
   .sync()
   .then(() => {
@@ -169,8 +176,3 @@ sequelize
   .catch((err) => {
     console.error("Unable to create the database:", err);
   });
-
-app.listen(PORT, () => {
-  console.log(`Server is Running on PORT http://localhost:${PORT}`);
-  console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
-});

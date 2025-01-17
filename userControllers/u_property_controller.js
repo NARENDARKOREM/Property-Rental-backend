@@ -912,7 +912,7 @@ const getPropertyDetails = async (req, res) => {
               pro_pic: ownerDetails.pro_pic,
               email: ownerDetails.email,
               phone: ownerDetails.mobile,
-              traveler_reviews: reviewsArray,
+              host_reviews: reviewsArray,
             }
           : null,
       },
