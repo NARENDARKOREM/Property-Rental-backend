@@ -700,7 +700,7 @@ const getPropertyDetails = async (req, res) => {
     if (property.add_user_id !== 0) {
       ownerDetails = await User.findOne({
         where: { id: property.add_user_id },
-        attributes: ["id", "pro_pic", "name", "email", "mobile"],
+        attributes: ["id", "pro_pic", "name", "email", "mobile","createdAt"],
       });
     }
 
@@ -719,12 +719,30 @@ const getPropertyDetails = async (req, res) => {
       attributes: ["rating", "review", "createdAt"],
     });
 
+    const travelerReview = await TravelerHostReview.findAll({
+      where: { host_id: property.add_user_id, property_id: pro_id },
+      attributes: ["rating", "review", "createdAt"],
+    });
+
+    const totalRatings = travelerReview.length;
+    const avgRating = totalRatings > 0
+      ? (travelerReviews.reduce((sum, review) => sum + review.rating, 0) / totalRatings).toFixed(2)
+      : 0;
+
     const reviewsArray = travelerReviews.map((review) => ({
       traveler_name: review.traveler.name,
       posting_on: review.createdAt,
       rating: review.rating,
       review: review.review,
     }));
+
+    const hostCreationMonths = ownerDetails
+    ? Math.floor(
+        (new Date().getFullYear() - new Date(ownerDetails.createdAt).getFullYear()) * 12 +
+        (new Date().getMonth() - new Date(ownerDetails.createdAt).getMonth())
+      )
+    : null;
+  
 
     const facilities = await TblFacility.findAll({
       where: {
@@ -819,7 +837,10 @@ const getPropertyDetails = async (req, res) => {
               pro_pic: ownerDetails.pro_pic,
               email: ownerDetails.email,
               phone: ownerDetails.mobile,
-              host_reviews: reviewsArray,
+              // host_reviews: reviewsArray,
+              total_reviews: totalRatings,
+              average_ratings:avgRating,
+              since_months:hostCreationMonths
             }
           : null,
       },
