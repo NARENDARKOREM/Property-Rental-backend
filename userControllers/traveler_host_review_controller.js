@@ -91,32 +91,48 @@ const travelerHostReview = async (req, res) => {
 
 const getTravelerHostReviews = async (req, res) => {
   try {
-    const { hostId } = req.query;
+    const { propertyId } = req.query;
 
-    if (!hostId) {
+    if (!propertyId) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
-        ResponseMsg: "Host ID is required!",
+        ResponseMsg: "Property ID is required!",
       });
     }
 
-    // Fetch all reviews for the host
-    const reviews = await TravelerHostReview.findAll({
-      where: { host_id: hostId },
-      attributes: [
-        "rating", // Individual rating
-        "review", // Review text
-        "createdAt", // Posted date
-        "traveler_id", // Traveler's user ID
+    // Fetch property details along with host details
+    const property = await Property.findOne({
+      where: { id: propertyId },
+      attributes: ["id", "title", "city", "add_user_id"], // Property details
+      include: [
+        {
+          model: User,
+          as: "Owner",
+          attributes: ["id", "name", "email", "pro_pic", "mobile"], // Host details
+        },
       ],
+    });
+
+    if (!property) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "Property not found!",
+      });
+    }
+
+    // Fetch all reviews for the property
+    const reviews = await TravelerHostReview.findAll({
+      where: { property_id: propertyId },
+      attributes: ["rating", "review", "createdAt", "traveler_id"],
     });
 
     if (reviews.length === 0) {
       return res.status(404).json({
         ResponseCode: "404",
         Result: "false",
-        ResponseMsg: "No reviews found for the specified host.",
+        ResponseMsg: "No reviews found for the specified property.",
       });
     }
 
@@ -136,7 +152,7 @@ const getTravelerHostReviews = async (req, res) => {
     const totalReviews = reviews.filter((review) => review.review).length; // Count reviews with text
     const averageRating = totalRatings > 0 ? totalRating / totalRatings : 0;
 
-    // Fetch detailed review data
+    // Fetch detailed review data with traveler details
     const detailedReviews = await Promise.all(
       reviews.map(async (review) => {
         const traveler = await User.findOne({
@@ -160,7 +176,19 @@ const getTravelerHostReviews = async (req, res) => {
       Result: "true",
       ResponseMsg: "Traveler host reviews fetched successfully!",
       data: {
-        // aggregate: {
+        host: {
+          id: property.Owner.id,
+          name: property.Owner.name,
+          email: property.Owner.email,
+          pro_pic: property.Owner.pro_pic,
+          phone: property.Owner.mobile,
+        },
+        property: {
+          id: property.id,
+          title: property.title,
+          location: property.location,
+        },
+        aggregate: {
           average_rating: averageRating.toFixed(2),
           ratings_count: {
             5: ratingsCount[4],
@@ -171,7 +199,7 @@ const getTravelerHostReviews = async (req, res) => {
           },
           total_ratings: totalRatings,
           total_reviews: totalReviews,
-        // },
+        },
         reviews: detailedReviews,
       },
     });
