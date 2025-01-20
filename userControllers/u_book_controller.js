@@ -62,7 +62,7 @@ const createBooking = async (req, res) => {
     !book_for ||
     !prop_price ||
     !id_proof ||
-    !id_proof_img ||
+    // !id_proof_img ||
     !transaction_id
   ) {
     return res
