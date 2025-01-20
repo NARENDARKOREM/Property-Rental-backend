@@ -75,9 +75,9 @@ const createBooking = async (req, res) => {
       !lname ||
       !gender ||
       !email ||
-      !mobile ||
-      !ccode ||
-      !country
+      !mobile 
+      // !ccode ||
+      // !country
     ) {
       return res.status(400).json({
         success: false,
@@ -184,8 +184,8 @@ const createBooking = async (req, res) => {
         gender,
         email,
         mobile,
-        ccode,
-        country,
+        // ccode,
+        // country,
         book_id: booking.id,
       });
     }
