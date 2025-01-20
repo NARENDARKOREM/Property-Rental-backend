@@ -89,4 +89,100 @@ const travelerHostReview = async (req, res) => {
   }
 };
 
-module.exports = { travelerHostReview };
+const getTravelerHostReviews = async (req, res) => {
+  try {
+    const { hostId } = req.query;
+
+    if (!hostId) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Host ID is required!",
+      });
+    }
+
+    // Fetch all reviews for the host
+    const reviews = await TravelerHostReview.findAll({
+      where: { host_id: hostId },
+      attributes: [
+        "rating", // Individual rating
+        "review", // Review text
+        "createdAt", // Posted date
+        "traveler_id", // Traveler's user ID
+      ],
+    });
+
+    if (reviews.length === 0) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "No reviews found for the specified host.",
+      });
+    }
+
+    // Initialize aggregate data
+    const ratingsCount = [0, 0, 0, 0, 0]; // To store counts for 1, 2, 3, 4, 5 stars
+    let totalRating = 0;
+
+    reviews.forEach((review) => {
+      const rate = Math.round(review.rating);
+      if (rate >= 1 && rate <= 5) {
+        ratingsCount[rate - 1] += 1; // Increment the respective star count
+        totalRating += review.rating; // Add to the total rating
+      }
+    });
+
+    const totalRatings = reviews.length;
+    const totalReviews = reviews.filter((review) => review.review).length; // Count reviews with text
+    const averageRating = totalRatings > 0 ? totalRating / totalRatings : 0;
+
+    // Fetch detailed review data
+    const detailedReviews = await Promise.all(
+      reviews.map(async (review) => {
+        const traveler = await User.findOne({
+          where: { id: review.traveler_id },
+          attributes: ["name", "pro_pic"],
+        });
+
+        return {
+          name: traveler ? traveler.name : "Unknown Traveler",
+          pro_pic: traveler ? traveler.pro_pic : null,
+          posted_date: review.created_at,
+          rate: review.rating,
+          review: review.review,
+        };
+      })
+    );
+
+    // Prepare the response
+    res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Traveler host reviews fetched successfully!",
+      data: {
+        // aggregate: {
+          average_rating: averageRating.toFixed(2),
+          ratings_count: {
+            5: ratingsCount[4],
+            4: ratingsCount[3],
+            3: ratingsCount[2],
+            2: ratingsCount[1],
+            1: ratingsCount[0],
+          },
+          total_ratings: totalRatings,
+          total_reviews: totalReviews,
+        // },
+        reviews: detailedReviews,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching traveler host reviews:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error!",
+    });
+  }
+};
+
+module.exports = { travelerHostReview, getTravelerHostReviews };

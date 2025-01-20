@@ -129,7 +129,7 @@ const createPropertyReview = async (req, res) => {
     const booking = await TblBook.findOne({
       where: {
         prop_id,
-        uid:uid,
+        uid: uid,
         book_status: {
           [Op.or]: ["Confirmed", "Completed"], // Only allow reviews for confirmed or completed bookings
         },
@@ -206,19 +206,19 @@ const fetchReviews = async (req, res) => {
           attributes: ["name", "email"],
         },
         {
-          model: Property, 
+          model: Property,
           as: "properties",
           attributes: ["id", "add_user_id"],
-          include:[
+          include: [
             {
-              model:User,
-              as:"Owner",
-              attributes:["name","email","mobile"]
-            }
-          ]
+              model: User,
+              as: "Owner",
+              attributes: ["name", "email", "mobile"],
+            },
+          ],
         },
       ],
-      order: [["createdAt", "DESC"]], 
+      order: [["createdAt", "DESC"]],
     });
 
     if (!reviews || reviews.length === 0) {
@@ -240,11 +240,11 @@ const fetchReviews = async (req, res) => {
         review: review.rate_text,
         createdAt: review.createdAt,
         propertyId: review.properties.id,
-        ownerDetails:{
-          name:review.properties.Owner.name,
-          email:review.properties.Owner.email,
-          mobile:review.properties.Owner.mobile,
-        }
+        ownerDetails: {
+          name: review.properties.Owner.name,
+          email: review.properties.Owner.email,
+          mobile: review.properties.Owner.mobile,
+        },
       })),
     });
   } catch (error) {
@@ -331,11 +331,11 @@ const getPropertyReviewsAndRatings = async (req, res) => {
         aggregate: {
           average_rating: averageRating.toFixed(2),
           ratings_count: {
-            "5": ratingsCount[4],
-            "4": ratingsCount[3],
-            "3": ratingsCount[2],
-            "2": ratingsCount[1],
-            "1": ratingsCount[0],
+            5: ratingsCount[4],
+            4: ratingsCount[3],
+            3: ratingsCount[2],
+            2: ratingsCount[1],
+            1: ratingsCount[0],
           },
           total_ratings: totalRatings,
           total_reviews: totalReviews,
@@ -360,7 +360,9 @@ const createHostReviewAndRating = async (req, res) => {
 
     // Validate host ID
     if (!hostId) {
-      return res.status(401).json({ ResponseCode: "401", ResponseMsg: "Host not found!" });
+      return res
+        .status(401)
+        .json({ ResponseCode: "401", ResponseMsg: "Host not found!" });
     }
 
     // Validate traveler and booking IDs
@@ -387,7 +389,8 @@ const createHostReviewAndRating = async (req, res) => {
     if (!["Confirmed", "Completed", "Booked"].includes(booking.book_status)) {
       return res.status(400).json({
         ResponseCode: "400",
-        ResponseMsg: "Review can only be added for bookings with status 'Confirmed', 'Completed', or 'Booked'.",
+        ResponseMsg:
+          "Review can only be added for bookings with status 'Confirmed', 'Completed', or 'Booked'.",
       });
     }
 
@@ -423,7 +426,9 @@ const createTravelerReviewAndRating = async (req, res) => {
 
     // Validate traveler ID
     if (!travelerId) {
-      return res.status(401).json({ ResponseCode: "401", ResponseMsg: "Traveler not found!" });
+      return res
+        .status(401)
+        .json({ ResponseCode: "401", ResponseMsg: "Traveler not found!" });
     }
 
     // Validate host and booking IDs
@@ -450,7 +455,8 @@ const createTravelerReviewAndRating = async (req, res) => {
     if (!["Confirmed", "Completed", "Booked"].includes(booking.book_status)) {
       return res.status(400).json({
         ResponseCode: "400",
-        ResponseMsg: "Review can only be added for bookings with status 'Confirmed', 'Completed', or 'Booked'.",
+        ResponseMsg:
+          "Review can only be added for bookings with status 'Confirmed', 'Completed', or 'Booked'.",
       });
     }
 
@@ -479,11 +485,10 @@ const createTravelerReviewAndRating = async (req, res) => {
   }
 };
 
-
 module.exports = {
   getReviews,
   updateRating,
   createPropertyReview,
   fetchReviews,
-  getPropertyReviewsAndRatings
+  getPropertyReviewsAndRatings,
 };
