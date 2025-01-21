@@ -1,6 +1,7 @@
-const { Op, fn, col, literal } = require("sequelize");
+const { Sequelize, Op, fn, col, literal} = require("sequelize");
 const { Property, TblExtra, User } = require("../models");
 const TblBook = require("../models/TblBook");
+const sequelize = require("../db");
 
 const dashboardData = async (req, res) => {
   try {
@@ -35,36 +36,66 @@ const dashboardData = async (req, res) => {
       add_user_id: uid,
       book_status: "Completed",
       p_method_id: { [Op.ne]: 2 },
-      prop_id: propertyId ? propertyId : { [Op.in]: userPropertyIds },
+      prop_id: propertyId || { [Op.in]: userPropertyIds },
     };
 
     const [
       totalPropertyCount,
-      totalExtraImageCount,
-      totalBookingCount,
-      totalReviewCount,
+      totalLocationCount,
+      totalNightBookingCount,
+      nightBookingCounts,
+      totalReviewsArray,
       totalEarnings,
-      userData,
+      propertyDetails,
       monthlyEarnings,
     ] = await Promise.all([
       Property.count({ where: { add_user_id: uid } }),
-      TblExtra.count({ where: { add_user_id: uid } }),
-      TblBook.count({
-        where: { add_user_id: uid, prop_id: { [Op.in]: userPropertyIds } },
+      Property.count({
+        where: { add_user_id: uid },
+        distinct: true,
+        col: "city",
       }),
       TblBook.count({
         where: {
           add_user_id: uid,
-          is_rate: 1,
           prop_id: { [Op.in]: userPropertyIds },
+          book_status: "Completed",
         },
       }),
-      TblBook.sum("total", { where: whereCondition }),
-      User.findOne({ where: { id: uid } }),
       TblBook.findAll({
         attributes: [
-          [fn("SUM", col("total")), "totalEarnings"],
-          [fn("DATE_FORMAT", col("createdAt"), "%Y-%m"), "month"],
+          [
+            sequelize.fn("DATEDIFF", sequelize.col("check_out"), sequelize.col("check_in")),
+            "night_count",
+          ],
+        ],
+        where: {
+          add_user_id: uid,
+          prop_id: { [Op.in]: userPropertyIds },
+          book_status: "Completed",
+        },
+      }),
+      TblBook.findAll({
+        where: {
+          add_user_id: uid,
+          prop_id: { [Op.in]: userPropertyIds },
+          book_status: "Completed",
+          total_rate: { [Op.ne]: null },
+        },
+        attributes: ["total_rate"],
+      }),
+      TblBook.sum("total", { where: whereCondition }),
+      Property.findAll({
+        where: { add_user_id: uid },
+        attributes: ["id", "title"],
+      }),
+      TblBook.findAll({
+        attributes: [
+          [sequelize.fn("SUM", sequelize.col("total")), "totalEarnings"],
+          [
+            sequelize.fn("DATE_FORMAT", sequelize.col("createdAt"), "%Y-%m"),
+            "month",
+          ],
         ],
         where: whereCondition,
         group: ["month"],
@@ -72,19 +103,50 @@ const dashboardData = async (req, res) => {
       }),
     ]);
 
-    const totalPayout = 0;
-    const finalEarnings = (totalEarnings || 0) - totalPayout;
+    // Helper function to calculate the mode
+    const calculateMode = (array) => {
+      const frequencyMap = {};
+      let maxCount = 0;
+      let mode = null;
 
+      array.forEach((item) => {
+        frequencyMap[item] = (frequencyMap[item] || 0) + 1;
+        if (frequencyMap[item] > maxCount) {
+          maxCount = frequencyMap[item];
+          mode = item;
+        }
+      });
+
+      return mode;
+    };
+
+    // Helper function to calculate the average
+    const calculateAverage = (array) => {
+      if (array.length === 0) return 0; // Avoid division by zero
+      const total = array.reduce((sum, value) => sum + parseFloat(value), 0);
+      return total / array.length;
+    };
+
+    // Extracting data and calculating statistics
+    const nightCounts = nightBookingCounts.map((entry) => parseInt(entry.getDataValue("night_count"), 10));
+    const mostFrequentNight = calculateMode(nightCounts);
+    const reviewRatingsArray = totalReviewsArray.map((entry) => parseFloat(entry.total_rate));
+    const averageReviewRating = calculateAverage(reviewRatingsArray);
+    const totalReviewCount = totalReviewsArray.length;
+
+    // Constructing the report data
     const reportData = [
-      { title: "My Property", report_data: totalPropertyCount || 0 },
-      { title: "My Extra Images", report_data: totalExtraImageCount || 0 },
-      { title: "My Booking", report_data: totalBookingCount || 0 },
-      { title: "My Earning", report_data: finalEarnings },
-      { title: "Total Review", report_data: totalReviewCount || 0 },
-      { title: "userdetails", report_data: userData || {} },
+      { title: "No of Listing", report_data: totalPropertyCount || 0 },
+      { title: "No of Locations (Cities)", report_data: totalLocationCount || 0 },
+      { title: "Night Bookings", report_data: totalNightBookingCount || 0 },
+      { title: "Most Frequent Night Stay (Days)", report_data: mostFrequentNight || 0 },
+      { title: "Total Reviews", report_data: totalReviewCount || 0 },
+      { title: "Average Review Rating", report_data: averageReviewRating || 0 },
+      { title: "Property Details", report_data: propertyDetails || [] },
       { title: "Monthly Earnings", report_data: monthlyEarnings || [] },
     ];
 
+    // Sending the response with the report data
     res.json({
       ResponseCode: "200",
       Result: "true",
