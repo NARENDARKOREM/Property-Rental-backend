@@ -22,7 +22,7 @@ router.put("/cancel", adminMiddleware.isAdmin, bookController.cancelBooking);
 // Route to get status wise bookings
 router.get(
   "/status/:status",
-  // authMiddleware.isAuthenticated,
+  authMiddleware.isAuthenticated,
   bookController.getStatusWiseBookings
 );
 

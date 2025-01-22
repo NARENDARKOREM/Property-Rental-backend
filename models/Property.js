@@ -19,6 +19,14 @@ const Property = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    video:{
+      type:DataTypes.TEXT,
+      allowNull:true,
+    },
+    extra_images:{
+      type:DataTypes.TEXT,
+      allowNull:true,
+    },
     price: {
       type: DataTypes.FLOAT,
       allowNull: false,
@@ -53,7 +61,7 @@ const Property = sequelize.define(
     },
     rate: {
       type: DataTypes.FLOAT,
-      allowNull: false,
+      allowNull: true,
     },
     ptype: {
       type: DataTypes.INTEGER,
@@ -121,6 +129,10 @@ const Property = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
+    standard_rules:{
+      type:DataTypes.JSON,
+      allowNull:true
+    }
   },
   {
     tableName: "tbl_property",

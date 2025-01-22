@@ -13,8 +13,12 @@ router.put(
 router.post(
   "/create",
   authMiddleware.isAuthenticated,
-  reviewController.createReview
+  reviewController.createPropertyReview
 );
 router.get("/fetch-reviews",authMiddleware.isAuthenticated, reviewController.fetchReviews);
+
+
+// Property Ratings
+router.get("/property-reviews",reviewController.getPropertyReviewsAndRatings)
 
 module.exports = router;
