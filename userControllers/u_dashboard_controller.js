@@ -805,6 +805,7 @@ const averageNightBookingByTraveler = async (req, res) => {
         [fn("COUNT", "*"), "total_bookings"],
       ],
       where: whereCondition,
+      add_user_id:uid,
       group: ["month"],
       order: [[col("month"), "ASC"]],
     });
