@@ -46,8 +46,7 @@ const dashboardData = async (req, res) => {
       nightBookingCounts,
       totalReviewsArray,
       totalEarnings,
-      propertyDetails,
-      monthlyEarnings,
+      propertyDetails
     ] = await Promise.all([
       Property.count({ where: { add_user_id: uid } }),
       Property.count({
@@ -72,7 +71,7 @@ const dashboardData = async (req, res) => {
         where: {
           add_user_id: uid,
           prop_id: { [Op.in]: userPropertyIds },
-          book_status: "Completed",
+          book_status: { [Op.in]: ["Completed", "Confirmed"] },
         },
       }),
       TblBook.findAll({
@@ -88,19 +87,7 @@ const dashboardData = async (req, res) => {
       Property.findAll({
         where: { add_user_id: uid },
         attributes: ["id", "title"],
-      }),
-      TblBook.findAll({
-        attributes: [
-          [sequelize.fn("SUM", sequelize.col("total")), "totalEarnings"],
-          [
-            sequelize.fn("DATE_FORMAT", sequelize.col("createdAt"), "%Y-%m"),
-            "month",
-          ],
-        ],
-        where: whereCondition,
-        group: ["month"],
-        order: [["month", "DESC"]],
-      }),
+      })
     ]);
 
     // Helper function to calculate the mode
@@ -136,14 +123,14 @@ const dashboardData = async (req, res) => {
 
     // Constructing the report data
     const reportData = [
-      { title: "No of Listing", report_data: totalPropertyCount || 0 },
-      { title: "No of Locations (Cities)", report_data: totalLocationCount || 0 },
-      { title: "Night Bookings", report_data: totalNightBookingCount || 0 },
-      { title: "Most Frequent Night Stay (Days)", report_data: mostFrequentNight || 0 },
-      { title: "Total Reviews", report_data: totalReviewCount || 0 },
-      { title: "Average Review Rating", report_data: averageReviewRating || 0 },
-      { title: "Property Details", report_data: propertyDetails || [] },
-      { title: "Monthly Earnings", report_data: monthlyEarnings || [] },
+      { id:1,title: "Total Earnings", report_data: totalEarnings || 0 },
+      { id:2,title: "No of Listing", report_data: totalPropertyCount || 0 },
+      { id:3,title: "No of Locations", report_data: totalLocationCount || 0 },
+      { id:4,title: "Total Nights Bookings", report_data: totalNightBookingCount || 0 },
+      { id:5,title: "Average Nights Bookings", report_data: mostFrequentNight || 0 },
+      { id:6,title: "Average Customer Reviews", report_data: averageReviewRating || 0 },
+      { id:7,title: "Total Reviews", report_data: totalReviewCount || 0 },
+      { title: "Property Details", report_data: propertyDetails || [] }
     ];
 
     // Sending the response with the report data
@@ -162,6 +149,7 @@ const dashboardData = async (req, res) => {
     });
   }
 };
+
 
 const TotalEarningsByMonth = async (req, res) => {
   try {
