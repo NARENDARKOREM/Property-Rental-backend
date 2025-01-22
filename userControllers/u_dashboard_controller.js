@@ -130,7 +130,6 @@ const dashboardData = async (req, res) => {
       { id:5,title: "Average Nights Bookings", report_data: mostFrequentNight || 0 },
       { id:6,title: "Average Customer Reviews", report_data: averageReviewRating || 0 },
       { id:7,title: "Total Reviews", report_data: totalReviewCount || 0 },
-      { title: "Property Details", report_data: propertyDetails || [] }
     ];
 
     // Sending the response with the report data
@@ -139,6 +138,7 @@ const dashboardData = async (req, res) => {
       Result: "true",
       ResponseMsg: "Report List Get Successfully!!!",
       report_data: reportData,
+      property_details:propertyDetails
     });
   } catch (err) {
     console.error("Error fetching report data:", err);
