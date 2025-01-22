@@ -1,4 +1,4 @@
-const { Sequelize, Op, fn, col, literal} = require("sequelize");
+const { Sequelize, Op, fn, col, literal, where } = require("sequelize");
 const { Property, TblExtra, User } = require("../models");
 const TblBook = require("../models/TblBook");
 const sequelize = require("../db");
@@ -6,8 +6,6 @@ const sequelize = require("../db");
 const dashboardData = async (req, res) => {
   try {
     const uid = req.user.id;
-    const propertyId = req.query.propertyId;
-
     if (!uid) {
       return res.status(401).json({
         ResponseCode: "401",
@@ -32,12 +30,12 @@ const dashboardData = async (req, res) => {
       });
     }
 
-    const whereCondition = {
-      add_user_id: uid,
-      book_status: "Completed",
-      p_method_id: { [Op.ne]: 2 },
-      prop_id: propertyId || { [Op.in]: userPropertyIds },
-    };
+    // const whereCondition = {
+    //   add_user_id: uid,
+    //   book_status: "Completed",
+    //   p_method_id: { [Op.ne]: 2 },
+    //   prop_id: propertyId || { [Op.in]: userPropertyIds },
+    // };
 
     const [
       totalPropertyCount,
@@ -46,7 +44,7 @@ const dashboardData = async (req, res) => {
       nightBookingCounts,
       totalReviewsArray,
       totalEarnings,
-      propertyDetails
+      propertyDetails,
     ] = await Promise.all([
       Property.count({ where: { add_user_id: uid } }),
       Property.count({
@@ -64,7 +62,11 @@ const dashboardData = async (req, res) => {
       TblBook.findAll({
         attributes: [
           [
-            sequelize.fn("DATEDIFF", sequelize.col("check_out"), sequelize.col("check_in")),
+            sequelize.fn(
+              "DATEDIFF",
+              sequelize.col("check_out"),
+              sequelize.col("check_in")
+            ),
             "night_count",
           ],
         ],
@@ -83,11 +85,19 @@ const dashboardData = async (req, res) => {
         },
         attributes: ["total_rate"],
       }),
-      TblBook.sum("total", { where: whereCondition }),
+      TblBook.sum("total", {
+        where: {
+          add_user_id: uid,
+          // prop_id: { [Op.in]: userPropertyIds },
+          book_status: { [Op.in]: ["Completed", "Confirmed"] },
+          // p_method_id: { [Op.ne]: 2 },
+        },
+      }),
+      // TblBook.sum("total",{where:{book_status:"Completed",add_user_id:uid}}),
       Property.findAll({
         where: { add_user_id: uid },
         attributes: ["id", "title"],
-      })
+      }),
     ]);
 
     // Helper function to calculate the mode
@@ -115,21 +125,37 @@ const dashboardData = async (req, res) => {
     };
 
     // Extracting data and calculating statistics
-    const nightCounts = nightBookingCounts.map((entry) => parseInt(entry.getDataValue("night_count"), 10));
+    const nightCounts = nightBookingCounts.map((entry) =>
+      parseInt(entry.getDataValue("night_count"), 10)
+    );
     const mostFrequentNight = calculateMode(nightCounts);
-    const reviewRatingsArray = totalReviewsArray.map((entry) => parseFloat(entry.total_rate));
+    const reviewRatingsArray = totalReviewsArray.map((entry) =>
+      parseFloat(entry.total_rate)
+    );
     const averageReviewRating = calculateAverage(reviewRatingsArray);
     const totalReviewCount = totalReviewsArray.length;
 
     // Constructing the report data
     const reportData = [
-      { id:1,title: "Total Earnings", report_data: totalEarnings || 0 },
-      { id:2,title: "No of Listing", report_data: totalPropertyCount || 0 },
-      { id:3,title: "No of Locations", report_data: totalLocationCount || 0 },
-      { id:4,title: "Total Nights Bookings", report_data: totalNightBookingCount || 0 },
-      { id:5,title: "Average Nights Bookings", report_data: mostFrequentNight || 0 },
-      { id:6,title: "Average Customer Reviews", report_data: averageReviewRating || 0 },
-      { id:7,title: "Total Reviews", report_data: totalReviewCount || 0 },
+      { id: 1, title: "Total Earnings", report_data: totalEarnings || 0 },
+      { id: 2, title: "No of Listing", report_data: totalPropertyCount || 0 },
+      { id: 3, title: "No of Locations", report_data: totalLocationCount || 0 },
+      {
+        id: 4,
+        title: "Total Nights Bookings",
+        report_data: totalNightBookingCount || 0,
+      },
+      {
+        id: 5,
+        title: "Average Nights Bookings",
+        report_data: mostFrequentNight || 0,
+      },
+      {
+        id: 6,
+        title: "Average Customer Reviews",
+        report_data: averageReviewRating || 0,
+      },
+      { id: 7, title: "Total Reviews", report_data: totalReviewCount || 0 },
     ];
 
     // Sending the response with the report data
@@ -138,7 +164,7 @@ const dashboardData = async (req, res) => {
       Result: "true",
       ResponseMsg: "Report List Get Successfully!!!",
       report_data: reportData,
-      property_details:propertyDetails
+      property_details: propertyDetails,
     });
   } catch (err) {
     console.error("Error fetching report data:", err);
@@ -149,7 +175,6 @@ const dashboardData = async (req, res) => {
     });
   }
 };
-
 
 const TotalEarningsByMonth = async (req, res) => {
   try {
@@ -205,6 +230,7 @@ const TotalEarningsByMonth = async (req, res) => {
     const whereCondition = {
       prop_id: propertyId ? propertyId : { [Op.in]: userPropertyIds },
       book_status: "Completed",
+      add_user_id:uid
     };
 
     // Fetch monthly earnings
@@ -214,6 +240,7 @@ const TotalEarningsByMonth = async (req, res) => {
         [fn("DATE_FORMAT", col("createdAt"), "%M"), "month"], // Get the month name
       ],
       where: whereCondition,
+      add_user_id:uid,
       group: ["month"],
       order: [[fn("MONTH", col("createdAt")), "ASC"]],
     });
@@ -463,7 +490,6 @@ const listByLocations = async (req, res) => {
   }
 };
 
-
 const totalReviewCount = async (req, res) => {
   try {
     const uid = req.user.id; // Get user ID from request
@@ -491,8 +517,12 @@ const totalReviewCount = async (req, res) => {
 
     if (month) {
       const [year, monthNum] = month.split("-");
-      const nextMonth = parseInt(monthNum) === 12 ? '01' : (parseInt(monthNum) + 1).toString().padStart(2, '0');
-      const nextYear = parseInt(monthNum) === 12 ? (parseInt(year) + 1).toString() : year;
+      const nextMonth =
+        parseInt(monthNum) === 12
+          ? "01"
+          : (parseInt(monthNum) + 1).toString().padStart(2, "0");
+      const nextYear =
+        parseInt(monthNum) === 12 ? (parseInt(year) + 1).toString() : year;
 
       reviewWhereCondition.createdAt = {
         [Op.gte]: new Date(`${year}-${monthNum}-01`),
@@ -500,7 +530,9 @@ const totalReviewCount = async (req, res) => {
       };
 
       // Log the date range for debugging
-      console.log(`Filtering reviews from ${year}-${monthNum}-01 to ${nextYear}-${nextMonth}-01`);
+      console.log(
+        `Filtering reviews from ${year}-${monthNum}-01 to ${nextYear}-${nextMonth}-01`
+      );
     }
 
     const hostProperties = await Property.findAll({
@@ -518,7 +550,10 @@ const totalReviewCount = async (req, res) => {
     }
 
     const reviewCounts = await TblBook.findAll({
-      attributes: ["prop_id", [sequelize.fn("COUNT", sequelize.col("id")), "total_reviews"]],
+      attributes: [
+        "prop_id",
+        [sequelize.fn("COUNT", sequelize.col("id")), "total_reviews"],
+      ],
       where: reviewWhereCondition,
       group: ["prop_id"],
     });
@@ -548,8 +583,6 @@ const totalReviewCount = async (req, res) => {
     });
   }
 };
-
-
 
 const averageCustomerReviews = async (req, res) => {
   try {
@@ -805,7 +838,7 @@ const averageNightBookingByTraveler = async (req, res) => {
         [fn("COUNT", "*"), "total_bookings"],
       ],
       where: whereCondition,
-      add_user_id:uid,
+      add_user_id: uid,
       group: ["month"],
       order: [[col("month"), "ASC"]],
     });
@@ -840,7 +873,10 @@ const averageNightBookingByTraveler = async (req, res) => {
       const monthIndex = booking.getDataValue("month") - 1; // Month is 1-based, adjust for 0-based index
       const totalNights = booking.getDataValue("total_nights");
       const totalBookings = booking.getDataValue("total_bookings");
-      const averageNights = totalBookings > 0 ? parseFloat((totalNights / totalBookings).toFixed(2)) : 0;
+      const averageNights =
+        totalBookings > 0
+          ? parseFloat((totalNights / totalBookings).toFixed(2))
+          : 0;
 
       // Update the corresponding month with average nights
       monthsData[monthIndex].avg_no_of_nights = averageNights;
@@ -861,8 +897,6 @@ const averageNightBookingByTraveler = async (req, res) => {
     });
   }
 };
-
-
 
 module.exports = {
   dashboardData,
