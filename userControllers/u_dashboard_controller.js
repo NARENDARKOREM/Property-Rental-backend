@@ -463,6 +463,94 @@ const listByLocations = async (req, res) => {
   }
 };
 
+
+const totalReviewCount = async (req, res) => {
+  try {
+    const uid = req.user.id; // Get user ID from request
+
+    if (!uid) {
+      return res.status(401).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "User Not Found!",
+      });
+    }
+
+    const hostExists = await Property.findOne({ where: { add_user_id: uid } });
+
+    if (!hostExists) {
+      return res.status(403).json({
+        ResponseCode: "403",
+        Result: "false",
+        ResponseMsg: "Access Denied! You are not authorized to view this data.",
+      });
+    }
+
+    const { month } = req.query;
+    let reviewWhereCondition = { add_user_id: uid, total_rate: { [Op.gt]: 0 } };
+
+    if (month) {
+      const [year, monthNum] = month.split("-");
+      const nextMonth = parseInt(monthNum) === 12 ? '01' : (parseInt(monthNum) + 1).toString().padStart(2, '0');
+      const nextYear = parseInt(monthNum) === 12 ? (parseInt(year) + 1).toString() : year;
+
+      reviewWhereCondition.createdAt = {
+        [Op.gte]: new Date(`${year}-${monthNum}-01`),
+        [Op.lt]: new Date(`${nextYear}-${nextMonth}-01`),
+      };
+
+      // Log the date range for debugging
+      console.log(`Filtering reviews from ${year}-${monthNum}-01 to ${nextYear}-${nextMonth}-01`);
+    }
+
+    const hostProperties = await Property.findAll({
+      where: { add_user_id: uid },
+      attributes: ["id", "title"],
+    });
+
+    if (hostProperties.length === 0) {
+      return res.json({
+        ResponseCode: "200",
+        Result: "true",
+        ResponseMsg: "No properties found for the user.",
+        report_data: [],
+      });
+    }
+
+    const reviewCounts = await TblBook.findAll({
+      attributes: ["prop_id", [sequelize.fn("COUNT", sequelize.col("id")), "total_reviews"]],
+      where: reviewWhereCondition,
+      group: ["prop_id"],
+    });
+
+    const reviewMap = reviewCounts.reduce((acc, review) => {
+      acc[review.prop_id] = review.getDataValue("total_reviews");
+      return acc;
+    }, {});
+
+    const formattedReviewData = hostProperties.map((property) => ({
+      property_name: property.title,
+      total_reviews: reviewMap[property.id] || 0,
+    }));
+
+    res.json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Total reviews fetched successfully!",
+      report_data: formattedReviewData,
+    });
+  } catch (error) {
+    console.error("Error fetching total review count:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+    });
+  }
+};
+
+
+
 const averageCustomerReviews = async (req, res) => {
   try {
     const uid = req.user.id; // Get user ID from request
@@ -543,93 +631,6 @@ const averageCustomerReviews = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching average reviews:", error);
-    res.status(500).json({
-      ResponseCode: "500",
-      Result: "false",
-      ResponseMsg: "Internal Server Error",
-    });
-  }
-};
-
-const totalReviewCount = async (req, res) => {
-  try {
-    const uid = req.user.id; // Get user ID from request
-
-    // Validate user ID
-    if (!uid) {
-      return res.status(401).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "User Not Found!",
-      });
-    }
-
-    // Check if the user is a host
-    const hostExists = await Property.findOne({ where: { add_user_id: uid } });
-
-    if (!hostExists) {
-      return res.status(403).json({
-        ResponseCode: "403",
-        Result: "false",
-        ResponseMsg: "Access Denied! You are not authorized to view this data.",
-      });
-    }
-
-    // Extract month and year from query params (format: YYYY-MM)
-    const { month } = req.query;
-    let reviewWhereCondition = { add_user_id: uid, total_rate: { [Op.gt]: 0 } };
-
-    if (month) {
-      const [year, monthNum] = month.split("-");
-      reviewWhereCondition.createdAt = {
-        [Op.gte]: new Date(`${year}-${monthNum}-01`),
-        [Op.lt]: new Date(`${year}-${parseInt(monthNum) + 1}-01`),
-      };
-    }
-
-    // Fetch all properties for the host
-    const hostProperties = await TblBook.findAll({
-      where: { add_user_id: uid },
-      attributes: ["prop_id", "prop_title"],
-      group: ["prop_id", "prop_title"],
-    });
-
-    if (hostProperties.length === 0) {
-      return res.json({
-        ResponseCode: "200",
-        Result: "true",
-        ResponseMsg: "No properties found for the user.",
-        report_data: [],
-      });
-    }
-
-    // Fetch total review count for each property
-    const reviewCounts = await TblBook.findAll({
-      attributes: ["prop_id", [fn("COUNT", col("id")), "total_reviews"]],
-      where: reviewWhereCondition,
-      group: ["prop_id"],
-    });
-
-    // Create a map of property IDs and their review counts
-    const reviewMap = reviewCounts.reduce((acc, review) => {
-      acc[review.prop_id] = review.getDataValue("total_reviews");
-      return acc;
-    }, {});
-
-    // Format the response data including properties with zero reviews
-    const formattedReviewData = hostProperties.map((property) => ({
-      property_name: property.prop_title,
-      total_reviews: reviewMap[property.prop_id] || 0, // Default to 0 if no reviews
-    }));
-
-    res.json({
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Total reviews fetched successfully!",
-      report_data: formattedReviewData,
-    });
-  } catch (error) {
-    console.error("Error fetching total review count:", error);
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
@@ -796,21 +797,17 @@ const averageNightBookingByTraveler = async (req, res) => {
       whereCondition.prop_id = property_id; // Filter for specific property if provided
     }
 
-    // Fetch the host's properties (filtered by property_id if provided)
-    const hostProperties = await TblBook.findAll({
-      where: whereCondition, // Apply the filter conditions
-      attributes: ["prop_id", "prop_title"],
-      group: ["prop_id", "prop_title"],
+    // Query to fetch total nights booked, number of bookings, grouped by month
+    const bookedNights = await TblBook.findAll({
+      attributes: [
+        [fn("MONTH", col("check_in")), "month"],
+        [fn("SUM", literal("DATEDIFF(check_out, check_in)")), "total_nights"],
+        [fn("COUNT", "*"), "total_bookings"],
+      ],
+      where: whereCondition,
+      group: ["month"],
+      order: [[col("month"), "ASC"]],
     });
-
-    if (hostProperties.length === 0) {
-      return res.json({
-        ResponseCode: "200",
-        Result: "true",
-        ResponseMsg: "No properties found for the user.",
-        report_data: [],
-      });
-    }
 
     // Helper function to get the month name
     const getMonthName = (monthNumber) => {
@@ -831,47 +828,31 @@ const averageNightBookingByTraveler = async (req, res) => {
       return months[monthNumber - 1]; // Convert month number to name
     };
 
-    // Query to fetch the total nights booked month-wise (same filter applied)
-    const bookedNights = await TblBook.findAll({
-      attributes: [
-        "prop_id",
-        [fn("MONTH", col("check_in")), "month"],
-        [fn("SUM", literal("DATEDIFF(check_out, check_in)")), "total_nights"],
-      ],
-      where: whereCondition, // Apply the filter conditions
-      group: ["prop_id", "month"],
-      order: [[col("month"), "ASC"]],
-    });
+    // Initialize an array with all months (January to December) and default avg_no_of_nights as 0
+    const monthsData = Array.from({ length: 12 }, (_, i) => ({
+      month: getMonthName(i + 1),
+      avg_no_of_nights: 0, // Default to 0
+    }));
 
-    // Create a map of property bookings by month
-    const bookingsMap = bookedNights.reduce((acc, booking) => {
-      const key = `${booking.prop_id}-${booking.getDataValue("month")}`;
-      acc[key] = booking.getDataValue("total_nights");
-      return acc;
-    }, {});
+    // If there are bookings, update the month data
+    bookedNights.forEach((booking) => {
+      const monthIndex = booking.getDataValue("month") - 1; // Month is 1-based, adjust for 0-based index
+      const totalNights = booking.getDataValue("total_nights");
+      const totalBookings = booking.getDataValue("total_bookings");
+      const averageNights = totalBookings > 0 ? parseFloat((totalNights / totalBookings).toFixed(2)) : 0;
 
-    // Prepare the response with months from January to December using month names
-    const formattedData = hostProperties.map((property) => {
-      const monthlyData = Array.from({ length: 12 }, (_, i) => {
-        const totalNights = bookingsMap[`${property.prop_id}-${i + 1}`] || 0; // Default to 0 if no bookings
-        return {
-          month: getMonthName(i + 1),
-          avg_no_of_nights: parseFloat((totalNights / 12).toFixed(2)), // Calculate average for the month
-        };
-      });
-
-      // Return the final formatted data with the month and avg_no_of_nights
-      return monthlyData;
+      // Update the corresponding month with average nights
+      monthsData[monthIndex].avg_no_of_nights = averageNights;
     });
 
     res.json({
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: "Average nights booked fetched successfully!",
-      report_data: formattedData.flat(), // Flatten to get all months in a single array
+      ResponseMsg: "Average nights booked per month fetched successfully!",
+      report_data: monthsData,
     });
   } catch (error) {
-    console.error("Error fetching average nights booked:", error);
+    console.error("Error fetching average nights booked per month:", error);
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
@@ -879,6 +860,8 @@ const averageNightBookingByTraveler = async (req, res) => {
     });
   }
 };
+
+
 
 module.exports = {
   dashboardData,
