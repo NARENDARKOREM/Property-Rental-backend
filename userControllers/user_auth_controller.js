@@ -824,9 +824,6 @@ module.exports = {
   verifyOtp,
   uploadUserImage,
   deleteUserAccount,
-
-  updateOneSignalSubscription
-
+  updateOneSignalSubscription,
   getUserData
-
 };
