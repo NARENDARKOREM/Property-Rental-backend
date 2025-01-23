@@ -59,13 +59,7 @@ const loginAdmin = async (req, res) => {
     if (admin.password !== password) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
-
     const token = generateToken(admin);
-
-    res.cookie("token", token, { httpOnly: true });
-
-    req.session.admin = admin;
-
     res.status(200).json({ message: "Admin signed in successfully", admin, token });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
