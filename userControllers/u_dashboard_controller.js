@@ -699,89 +699,53 @@ const totalNightsBookedByTraveler = async (req, res) => {
     const { property_id } = req.query; // Optional property filter
     const currentYear = new Date().getFullYear();
 
-    // Base where condition to fetch the host's properties
+    // Define the base filter criteria
     let whereCondition = {
       add_user_id: uid,
+      book_status:"Completed",
       check_in: { [Op.gte]: new Date(`${currentYear}-01-01`) },
     };
 
     if (property_id) {
-      whereCondition.prop_id = property_id;
+      whereCondition.prop_id = property_id; // If property_id is provided, filter by it
     }
 
-    // Fetch all properties of the host (filtered by property_id if provided)
-    const hostProperties = await TblBook.findAll({
-      where: whereCondition, // Apply the filter conditions
-      attributes: ["prop_id", "prop_title"],
-      group: ["prop_id", "prop_title"],
-    });
-
-    if (hostProperties.length === 0) {
-      return res.json({
-        ResponseCode: "200",
-        Result: "true",
-        ResponseMsg: "No properties found for the user.",
-        report_data: [],
-      });
-    }
-
-    // Helper function to get the month name
-    const getMonthName = (monthNumber) => {
-      const months = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-      ];
-      return months[monthNumber - 1]; // Convert month number to name
-    };
-
-    // Query to fetch the total nights booked month-wise (same filter applied)
+    // Fetch total nights booked monthly-wise across all properties or a specific property
     const bookedNights = await TblBook.findAll({
       attributes: [
-        "prop_id",
         [fn("MONTH", col("check_in")), "month"],
         [fn("SUM", literal("DATEDIFF(check_out, check_in)")), "total_nights"],
       ],
-      where: whereCondition, // Apply the filter conditions
-      group: ["prop_id", "month"],
+      where: whereCondition,
+      group: [fn("MONTH", col("check_in"))],
       order: [[col("month"), "ASC"]],
     });
 
-    // Create a map of property bookings by month
-    const bookingsMap = bookedNights.reduce((acc, booking) => {
-      const key = `${booking.prop_id}-${booking.getDataValue("month")}`;
-      acc[key] = booking.getDataValue("total_nights");
-      return acc;
-    }, {});
+    // Helper function to get month name
+    const getMonthName = (monthNumber) => {
+      const months = [
+        "January", "February", "March", "April", "May", "June", 
+        "July", "August", "September", "October", "November", "December",
+      ];
+      return months[monthNumber - 1];
+    };
 
-    // Prepare the response with months from January to December using month names
-    const formattedData = hostProperties.map((property) => {
-      const monthlyData = Array.from({ length: 12 }, (_, i) => ({
-        month: getMonthName(i + 1), // Get the month name instead of the number
-        total_nights: bookingsMap[`${property.prop_id}-${i + 1}`] || 0, // Default to 0 if no bookings
-      }));
+    // Format the response data to ensure all months are included
+    const formattedData = Array.from({ length: 12 }, (_, i) => ({
+      month: getMonthName(i + 1),
+      total_nights: 0,
+    }));
 
-      return {
-        property_name: property.prop_title,
-        property_id: property.prop_id,
-        monthly_nights: monthlyData,
-      };
+    bookedNights.forEach((booking) => {
+      const monthIndex = booking.getDataValue("month") - 1;
+      formattedData[monthIndex].total_nights = booking.getDataValue("total_nights");
     });
 
     res.json({
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: "Total nights booked fetched successfully!",
-      report_data: formattedData,
+      ResponseMsg: "Monthly total nights booked fetched successfully!",
+      monthly_nights: formattedData,
     });
   } catch (error) {
     console.error("Error fetching total nights booked:", error);
@@ -823,6 +787,7 @@ const averageNightBookingByTraveler = async (req, res) => {
     // Base where condition to fetch the host's properties
     let whereCondition = {
       add_user_id: uid,
+      book_status:"Completed",
       check_in: { [Op.gte]: new Date(`${currentYear}-01-01`) }, // Filter for current year
     };
 
@@ -838,26 +803,15 @@ const averageNightBookingByTraveler = async (req, res) => {
         [fn("COUNT", "*"), "total_bookings"],
       ],
       where: whereCondition,
-      add_user_id: uid,
-      group: ["month"],
+      group: [fn("MONTH", col("check_in"))], // Group by month for aggregation
       order: [[col("month"), "ASC"]],
     });
 
     // Helper function to get the month name
     const getMonthName = (monthNumber) => {
       const months = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
+        "January", "February", "March", "April", "May", "June", 
+        "July", "August", "September", "October", "November", "December",
       ];
       return months[monthNumber - 1]; // Convert month number to name
     };
@@ -875,7 +829,7 @@ const averageNightBookingByTraveler = async (req, res) => {
       const totalBookings = booking.getDataValue("total_bookings");
       const averageNights =
         totalBookings > 0
-          ? parseFloat((totalNights / totalBookings).toFixed(2))
+          ? parseFloat((totalNights / totalBookings).toFixed(2)) // Average per booking
           : 0;
 
       // Update the corresponding month with average nights
@@ -886,7 +840,7 @@ const averageNightBookingByTraveler = async (req, res) => {
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Average nights booked per month fetched successfully!",
-      report_data: monthsData,
+      monthly_nights: monthsData,
     });
   } catch (error) {
     console.error("Error fetching average nights booked per month:", error);
