@@ -6,12 +6,12 @@ const adminMiddleware = require("../middlewares/adminMiddleware");
 
 router.post(
   "/upsert",
-  // adminMiddleware.isAdmin,
+  adminMiddleware.isAdmin,
   packagesController.upsertPackage
 );
-router.get("/all", packagesController.getAllPackages);
-router.get("/count", packagesController.getPackagesCount);
-router.get("/:id", packagesController.getPackageById);
+router.get("/all",adminMiddleware.isAdmin, packagesController.getAllPackages);
+router.get("/count",adminMiddleware.isAdmin, packagesController.getPackagesCount);
+router.get("/:id",adminMiddleware.isAdmin, packagesController.getPackageById);
 router.delete(
   "/delete/:id",
   adminMiddleware.isAdmin,
