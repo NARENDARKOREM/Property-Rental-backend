@@ -10,6 +10,7 @@ const TblEnquiry = require("../models/TblEnquiry");
 const Setting = require("../models/Setting");
 const TblExtraImage = require("../models/TableExtraImages");
 const uploadToS3 = require("../config/fileUpload.aws");
+const TravelerHostReview = require("../models/TravelerHostReview");
 
 const addProperty = async (req, res) => {
   const {
@@ -37,9 +38,12 @@ const addProperty = async (req, res) => {
     infants,
     pets,
     setting_id,
+    standard_rules,
   } = req.body;
 
+  const files = req.files; // Extract uploaded files
   const add_user_id = req.user.id;
+
   if (!add_user_id) {
     return res.status(401).json({
       ResponseCode: "401",
@@ -48,9 +52,6 @@ const addProperty = async (req, res) => {
     });
   }
 
-  console.log(add_user_id);
-
-  // Validate the necessary fields
   if (
     !is_sell ||
     !country_id ||
@@ -58,6 +59,7 @@ const addProperty = async (req, res) => {
     !title ||
     !listing_date ||
     !rules ||
+    !standard_rules ||
     !address ||
     !description ||
     !city ||
@@ -66,21 +68,22 @@ const addProperty = async (req, res) => {
     !beds ||
     !bathroom ||
     !sqrft ||
-    !rate ||
+    // !rate ||
     !latitude ||
     !mobile ||
-    !price
+    !price ||
+    !files ||
+    !files.main_image
   ) {
     return res.status(401).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: " All Fields Required!",
+      ResponseMsg: "All fields and at least the main image are required!",
     });
   }
 
   try {
-
-    // Check if country_id exists in TblCountry
+    // Validate country
     const country = await TblCountry.findByPk(country_id);
     if (!country) {
       return res.status(404).json({
@@ -90,23 +93,54 @@ const addProperty = async (req, res) => {
       });
     }
 
-    const imageUrl = await uploadToS3(req.file, "id-proof");
-    
+    const standardRules = JSON.parse(standard_rules);
+    const facilityIds = Array.isArray(facility)
+      ? facility
+      : facility.split(",").map((id) => parseInt(id));
+
+    // Separate main image
+    const mainImage = files.main_image[0]; // Single main image file
+
+    // Separate extra images and videos based on MIME type
+    const extraImages = [];
+    const videos = [];
+
+    if (files.extra_files) {
+      files.extra_files.forEach((file) => {
+        if (file.mimetype.startsWith("image/")) {
+          extraImages.push(file);
+        } else if (file.mimetype.startsWith("video/")) {
+          videos.push(file);
+        }
+      });
+    }
+
+    // Upload files to S3
+    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
+    const extraImageUrls = extraImages.length
+      ? await uploadToS3(extraImages, "property-extra-images")
+      : [];
+    const videoUrls = videos.length
+      ? await uploadToS3(videos, "property-videos")
+      : [];
 
     // Create new property
     const newProperty = await Property.create({
       title,
-      image:imageUrl,
+      image: mainImageUrl[0], // Store main image URL
+      extra_images: JSON.stringify(extraImageUrls), // Store extra images as JSON array
+      video: JSON.stringify(videoUrls), // Store video URLs as JSON array
       price,
       status,
       address,
-      facility: JSON.stringify(facility),
+      facility: JSON.stringify(facilityIds),
       description,
       beds,
       bathroom,
       sqrft,
       rate,
       rules,
+      standard_rules: standardRules,
       ptype,
       latitude,
       longtitude,
@@ -122,14 +156,15 @@ const addProperty = async (req, res) => {
       pets,
       setting_id,
     });
+
     res.status(201).json({
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: "Property Add Successfully",
+      ResponseMsg: "Property added successfully!",
       newProperty,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error adding property:", error);
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
@@ -140,6 +175,7 @@ const addProperty = async (req, res) => {
 
 const editProperty = async (req, res) => {
   try {
+    // Destructure fields from req.body
     const {
       status,
       title,
@@ -153,6 +189,7 @@ const editProperty = async (req, res) => {
       sqft,
       rate,
       rules,
+      standard_rules,
       latitude,
       longtitude,
       mobile,
@@ -161,7 +198,6 @@ const editProperty = async (req, res) => {
       prop_id,
       country_id,
       is_sell,
-      
       adults,
       children,
       infants,
@@ -180,7 +216,10 @@ const editProperty = async (req, res) => {
       });
     }
 
+    const files = req.files; // Extract uploaded files
     const user_id = req.user.id;
+
+    const standardRules = JSON.parse(standard_rules);
 
     // Validate required fields
     if (
@@ -202,28 +241,14 @@ const editProperty = async (req, res) => {
       !mobile ||
       !listing_date ||
       !price ||
-      !plimit ||
       !country_id ||
-      is_sell === undefined // Ensure boolean is not `undefined`
+      is_sell === undefined || // Ensure boolean is not `undefined`
+      (!files.main_image && !files.extra_files)
     ) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
         ResponseMsg: "Missing or invalid fields",
-      });
-    }
-
-    // Validate JSON parsing for `facility` and `rules`
-    let parsedFacility;
-    let parsedRules;
-    try {
-      parsedFacility = JSON.parse(facility);
-      parsedRules = JSON.parse(rules);
-    } catch (err) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Invalid JSON format in facility or rules",
       });
     }
 
@@ -249,9 +274,32 @@ const editProperty = async (req, res) => {
       });
     }
 
-    const imageUrl = await uploadToS3(req.file, "id-proof");
+    // Separate main image
+    const mainImage = files.main_image ? files.main_image[0] : null;
 
-    
+    // Separate extra images and videos based on MIME type
+    const extraImages = [];
+    const videos = [];
+    if (files.extra_files) {
+      files.extra_files.forEach((file) => {
+        if (file.mimetype.startsWith("image/")) {
+          extraImages.push(file);
+        } else if (file.mimetype.startsWith("video/")) {
+          videos.push(file);
+        }
+      });
+    }
+
+    // Upload files to S3
+    const mainImageUrl = mainImage
+      ? await uploadToS3([mainImage], "property-main-image")
+      : property.image; // Keep the existing main image if no new one is provided
+    const extraImageUrls = extraImages.length
+      ? await uploadToS3(extraImages, "property-extra-images")
+      : JSON.parse(property.extra_images || "[]");
+    const videoUrls = videos.length
+      ? await uploadToS3(videos, "property-videos")
+      : JSON.parse(property.video || "[]");
 
     // Update the property
     await property.update({
@@ -259,22 +307,25 @@ const editProperty = async (req, res) => {
       country_id,
       status,
       title,
+      image: mainImageUrl[0] || property.image, // Update main image URL
+      extra_images: JSON.stringify(extraImageUrls), // Update extra images
+      video: JSON.stringify(videoUrls), // Update videos
       price,
       address,
-      facility: JSON.stringify(parsedFacility),
+      facility,
       description,
       beds,
       bathroom,
       sqrft: sqft,
       rate,
-      rules: JSON.stringify(parsedRules),
+      rules,
+      standard_rules: standardRules,
       ptype,
       latitude,
       longtitude,
       mobile,
       city: ccount,
       listing_date,
-      image:imageUrl,
       adults,
       children,
       infants,
@@ -307,14 +358,13 @@ const getPropertyList = async (req, res) => {
       return res.status(400).json({
         ResponseCode: "401",
         Result: "false",
-        ResponseMsg: "User ID not provided",
+        ResponseMsg: "User  ID not provided",
       });
     }
 
     console.log("Fetching properties for user ID:", uid);
 
     // Fetch properties
-
     const properties = await Property.findAll({
       where: { add_user_id: uid, status: 1 },
       include: [
@@ -337,17 +387,23 @@ const getPropertyList = async (req, res) => {
 
         const facilityTitles = await TblFacility.findAll({
           where: { id: { [Op.in]: facilityIds } },
-
           attributes: ["title"],
         });
 
         console.log("Facility titles:", facilityTitles);
 
+        // Parse standard_rules from JSON string to object
+        const standardRules = property.standard_rules
+          ? JSON.parse(property.standard_rules)
+          : null;
+        console.log(
+          "standard rulessssssssssssssssssssss: ",
+          JSON.stringify(standardRules)
+        );
         const completedBookings = await TblBook.findAll({
           where: {
             prop_id: property.id,
             book_status: "Completed",
-
             total_rate: { [Op.ne]: 0 },
           },
         });
@@ -377,6 +433,7 @@ const getPropertyList = async (req, res) => {
           sqrft: property.sqrft,
           is_sell: property.is_sell,
           facility_select: facilityTitles.map((f) => f.title),
+          standard_rules: standardRules, // This will now be a JSON object
           rules: property.rules,
           status: property.status,
           latitude: property.latitude,
@@ -388,9 +445,13 @@ const getPropertyList = async (req, res) => {
           address: property.address,
           country_name: property.country?.title || "Unknown",
           setting_id: property.setting_id,
+          extra_images:property.extra_images,
+          video:property.video
         };
       })
     );
+
+    console.log(propertyList, "propertiesssssssssssssssssssssssssssss");
 
     if (propertyList.length === 0) {
       return res.status(200).json({
@@ -533,24 +594,78 @@ const getPropertyDetails = async (req, res) => {
       });
     }
 
+    const standardRules = property.standard_rules
+      ? JSON.parse(property.standard_rules)
+      : null;
+
+    // const today = new Date().toISOString().split("T")[0];
+    // const originalPrice = property.price;
+
+    // // Fetch the price entry for today or the most recent calendar price
+    // const priceEntry = await PriceCalendar.findOne({
+    //   where: {
+    //     prop_id: pro_id,
+    //   },
+    // });
+
+    // const currentPrice = priceEntry ? priceEntry.price : originalPrice;
+
+    // // Fetch upcoming prices from the calendar
+    // const upcomingPrices = await PriceCalendar.findAll({
+    //   where: {
+    //     prop_id: pro_id,
+    //     date: { [Op.gt]: today }, // Only fetch future dates
+    //   },
+    //   attributes: ["date", "price"], // Include only necessary fields
+    //   order: [["date", "ASC"]], // Sort by date
+    // });
+
+    // const upcomingPricesArray = upcomingPrices.map((entry) => ({
+    //   date: entry.date,
+    //   price: entry.price,
+    // }));
+
+    // const price = upcomingPricesArray.length > 0 
+    // ? {
+    //     originalPrice,
+    //     currentPrice,
+    //     upcomingPrices: upcomingPricesArray,
+    //   } 
+    // : originalPrice;
+
     const today = new Date().toISOString().split("T")[0];
-    console.log(today, "from calendar tableeeeee");
-    const priceEntry = await PriceCalendar.findOne({
+    const originalPrice = property.price;
+
+    // Fetch the price entry for today or the most recent calendar price
+    const upcomingPrices = await PriceCalendar.findAll({
       where: {
         prop_id: pro_id,
       },
+      attributes: ["date", "price"],
+      order: [["date", "ASC"]],
     });
 
-    console.log(priceEntry, "from calanderrrrrrrrrrrr ");
+    let currentPrice = originalPrice;
 
-    const previousPrice = priceEntry ? priceEntry.price : property.price;
+    for (let entry of upcomingPrices) {
+      if (entry.date === today) {
+        currentPrice = entry.price;
+        break;
+      }
+      if (new Date(entry.date) > new Date(today)) {
+        break;
+      }
+    }
 
-    const rulesArray = JSON.parse(property.rules);
-    const extraImages = await TblExtra.findAll({
-      where: { pid: property.id },
-      include: [{ model: TblExtraImage, as: "images", attributes: ["url"] }],
-      attributes: ["status"],
-    });
+    // Construct the price object based on the current date
+    let price;
+    if (upcomingPrices.length > 0 && new Date(upcomingPrices[0].date) >= new Date(today)) {
+      price = currentPrice;
+    } else {
+      price = originalPrice;
+    }
+
+    const rulesArray = JSON.parse(property.rules || "[]");
 
     const completedBookings = await TblBook.findAll({
       where: {
@@ -585,9 +700,49 @@ const getPropertyDetails = async (req, res) => {
     if (property.add_user_id !== 0) {
       ownerDetails = await User.findOne({
         where: { id: property.add_user_id },
-        attributes: ["id", "pro_pic", "name", "email", "mobile"],
+        attributes: ["id", "pro_pic", "name", "email", "mobile","createdAt"],
       });
     }
+
+    const travelerReviews = await TravelerHostReview.findAll({
+      where: {
+        host_id: property.add_user_id,
+        property_id: pro_id,
+      },
+      include: [
+        {
+          model: User,
+          as: "traveler",
+          attributes: ["name"],
+        },
+      ],
+      attributes: ["rating", "review", "createdAt"],
+    });
+
+    const travelerReview = await TravelerHostReview.findAll({
+      where: { host_id: property.add_user_id, property_id: pro_id },
+      attributes: ["rating", "review", "createdAt"],
+    });
+
+    const totalRatings = travelerReview.length;
+    const avgRating = totalRatings > 0
+      ? (travelerReviews.reduce((sum, review) => sum + review.rating, 0) / totalRatings).toFixed(2)
+      : 0;
+
+    const reviewsArray = travelerReviews.map((review) => ({
+      traveler_name: review.traveler.name,
+      posting_on: review.createdAt,
+      rating: review.rating,
+      review: review.review,
+    }));
+
+    const hostCreationMonths = ownerDetails
+    ? Math.floor(
+        (new Date().getFullYear() - new Date(ownerDetails.createdAt).getFullYear()) * 12 +
+        (new Date().getMonth() - new Date(ownerDetails.createdAt).getMonth())
+      )
+    : null;
+  
 
     const facilities = await TblFacility.findAll({
       where: {
@@ -630,9 +785,17 @@ const getPropertyDetails = async (req, res) => {
 
     const propertyImage = property.image;
     const panoramaStatus = property.is_panorama;
-    const gallery = extraImages.flatMap((extraImage) =>
-      extraImage.images.map((image) => image.url)
-    );
+
+    // Fetch extra images and video from property table
+    const extraImages = property.extra_images
+      ? JSON.parse(property.extra_images)
+      : [];
+    const video = property.video ? { url: property.video } : null;
+
+    const gallery = {
+      extra_images: extraImages,
+      video: video,
+    };
 
     const response = {
       propetydetails: {
@@ -643,11 +806,17 @@ const getPropertyDetails = async (req, res) => {
         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
         property_type: property.ptype,
         property_title: category?.title,
-        price: previousPrice,
+        // price: {
+        //   originalPrice,
+        //   currentPrice,
+        //   upcomingPrices: upcomingPricesArray,
+        // },
+        price:price,
         buyorrent: property.pbuysell,
         address: property.address,
         beds: property.beds,
         bathroom: property.bathroom,
+        standard_rules: standardRules,
         rules: rulesArray,
         sqrft: property.sqrft,
         description: property.description,
@@ -668,6 +837,10 @@ const getPropertyDetails = async (req, res) => {
               pro_pic: ownerDetails.pro_pic,
               email: ownerDetails.email,
               phone: ownerDetails.mobile,
+              // host_reviews: reviewsArray,
+              total_reviews: totalRatings,
+              average_ratings:avgRating,
+              since_months:hostCreationMonths
             }
           : null,
       },
@@ -693,20 +866,38 @@ const getPropertyDetails = async (req, res) => {
   }
 };
 
-const getAllProperties = async (req, res) => {
+const getAllHostAddedProperties = async (req, res) => {
   const uid = req.user?.id || null;
 
   try {
     const today = new Date().toISOString().split("T")[0];
 
-    // Fetch properties along with associated PriceCalendar entries
+    // Fetch properties along with associated PriceCalendar and Booking entries
     const properties = await Property.findAll({
       where: { status: 1, ...(uid ? { add_user_id: uid } : {}) },
-      include: {
-        model: PriceCalendar,
-        as: "priceCalendars",
-        attributes: ["date", "note", "prop_id", "price"],
-      },
+      include: [
+        {
+          model: PriceCalendar,
+          as: "priceCalendars",
+          attributes: ["date", "note", "prop_id", "price"],
+        },
+        {
+          model: TblBook,
+          as: "properties", // Use the correct alias
+          attributes: ["check_in", "check_out", "uid", "book_status"],
+          where: {
+            check_in: { [Op.gte]: today }, // Only include bookings starting from today
+          },
+          required: false, // Allow properties without bookings to be included
+          include: [
+            {
+              model: User,
+              as: "User",
+              attributes: ["name", "email", "mobile", "ccode"], // Fetch user details
+            },
+          ],
+        },
+      ],
     });
 
     if (!properties || properties.length === 0) {
@@ -717,7 +908,6 @@ const getAllProperties = async (req, res) => {
       });
     }
 
-    // Fetch owner details if `uid` is available
     let ownerDetails = null;
     if (uid) {
       ownerDetails = await User.findOne({
@@ -735,22 +925,17 @@ const getAllProperties = async (req, res) => {
     }
 
     const propertiesWithUpdatedPrices = properties.map((property) => {
-      // Define the original price from the property table
       const originalPrice = property.price;
-
-      // List for upcoming prices
       let upcomingPrices = [];
 
-      // Check if PriceCalendar entry exists for today's date and future dates
       if (property.priceCalendars) {
         const futureEntries = property.priceCalendars.filter(
-          (calendar) => calendar.date > today // Only future prices
+          (calendar) => calendar.date > today
         );
         const todayEntry = property.priceCalendars.find(
           (calendar) => calendar.date === today
         );
 
-        // If today's price exists, include it in upcomingPrices
         if (todayEntry) {
           upcomingPrices.push({
             date: todayEntry.date,
@@ -759,7 +944,6 @@ const getAllProperties = async (req, res) => {
           });
         }
 
-        // Store price and note for future price changes
         upcomingPrices = [
           ...upcomingPrices,
           ...futureEntries.map((entry) => ({
@@ -770,21 +954,15 @@ const getAllProperties = async (req, res) => {
         ];
       }
 
-      // Here, outside of the upcomingPrices array, the original price from the Property table is used
-      const finalPrice = originalPrice;
-
-      // Process rules (parse and join as a string)
       if (typeof property.rules === "string") {
         try {
           const parsedRules = JSON.parse(property.rules);
-          if (Array.isArray(parsedRules)) {
-            property.rules = parsedRules.join(", ");
-          } else {
-            property.rules = property.rules
-              .split(",")
-              .map((rule) => rule.trim())
-              .join(", ");
-          }
+          property.rules = Array.isArray(parsedRules)
+            ? parsedRules.join(", ")
+            : property.rules
+                .split(",")
+                .map((rule) => rule.trim())
+                .join(", ");
         } catch (error) {
           console.error("Error parsing rules:", error);
         }
@@ -792,19 +970,44 @@ const getAllProperties = async (req, res) => {
         property.rules = property.rules.join(", ");
       }
 
+      // Fetch booking details, but only if the booking status is Booked or Confirmed
+      const bookingDetails = property.properties
+        .filter((booking) =>
+          ["Booked", "Confirmed"].includes(booking.book_status)
+        )
+        .map((booking) => ({
+          book_status: booking.book_status,
+          check_in: booking.check_in,
+          check_out: booking.check_out,
+          user: {
+            name: booking.User.name,
+            email: booking.User.email,
+            mobile: booking.User.mobile,
+            ccode: booking.User.ccode,
+          },
+        }));
+
+      // Determine if property is available for booking
+      const isAvailableForBooking =
+        property.properties.some((booking) =>
+          ["Completed", "Cancelled"].includes(booking.book_status)
+        ) || bookingDetails.length === 0;
+
       return {
         id: property.id,
         title: property.title,
         image: property.image,
         city: property.city,
-        price: finalPrice, // Display the original price from the Property table
-        upcomingPrices, // Including today's price and future entries
+        price: originalPrice,
+        upcomingPrices,
         address: property.address,
         rules: property.rules,
         beds: property.beds,
         bathroom: property.bathroom,
         sqrft: property.sqrft,
         description: property.description,
+        bookingDetails,
+        status: isAvailableForBooking ? "Available" : "Not Available",
       };
     });
 
@@ -825,7 +1028,7 @@ const getAllProperties = async (req, res) => {
       ResponseMsg: "Properties fetched successfully!",
     });
   } catch (error) {
-    console.error("Error in getAllProperties:", error);
+    console.error("Error in getAllHostAddedProperties:", error);
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
@@ -834,7 +1037,6 @@ const getAllProperties = async (req, res) => {
     });
   }
 };
-
 
 const getSortedProperties = async (req, res) => {
   try {
@@ -1461,17 +1663,167 @@ const nearByProperties = async (req, res) => {
   }
 };
 
+const getAllProperties = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0]; // Get today's date in ISO format
+
+    // Fetch all properties with associated PriceCalendar entries
+    const properties = await Property.findAll({
+      where: { status: 1 }, // Optional condition to filter properties by status
+      include: {
+        model: PriceCalendar,
+        as: "priceCalendars",
+        attributes: ["date", "note", "prop_id", "price"],
+      },
+    });
+
+    if (!properties || properties.length === 0) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "Properties not found!",
+      });
+    }
+
+    const propertiesWithDetails = await Promise.all(
+      properties.map(async (property) => {
+        // Define the original price from the property table
+        const originalPrice = property.price;
+
+        // List for upcoming prices
+        let upcomingPrices = [];
+
+        // Check if PriceCalendar entry exists for today's date and future dates
+        if (property.priceCalendars) {
+          const futureEntries = property.priceCalendars.filter(
+            (calendar) => calendar.date > today // Only future prices
+          );
+          const todayEntry = property.priceCalendars.find(
+            (calendar) => calendar.date === today
+          );
+
+          // If today's price exists, include it in upcomingPrices
+          if (todayEntry) {
+            upcomingPrices.push({
+              date: todayEntry.date,
+              price: todayEntry.price,
+              note: todayEntry.note,
+            });
+          }
+
+          // Store price and note for future price changes
+          upcomingPrices = [
+            ...upcomingPrices,
+            ...futureEntries.map((entry) => ({
+              date: entry.date,
+              price: entry.price,
+              note: entry.note,
+            })),
+          ];
+        }
+
+        // Fetch owner details based on `add_user_id` (if exists)
+        let ownerDetails = null;
+        if (property.add_user_id) {
+          const owner = await User.findOne({
+            where: { id: property.add_user_id },
+            attributes: ["id", "pro_pic", "name", "email", "mobile"],
+          });
+          if (owner) {
+            ownerDetails = {
+              id: owner.id,
+              name: owner.name,
+              email: owner.email,
+              phone: owner.mobile,
+            };
+          }
+        }
+
+        // Process rules (parse and join as a string)
+        if (typeof property.rules === "string") {
+          try {
+            const parsedRules = JSON.parse(property.rules);
+            if (Array.isArray(parsedRules)) {
+              property.rules = parsedRules.join(", ");
+            } else {
+              property.rules = property.rules
+                .split(",")
+                .map((rule) => rule.trim())
+                .join(", ");
+            }
+          } catch (error) {
+            console.error("Error parsing rules:", error);
+          }
+        } else if (Array.isArray(property.rules)) {
+          property.rules = property.rules.join(", ");
+        }
+
+        return {
+          id: property.id,
+          title: property.title,
+          image: property.image,
+          city: property.city,
+          price: originalPrice, // Display the original price from the Property table
+          upcomingPrices, // Including today's price and future entries
+          address: property.address,
+          rules: property.rules,
+          beds: property.beds,
+          bathroom: property.bathroom,
+          sqrft: property.sqrft,
+          description: property.description,
+          owner: ownerDetails, // Include owner details or null
+        };
+      })
+    );
+
+    res.status(200).json({
+      properties: propertiesWithDetails,
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Properties fetched successfully!",
+    });
+  } catch (error) {
+    console.error("Error in getAllProperties:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+const getPropertyCategories = async (req, res) => {
+  try {
+    const categories = await TblCategory.findAll({ where: {status:1} });
+    if(!categories){
+      res.status(400).json({message:"Categories not found"})
+    }
+    res.status(201).json({message:"Categories fetched Successfully", categories})
+  } catch (error) {
+    console.error("Error in getPropertyCategories:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   addProperty,
   editProperty,
   getPropertyList,
   getPropertyTypes,
   getPropertyDetails,
-  getAllProperties,
+  getAllHostAddedProperties,
   getSortedProperties,
   getSortedPropertiestitle,
   searchPropertyByLocationAndDate,
   searchProperties,
   deleteUserProperty,
   nearByProperties,
+  getAllProperties,
+  getPropertyCategories
 };

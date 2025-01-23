@@ -5,8 +5,12 @@ const Property = require("../models/Property");
 const { Op, or, where } = require("sequelize");
 // const { sendResponse } = require("../utils");
 const PaymentList = require("../models/PaymentList");
-const TblNotification = require("../models/TblNotification");
+
 const { default: axios } = require("axios");
+
+const uploadToS3 = require("../config/fileUpload.aws");
+const HostTravelerReview = require("../models/HostTravelerReview");
+
 
 const sendResponse = (res, code, result, msg, additionalData = {}) => {
   res.status(code).json({
@@ -45,7 +49,10 @@ const createBooking = async (req, res) => {
     children,
     infants,
     pets,
+    id_proof,
   } = req.body;
+
+  const id_proof_img = req.file; // Single file uploaded via Multer
 
   if (
     !prop_id ||
@@ -56,7 +63,10 @@ const createBooking = async (req, res) => {
     !tax ||
     !p_method_id ||
     !book_for ||
-    !prop_price
+    !prop_price ||
+    !id_proof ||
+    !id_proof_img ||
+    !transaction_id
   ) {
     return res
       .status(401)
@@ -68,10 +78,10 @@ const createBooking = async (req, res) => {
       !fname ||
       !lname ||
       !gender ||
-      !email ||
-      !mobile ||
-      !ccode ||
-      !country
+      // !email ||
+      !mobile 
+      // !ccode ||
+      // !country
     ) {
       return res.status(400).json({
         success: false,
@@ -127,6 +137,19 @@ const createBooking = async (req, res) => {
         .json({ success: false, message: "That Date Range Already Booked!" });
     }
 
+    let idProofUrl;
+    try {
+      // Wrap the single file into an array to work with uploadToS3
+      const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
+      idProofUrl = uploadedFiles[0]; // Extract the first URL (only one file uploaded)
+    } catch (error) {
+      console.error("Error uploading ID proof to S3:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload ID proof. Please try again later.",
+      });
+    }
+
     const bookingData = {
       prop_id,
       uid,
@@ -151,6 +174,10 @@ const createBooking = async (req, res) => {
       children,
       infants,
       pets,
+
+      id_proof,
+      id_proof_img: idProofUrl,
+
       book_status: "Booked",
     };
 
@@ -163,8 +190,8 @@ const createBooking = async (req, res) => {
         gender,
         email,
         mobile,
-        ccode,
-        country,
+        // ccode,
+        // country,
         book_id: booking.id,
       });
     }
@@ -329,7 +356,14 @@ const getBookingDetails = async (req, res) => {
 
   try {
     const booking = await TblBook.findOne({
-      where: { id: book_id, uid: uid },
+      where: { id: book_id },
+      include: [
+        {
+          model: Property,
+          as: "properties",
+          attributes: ["add_user_id"],
+        },
+      ],
     });
 
     if (!booking) {
@@ -411,6 +445,35 @@ const getBookingDetails = async (req, res) => {
       fp.mobile = "";
       fp.ccode = "";
       fp.country = "";
+    }
+
+    if (booking.properties.add_user_id === uid) {
+      const travelerReviews = await HostTravelerReview.findAll({
+        where: { traveler_id: booking.uid },
+        attributes: ["rating", "review", "createdAt"],
+        include: [
+          {
+            model: User,
+            as: "traveler",
+            attributes: ["name"],
+          },
+          {
+            model: User,
+            as: "host",
+            attributes: ["name"],
+          },
+        ],
+      });
+
+      fp.traveler_reviews = travelerReviews.map((review) => ({
+        host_name: review.host?.name || "Unknown Host",
+        rating: review.rating,
+        review: review.review,
+        createdAt: review.createdAt,
+        traveler_name: review.traveler?.name || "Unknown Traveler",
+      }));
+    } else {
+      fp.traveler_reviews = []; // Do not show reviews to the traveler
     }
 
     return sendResponse(res, 200, "true", "Book Property Details Found!", {
@@ -531,7 +594,7 @@ const cancelBooking = async (req, res) => {
   const { book_id, cancle_reason } = req.body;
 
   if (!book_id || !uid) {
-    return sendResponse(res, 401, "false", "Something Went Wrong!");
+    return sendResponse(res, 401, "false", "book_id and uid is required!");
   }
 
   const user = await User.findByPk(uid);
@@ -541,7 +604,11 @@ const cancelBooking = async (req, res) => {
 
   try {
     const booking = await TblBook.findOne({
-      where: { id: book_id, uid: uid, book_status: "Confirmed" },
+      where: {
+        id: book_id,
+        uid: uid,
+        book_status: { [Op.in]: ["Confirmed", "Booked"] },
+      },
     });
 
     if (!booking) {
@@ -639,6 +706,12 @@ const getTravelerBookingsByStatus = async (req, res) => {
       });
     }
 
+    const reviews = await TblBook.findAll({
+      where: { is_rate: 1 },
+      attributes: ["is_rate", "total_rate", "rate_text"],
+    });
+    const review = reviews.length > 0 ? reviews : 0;
+
     // Fetch property details for each booking
     const bookingDetails = await Promise.all(
       bookings.map(async (booking) => {
@@ -670,6 +743,7 @@ const getTravelerBookingsByStatus = async (req, res) => {
       Result: "true",
       ResponseMsg: "Bookings fetched successfully!",
       statuswise: filteredBookingDetails,
+      review,
     });
   } catch (error) {
     console.error("Error fetching bookings by status:", error);
@@ -680,7 +754,6 @@ const getTravelerBookingsByStatus = async (req, res) => {
     });
   }
 };
-
 
 // After Becoming Host
 const getMyUserBookings = async (req, res) => {

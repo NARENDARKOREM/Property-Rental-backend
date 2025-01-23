@@ -45,6 +45,8 @@ const Page = require("./models/Page");
 const RoleChangeRequest = require("./models/RoleChangeRequest");
 const foreignKeysetup = require("./models/index");
 const PriceCalendar = require("./models/PriceCalendar");
+const TravelerHostReview = require("./models/TravelerHostReview");
+const HostTravelerReview = require("./models/HostTravelerReview");
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 // Routes
@@ -85,7 +87,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(
   cors({
-    origin: ["https://servostay-ten.vercel.app", "http://localhost:3000"],
+    origin: ["https://servostay-flame.vercel.app", "https://servostay-ten.vercel.app", "http://localhost:3000", "https://property-rental-backend-6.onrender.com"],
     credentials: true,
   })
 );
@@ -131,7 +133,9 @@ app.use("/u_dashboard", require("./userRoutes/user_dashboard_route"));
 const userPropertyRoutes = require("./userRoutes/u_property_routes");
 const userBookings = require("./userRoutes/u_book_routes");
 const checkInAvailabilityRoutes = require("./userRoutes/user_check_availablity_routes");
-const priceCalendarRoutes = require('./userRoutes/u_price_calendar_routes');
+const priceCalendarRoutes = require("./userRoutes/u_price_calendar_routes");
+const traverlerReviewRoutes = require("./userRoutes/traveler_host_review_route");
+const hostTravelerReviewRoutes = require("./userRoutes/host_traveler_review_routes");
 
 app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/u_paymentgateway", require("./userRoutes/user_paymentgateway_route"));
@@ -149,11 +153,20 @@ app.use("/faq", require("./userRoutes/u_faq_route"));
 app.use("/u_homedata", require("./userRoutes/u_homedata_route"));
 app.use("/check-availability", checkInAvailabilityRoutes);
 app.use("/price-calendar", priceCalendarRoutes);
+app.use("/traveler-review", traverlerReviewRoutes);
+app.use("/host-review", hostTravelerReviewRoutes);
 
 app.get("/", (req, res) => {
   // const query
   res.send("Server is Running");
 });
+
+const server = app.listen(PORT, () => {
+  console.log(`Server is Running on PORT http://localhost:${PORT}`);
+  console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
+});
+
+server.timeout = 1200000;
 
 sequelize
   .sync()
@@ -163,8 +176,3 @@ sequelize
   .catch((err) => {
     console.error("Unable to create the database:", err);
   });
-
-app.listen(PORT, () => {
-  console.log(`Server is Running on PORT http://localhost:${PORT}`);
-  console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
-});

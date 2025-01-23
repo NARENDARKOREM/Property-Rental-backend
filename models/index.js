@@ -11,6 +11,8 @@ const TblFav = require("./TblFav");
 const Setting = require("./Setting");
 const PriceCalendar = require("./PriceCalendar");
 const PersonRecord = require("./PersonRecord");
+const TravelerHostReview = require("./TravelerHostReview");
+const HostTravelerReview = require("./HostTravelerReview");
 
 RoleChangeRequest.belongsTo(User, { foreignKey: "user_id", as: "user" });
 User.hasMany(RoleChangeRequest, {foreignKey: "user_id",as: "roleChangeRequests"});
@@ -31,7 +33,7 @@ TblExtra.hasMany(TblExtraImage, { foreignKey: "extra_id", as: "images" });
 TblExtraImage.belongsTo(TblExtra, { foreignKey: "extra_id" });
 
 TblBook.belongsTo(Property, { as: "properties", foreignKey: "prop_id" });
-Property.hasMany(TblBook, { foreignKey: "prop_id" });
+Property.hasMany(TblBook, { foreignKey: "prop_id", as:"properties" });
 
 TblFav.belongsTo(Property, { foreignKey: "property_id", as: "property" });
 Property.hasMany(TblFav, { foreignKey: "property_id" });
@@ -48,11 +50,21 @@ Property.hasMany(PriceCalendar, {
   as: "priceCalendars",
 });
 
-
-
 PersonRecord.belongsTo(TblBook, { foreignKey: "book_id", as: "travelerDetails" });
 TblBook.hasMany(PersonRecord, { foreignKey: "book_id", as: "travelerDetails" });
 
+Property.belongsTo(User, { foreignKey: "add_user_id", as: "Owner" });
+User.hasMany(Property, { foreignKey: "add_user_id", as: "properties" });
+
+// Reviews
+TravelerHostReview.belongsTo(User, { foreignKey: "traveler_id", as: "traveler" });
+User.hasMany(TravelerHostReview, { foreignKey: "traveler_id", as: "travelerReviews" });
+
+HostTravelerReview.belongsTo(User,{foreignKey:"traveler_id", as:"traveler"});
+User.hasMany(HostTravelerReview, { foreignKey: "traveler_id", as:"hostReviews"});
+
+HostTravelerReview.belongsTo(User, { foreignKey: "host_id", as: "host" });
+User.hasMany(HostTravelerReview, { foreignKey: "host_id", as: "hostedReviews" });
 
 
 module.exports = {

@@ -781,6 +781,34 @@ const uploadUserImage = async (req, res) => {
   }
 };
 
+const getUserData = async(req, res)=>{
+  const uid = req.user.id;
+  if(!uid){
+    res.status(400).json({message:"User Not Found!"})
+  }
+  try {
+    const user = await User.findByPk(uid,{include:[
+      {
+        model:RoleChangeRequest,
+        as:"roleChangeRequests",
+        attributes:["status"],
+      }
+    ]});
+    if(!user){
+      res.status(401).json({message:"User Not Found!"});
+    }
+    res.status(201).json({user});
+
+  } catch (error) {
+    console.error("Error Occurs While Fetching User Details: ",error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error!",
+    });
+  }
+}
+
 module.exports = {
   userRegister,
   userLogin,
@@ -796,5 +824,9 @@ module.exports = {
   verifyOtp,
   uploadUserImage,
   deleteUserAccount,
+
   updateOneSignalSubscription
+
+  getUserData
+
 };
