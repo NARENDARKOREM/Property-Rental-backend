@@ -19,6 +19,7 @@ const {
   verifyOtp,
   uploadUserImage,
   deleteUserAccount,
+  updateOneSignalSubscription,
 } = require("../userControllers/user_auth_controller");
 
 router.post("/user/signup", userRegister);
@@ -35,5 +36,6 @@ router.delete("/user/delete/:id", adminMiddleware.isAdmin,deleteUser);
 router.patch("/user/toggle-update",adminMiddleware.isAdmin, handleToggle);
 router.post("/user/pro_image",authMiddleware.isAuthenticated,upload.single("image"),uploadUserImage);
 router.put("/user/delete", authMiddleware.isAuthenticated, deleteUserAccount);
+router.put("/user/one_subscribe", authMiddleware.isAuthenticated, updateOneSignalSubscription);
 
 module.exports = router;  

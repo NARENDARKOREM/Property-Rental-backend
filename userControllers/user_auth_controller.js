@@ -655,6 +655,42 @@ const deleteUserAccount = async (req, res) => {
   }
 };
 
+const updateOneSignalSubscription = async (req, res) => {
+  try {
+    const userId = req.user?.id; 
+    const { one_subscription } = req.body;
+
+    // Validate required fields
+    if (!one_subscription) {
+      return res.status(400).json({ 
+        error: "OneSignal subscription ID is required." 
+      });
+    }
+
+    // Fetch user by ID
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      return res.status(404).json({ 
+        error: "User not found." 
+      });
+    }
+
+    
+    await user.update({ one_subscription });
+
+    return res.status(200).json({
+      message: "OneSignal subscription ID successfully updated.",
+    });
+  } catch (error) {
+    console.error("Error updating OneSignal subscription:", error);
+    return res.status(500).json({ 
+      error: "Internal Server Error. Please try again later." 
+    });
+  }
+};
+
+
 const handleToggle = async (req, res) => {
   const { id, field, value } = req.body;
 
@@ -760,4 +796,5 @@ module.exports = {
   verifyOtp,
   uploadUserImage,
   deleteUserAccount,
+  updateOneSignalSubscription
 };

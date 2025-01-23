@@ -85,7 +85,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(
   cors({
-    origin: ["https://servostay-flame.vercel.app", "http://localhost:3000"],
+    origin: ["https://servostay-ten.vercel.app", "http://localhost:3000"],
     credentials: true,
   })
 );

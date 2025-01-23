@@ -6,6 +6,7 @@ const { Op, or, where } = require("sequelize");
 // const { sendResponse } = require("../utils");
 const PaymentList = require("../models/PaymentList");
 const TblNotification = require("../models/TblNotification");
+const { default: axios } = require("axios");
 
 const sendResponse = (res, code, result, msg, additionalData = {}) => {
   res.status(code).json({
@@ -150,7 +151,6 @@ const createBooking = async (req, res) => {
       children,
       infants,
       pets,
-
       book_status: "Booked",
     };
 
@@ -168,6 +168,44 @@ const createBooking = async (req, res) => {
         book_id: booking.id,
       });
     }
+ const host = null;
+    if (property.add_user_id){
+      const u_id = property.add_user_id;
+       host = await User.findByPk(u_id);
+
+
+    
+    }
+
+    try {
+      const notificationContent = {
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_player_ids: [host.one_subscription], 
+        data: { user_id: user.id, type: "role_change" },
+        contents: { en: `${user.name}, Your booking for ${booking.prop_title} has been confirmed! Your Booking ID is ${booking.id}` },
+        headings: { en: "Booking Confirmed!" },
+      };
+  
+      const response = await axios.post("https://onesignal.com/api/v1/notifications", notificationContent, {
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+        },
+      });
+
+      console.log(response,"notification sent");
+    } catch (error) {
+      console.log(error);
+    }
+    
+
+
+    await TblNotification.create({
+      uid: uid,
+      datetime: new Date(),
+      title: "Booking Confirmed",
+      description: `Your booking for ${booking.prop_title} has been confirmed! Your Booking ID is ${booking.id}`,
+    });
 
     return res.status(200).json({
       success: true,
@@ -224,6 +262,28 @@ const confirmBooking = async (req, res) => {
       },
       topic: `booking_${uid}`,
     };
+
+    try {
+      const notificationContent = {
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_player_ids: [user.one_subscription], 
+        data: { user_id: user.id, type: "role_change" },
+        contents: { en: `${user.name}, Your booking for ${booking.prop_title} has been confirmed! Your Booking ID is ${booking.id}` },
+        headings: { en: "Booking Confirmed!" },
+      };
+  
+      const response = await axios.post("https://onesignal.com/api/v1/notifications", notificationContent, {
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+        },
+      });
+
+      console.log(response,"notification sent");
+    } catch (error) {
+      console.log(error);
+    }
+    
 
     // Create a notification record in the database
     await TblNotification.create({
@@ -497,6 +557,36 @@ const cancelBooking = async (req, res) => {
       { book_status: "Cancelled", cancle_reason },
       { where: { id: book_id, uid } }
     );
+
+    try {
+      const notificationContent = {
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_player_ids: [user.one_subscription], 
+        data: { user_id: user.id, type: "booking Cancelled" },
+        contents: { en: `${user.name}, Your booking for ${booking.prop_title} has been cancelled!` },
+        headings: { en: "Booking Cancelled By Owner!" },
+      };
+  
+      const response = await axios.post("https://onesignal.com/api/v1/notifications", notificationContent, {
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+        },
+      });
+
+      console.log(response,"notification sent");
+    } catch (error) {
+      console.log(error);
+    }
+    
+
+    // Create a notification record in the database
+    await TblNotification.create({
+      uid: uid,
+      datetime: new Date(),
+      title: "Booking Confirmed",
+      description: `Your booking for ${booking.prop_title} has been confirmed! Your Booking ID is ${booking.id}`,
+    });
 
     return sendResponse(res, 200, "true", "Booking Cancelled Successfully!");
   } catch (error) {

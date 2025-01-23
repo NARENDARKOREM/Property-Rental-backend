@@ -6,7 +6,7 @@ const upload = require("../config/multer");
 
 router.post(
   "/add",
-  authMiddleware.isAuthenticated,upload.single("image"),
+  authMiddleware.isHost,upload.single("image"),
   userPropertyController.addProperty
 );
 router.patch(
