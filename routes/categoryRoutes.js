@@ -9,10 +9,10 @@ router.post(
   adminMiddleware.isAdmin,
   categoryController.upsertCategory
 );
-router.get("/all", categoryController.getAllCategories);
+router.get("/all",adminMiddleware.isAdmin, categoryController.getAllCategories);
 
-router.get("/count", categoryController.getCategoryCount);
-router.get("/:id", categoryController.getCategoryById);
+router.get("/count",adminMiddleware.isAdmin, categoryController.getCategoryCount);
+router.get("/:id",adminMiddleware.isAdmin, categoryController.getCategoryById);
 router.delete(
   "/delete/:id",
   adminMiddleware.isAdmin,

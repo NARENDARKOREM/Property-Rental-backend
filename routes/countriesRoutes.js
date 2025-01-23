@@ -11,11 +11,11 @@ router.post(
   adminMiddleware.isAdmin,
   countriesController.upsertCountry
 );
-router.get("/all", countriesController.getAllCountries);
-router.get("/count", countriesController.getCountryCount);
+router.get("/all",adminMiddleware.isAdmin, countriesController.getAllCountries);
+router.get("/count",adminMiddleware.isAdmin, countriesController.getCountryCount);
 router.get(
   "/:id",
-  // authMiddleware.isAuthenticated,
+  adminMiddleware.isAdmin,
   countriesController.getCountryById
 );
 router.delete(
@@ -25,6 +25,7 @@ router.delete(
 );
 router.get(
   "/property-counts",
+  adminMiddleware.isAdmin,
   countriesController.fetchCountriesWithPropertyCount
 );
 router.patch("/toggle-status",adminMiddleware.isAdmin, countriesController.toggleCountryStatus);

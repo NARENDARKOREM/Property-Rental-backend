@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middlewares/authMiddleware");
+const adminMiddleware = require('../middlewares/adminMiddleware')
 
 const {
   getPendingRoleChangeRequests,
@@ -11,11 +12,11 @@ const {
 const { User } = require("../models");
 const { default: axios } = require("axios");
 
-router.get("/all", getPendingRoleChangeRequests);
+router.get("/all",adminMiddleware.isAdmin, getPendingRoleChangeRequests);
 // router.get('/all', authMiddleware.isAdminOrHost, getPendingRoleChangeRequests);
-router.put("/update/:id", handleRoleChangeRequest);
-router.delete("/delete/:id",  deleteRoleChangeRequest);
-router.patch("/status/:id", statusRoleChangeRequest);
+router.put("/update/:id",adminMiddleware.isAdmin, handleRoleChangeRequest);
+router.delete("/delete/:id",adminMiddleware.isAdmin,  deleteRoleChangeRequest);
+router.patch("/status/:id",adminMiddleware.isAdmin, statusRoleChangeRequest);
 // router.post("/test",authMiddleware.isAuthenticated, async (req, res)=>{
 
   
