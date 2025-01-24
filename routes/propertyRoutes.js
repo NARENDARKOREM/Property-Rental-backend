@@ -8,9 +8,9 @@ router.post(
   adminMiddleware.isAdmin,
   propertyController.upsertProperty
 );
-router.get("/", propertyController.getAllProperties);
+router.get("/",adminMiddleware.isAdmin, propertyController.getAllProperties);
 router.get("/count",adminMiddleware.isAdmin, propertyController.getPropertyCount);
-router.get("/:id", propertyController.getPropertyById);
+router.get("/:id",adminMiddleware.isAdmin, propertyController.getPropertyById);
 router.delete(
   "/delete/:id",
   adminMiddleware.isAdmin,

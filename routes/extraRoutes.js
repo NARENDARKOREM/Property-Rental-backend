@@ -6,10 +6,10 @@ const adminMiddleware = require("../middlewares/adminMiddleware");
 
 // Configure Multer for file uploads
 
-router.post("/upsert", extraController.upsertExtra);
-router.get("/", extraController.getAllExtras);
-router.get("/count", extraController.getExtraImagesCount);
-router.get("/:id", extraController.getExtraById);
+router.post("/upsert",adminMiddleware.isAdmin, extraController.upsertExtra);
+router.get("/",adminMiddleware.isAdmin, extraController.getAllExtras);
+router.get("/count",adminMiddleware.isAdmin, extraController.getExtraImagesCount);
+router.get("/:id",adminMiddleware.isAdmin, extraController.getExtraById);
 router.delete(
   "/delete/:id",
   adminMiddleware.isAdmin,

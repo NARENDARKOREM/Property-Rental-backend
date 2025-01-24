@@ -15,10 +15,7 @@ const TravelerHostReview = require("./TravelerHostReview");
 const HostTravelerReview = require("./HostTravelerReview");
 
 RoleChangeRequest.belongsTo(User, { foreignKey: "user_id", as: "user" });
-User.hasMany(RoleChangeRequest, {
-  foreignKey: "user_id",
-  as: "roleChangeRequests",
-});
+User.hasMany(RoleChangeRequest, {foreignKey: "user_id",as: "roleChangeRequests"});
 
 Property.belongsTo(TblCategory, { as: "category", foreignKey: "ptype" });
 TblCategory.hasMany(Property, { as: "properties", foreignKey: "ptype" });

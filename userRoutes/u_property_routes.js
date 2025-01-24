@@ -7,11 +7,13 @@ const upload = require("../config/multer");
 // router.post("/add",authMiddleware.isHost,upload.array("files", 10),userPropertyController.addProperty);
 router.post(
   "/add",
+
   authMiddleware.isHost,
   upload.fields([
     { name: "main_image", maxCount: 1 },
     { name: "extra_files", maxCount: 10 },
   ]),
+
   userPropertyController.addProperty
 );
 

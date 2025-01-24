@@ -11,15 +11,15 @@ router.post(
   adminMiddleware.isAdmin,
   facilitiesController.upsertFacility
 );
-router.get("/all", facilitiesController.getAllFacilities);
-router.get("/count", facilitiesController.getFacilityCount);
-router.get("/:id", facilitiesController.getFacilityById);
+router.get("/all",adminMiddleware.isAdmin, facilitiesController.getAllFacilities);
+router.get("/count",adminMiddleware.isAdmin, facilitiesController.getFacilityCount);
+router.get("/:id",adminMiddleware.isAdmin, facilitiesController.getFacilityById);
 router.delete(
   "/delete/:id",
   adminMiddleware.isAdmin,
   facilitiesController.deleteFacility
 );
-router.get("/search/all", facilitiesController.getAllFss);
-router.patch("/toggle-status", facilitiesController.toggleFacilityStatus);
+router.get("/search/all",adminMiddleware.isAdmin, facilitiesController.getAllFss);
+router.patch("/toggle-status",adminMiddleware.isAdmin, facilitiesController.toggleFacilityStatus);
 
 module.exports = router;

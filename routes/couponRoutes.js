@@ -21,7 +21,7 @@ router.post("/upsert", adminMiddleware.isAdmin, couponsController.upsertCoupon);
 router.get("/all", adminMiddleware.isAdmin, couponsController.getAllCoupons);
 
 router.get("/count", adminMiddleware.isAdmin, couponsController.getCouponCount);
-router.get("/:id", couponsController.getCouponById);
+router.get("/:id",adminMiddleware.isAdmin, couponsController.getCouponById);
 
 router.delete(
   "/delete/:id",
