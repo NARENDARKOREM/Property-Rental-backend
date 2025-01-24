@@ -94,6 +94,7 @@ app.use(
       "http://localhost:3000",
       "https://property-rental-backend-6.onrender.com",
       "http://localhost:55032/",
+      "*",
     ],
     credentials: true,
   })
