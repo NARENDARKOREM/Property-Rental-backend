@@ -20,6 +20,10 @@ const TblCountry = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    cities: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
     status: {
       type: DataTypes.INTEGER,
       allowNull: false,

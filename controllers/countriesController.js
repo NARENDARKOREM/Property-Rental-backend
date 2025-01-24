@@ -7,7 +7,7 @@ const { count } = require("console");
 
 // Create or Update Country
 const upsertCountry = async (req, res) => {
-  const { id, title, status, img, currency } = req.body;
+  const { id, title, status, img, currency, cities } = req.body;
   console.log(req.body);
 
   try {
@@ -22,6 +22,7 @@ const upsertCountry = async (req, res) => {
       country.img = img;
       country.status = status;
       country.currency = currency;
+      country.cities = cities;
 
       await country.save();
       res
@@ -35,6 +36,7 @@ const upsertCountry = async (req, res) => {
         status,
         d_con: 0,
         currency: currency || "INR",
+        cities:cities || [],
       });
       res
         .status(201)

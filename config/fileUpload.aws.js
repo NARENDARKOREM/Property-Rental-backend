@@ -34,7 +34,7 @@
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
 const uploadToS3 = async (file, folderName = "uploads") => {
-  if (!file || file.length === 0) {
+  if (!file ||(Array.isArray(file)&&file.length === 0)) {
     throw new Error("No file provided for upload.");
   }
 
@@ -47,12 +47,12 @@ const uploadToS3 = async (file, folderName = "uploads") => {
     },
     maxAttempts: 5,
     requestHandler: {
-      connectionTimeout: 300000, // 5 minutes connection timeout
-      socketTimeout: 300000, // 5 minutes socket timeout
+      connectionTimeout: 300000,
+      socketTimeout: 300000, 
     },
   });
-
-  const uploadPromises = file.map(async (file) => {
+  const files = Array.isArray(file) ? file : [file];
+  const uploadPromises = files.map(async (file) => {
     const fileName = `${folderName}/${Date.now()}-${file.originalname}`;
     const s3Params = {
       Bucket: process.env.S3_BUCKET_NAME,
@@ -71,7 +71,9 @@ const uploadToS3 = async (file, folderName = "uploads") => {
     }
   });
 
-  return Promise.all(uploadPromises);
+  // return Promise.all(uploadPromises);
+  const uploadedFiles = await Promise.all(uploadPromises);
+  return uploadedFiles.length === 1 ? uploadedFiles[0] : uploadedFiles;
 };
 
 module.exports = uploadToS3;
