@@ -13,6 +13,10 @@ const TblCity = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    country_id:{
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
     img: {
       type: DataTypes.TEXT("long"),
       allowNull: false,
