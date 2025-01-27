@@ -3,10 +3,11 @@ const router = express.Router();
 const categoryController = require("../controllers/categoryController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/adminMiddleware");
+const upload = require("../config/multer");
 
 router.post(
   "/upsert",
-  adminMiddleware.isAdmin,
+  adminMiddleware.isAdmin,upload.single('img'),
   categoryController.upsertCategory
 );
 router.get("/all",adminMiddleware.isAdmin, categoryController.getAllCategories);
