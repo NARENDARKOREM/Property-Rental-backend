@@ -47,6 +47,7 @@ const foreignKeysetup = require("./models/index");
 const PriceCalendar = require("./models/PriceCalendar");
 const TravelerHostReview = require("./models/TravelerHostReview");
 const HostTravelerReview = require("./models/HostTravelerReview");
+const TblCity = require("./models/TblCity");
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 // Routes
@@ -74,7 +75,7 @@ const planRoutes = require("./routes/planRoutes");
 const payoutRoutes = require("./routes/payoutRoutes");
 const faqRoutes = require("./routes/faqsRoutes");
 const userFavorites = require("./userRoutes/user_fav_routes");
-
+const cityRoutes = require("./routes/cityRoutes");
 // for user
 const usercountryRoutes = require("./userRoutes/u_country_route");
 // Middlewares
@@ -87,7 +88,12 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(
   cors({
-    origin: ["https://servostay-flame.vercel.app", "https://servostay-ten.vercel.app", "http://localhost:3000", "https://property-rental-backend-6.onrender.com"],
+    origin: [
+      "https://servostay-flame.vercel.app",
+      "https://servostay-ten.vercel.app",
+      "http://localhost:3000",
+      "https://property-rental-backend-6.onrender.com",
+    ],
     credentials: true,
   })
 );
@@ -127,6 +133,7 @@ app.use("/person-records", personRecordRoutes);
 app.use("/plans", planRoutes);
 app.use("/payout-settings", payoutRoutes);
 app.use("/faqs", faqRoutes);
+app.use("/cities", cityRoutes);
 
 app.use("/u_dashboard", require("./userRoutes/user_dashboard_route"));
 

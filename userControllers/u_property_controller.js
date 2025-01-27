@@ -127,7 +127,7 @@ const addProperty = async (req, res) => {
     // Create new property
     const newProperty = await Property.create({
       title,
-      image: mainImageUrl[0], // Store main image URL
+      image: mainImageUrl, // Store main image URL
       extra_images: JSON.stringify(extraImageUrls), // Store extra images as JSON array
       video: JSON.stringify(videoUrls), // Store video URLs as JSON array
       price,

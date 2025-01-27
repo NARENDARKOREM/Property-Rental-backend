@@ -92,14 +92,8 @@ const updateAdmin = async (req, res) => {
 
 const getUserbyToken = async (req, res) => {
   try {
-    const token = req.cookies.token;
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized: No token provided" });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id;
-    const user = await Admin.findByPk(userId);
+    
+    const user = req.user;
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
