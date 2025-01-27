@@ -13,6 +13,7 @@ const PriceCalendar = require("./PriceCalendar");
 const PersonRecord = require("./PersonRecord");
 const TravelerHostReview = require("./TravelerHostReview");
 const HostTravelerReview = require("./HostTravelerReview");
+const TblCity = require("./TblCity");
 
 RoleChangeRequest.belongsTo(User, { foreignKey: "user_id", as: "user" });
 User.hasMany(RoleChangeRequest, {foreignKey: "user_id",as: "roleChangeRequests"});
@@ -66,6 +67,8 @@ User.hasMany(HostTravelerReview, { foreignKey: "traveler_id", as:"hostReviews"})
 HostTravelerReview.belongsTo(User, { foreignKey: "host_id", as: "host" });
 User.hasMany(HostTravelerReview, { foreignKey: "host_id", as: "hostedReviews" });
 
+TblCity.belongsTo(TblCountry,{foreignKey:"country_id"});
+TblCountry.hasMany(TblCity,{foreignKey:"country_id"});
 
 module.exports = {
   User,
