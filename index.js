@@ -143,6 +143,7 @@ const checkInAvailabilityRoutes = require("./userRoutes/user_check_availablity_r
 const priceCalendarRoutes = require("./userRoutes/u_price_calendar_routes");
 const traverlerReviewRoutes = require("./userRoutes/traveler_host_review_route");
 const hostTravelerReviewRoutes = require("./userRoutes/host_traveler_review_routes");
+const uCityRoutes = require('./userRoutes/u_city_routes'); 
 
 app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/u_paymentgateway", require("./userRoutes/user_paymentgateway_route"));
@@ -162,6 +163,7 @@ app.use("/check-availability", checkInAvailabilityRoutes);
 app.use("/price-calendar", priceCalendarRoutes);
 app.use("/traveler-review", traverlerReviewRoutes);
 app.use("/host-review", hostTravelerReviewRoutes);
+app.use("/u_cities",uCityRoutes)
 
 app.get("/", (req, res) => {
   // const query

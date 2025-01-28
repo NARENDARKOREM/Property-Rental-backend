@@ -132,6 +132,11 @@ const Property = sequelize.define(
     standard_rules:{
       type:DataTypes.JSON,
       allowNull:true
+    },
+    extra_guest_charges:{
+      type:DataTypes.FLOAT,
+      allowNull:true,
+      defaultValue:0.0
     }
   },
   {
