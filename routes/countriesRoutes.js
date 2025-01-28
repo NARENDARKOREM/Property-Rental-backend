@@ -5,12 +5,9 @@ const router = express.Router();
 const countriesController = require("../controllers/countriesController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/adminMiddleware");
+const upload = require("../config/multer");
 
-router.post(
-  "/upsert",
-  adminMiddleware.isAdmin,
-  countriesController.upsertCountry
-);
+router.post("/upsert",adminMiddleware.isAdmin,upload.single('img') ,countriesController.upsertCountry);
 router.get("/all",adminMiddleware.isAdmin, countriesController.getAllCountries);
 router.get("/count",adminMiddleware.isAdmin, countriesController.getCountryCount);
 router.get(

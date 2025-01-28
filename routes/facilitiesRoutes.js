@@ -5,10 +5,11 @@ const path = require("path");
 const facilitiesController = require("../controllers/facilitiesController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/adminMiddleware");
+const upload = require("../config/multer");
 
 router.post(
   "/upsert",
-  adminMiddleware.isAdmin,
+  adminMiddleware.isAdmin,upload.single('img'),
   facilitiesController.upsertFacility
 );
 router.get("/all",adminMiddleware.isAdmin, facilitiesController.getAllFacilities);

@@ -1,4 +1,6 @@
 const TblCity = require("../models/TblCity");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
+const s3 = require("../config/awss3Config");
 const uploadToS3 = require("../config/fileUpload.aws");
 const { where } = require("sequelize");
 const { TblCountry } = require("../models");
@@ -8,7 +10,10 @@ const upsertCity = async (req, res, next) => {
   try {
     const { id, title, status, country_id } = req.body;
     console.log("req bodyyyyyyyyyyyyyyy", req.body);
-
+    let imgUrl;
+    if(req.file){
+      imgUrl=await uploadToS3(req.file,"cities")
+    }
     if (!country_id) {
       return res.status(400).json({
         ResponseCode: "400",
@@ -26,17 +31,6 @@ const upsertCity = async (req, res, next) => {
       });
     }
 
-    let imageUrl;
-
-    if (req.file) {
-      // Upload file to S3 and get the URL
-      imageUrl = await uploadToS3(req.file, "cities");
-    } else if (!id) {
-      return res
-        .status(400)
-        .json({ error: "Image is required for a new city." });
-    }
-
     let city;
     if (id) {
       city = await TblCity.findByPk(id);
@@ -51,7 +45,7 @@ const upsertCity = async (req, res, next) => {
       // Update city details
       await city.update({
         title,
-        img: imageUrl || city.img, // Use existing image if no new one is uploaded
+        img: imgUrl || city.img,
         status,
         country_id,
       });
@@ -65,7 +59,7 @@ const upsertCity = async (req, res, next) => {
     } else {
       city = await TblCity.create({
         title,
-        img: imageUrl,
+        img: imgUrl,
         status,
         country_id,
       });

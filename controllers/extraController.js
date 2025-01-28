@@ -9,7 +9,7 @@ const { fileURLToPath } = require("url");
 const upsertExtra = async (req, res) => {
   const { id, pid, img, status } = req.body;
   console.log(req.body, "from body");
-
+  // const imgUrl;
   const add_user_id = 1;
 
   try {
