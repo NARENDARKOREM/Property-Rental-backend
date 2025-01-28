@@ -2,12 +2,30 @@ const { count } = require("console");
 const TblCategory = require("../models/TblCategory");
 const fs = require("fs");
 const path = require("path");
+const uploadToS3 = require("../config/fileUpload.aws");
 
 // Create or Update Category
 const upsertCategory = async (req, res) => {
-  const { id, title, status, img } = req.body;
+  const { id, title, status } = req.body;
+
+
+  if(!title || !status || !req.file){
+    return res.status(401).json({ error: "All fields are required" });
+  }
 
   try {
+     
+    let img;
+
+    if (req.file) {
+      
+      img = await uploadToS3(req.file, "cities");
+    } else if (!id) {
+      return res
+        .status(400)
+        .json({ error: "Image is required for a new city." });
+    }
+
     if (id) {
       // Update category
       const category = await TblCategory.findByPk(id);

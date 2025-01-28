@@ -89,12 +89,12 @@ const upsertCity = async (req, res, next) => {
 
 const getCities = async (req, res) => {
     try {
-      // Fetch cities along with the country name using alias for the country title
       const cities = await TblCity.findAll({
         include: [
           {
             model: TblCountry,
-            attributes: [[sequelize.col('title'), 'countryName']], // Alias 'title' as 'countryName'
+            // attributes: [[sequelize.col('title'), 'countryName']], 
+            attributes: [['title', 'countryName']], 
           }
         ]
       });
@@ -114,7 +114,7 @@ const getCities = async (req, res) => {
       });
     }
   };
-  
+   
 
 const toggleCityStatus = async (req, res) => {
   const { id, field, value } = req.body;
