@@ -38,7 +38,8 @@ const createBooking = async (req, res) => {
     add_note,
     transaction_id,
     cou_amt = 0,
-    noguest,
+    extra_guest,
+    extra_guest_charges,
     fname,
     lname,
     gender,
@@ -170,7 +171,8 @@ const createBooking = async (req, res) => {
       prop_title: property.title,
       prop_img: property.image,
       add_user_id: property.add_user_id,
-      noguest,
+      extra_guest,
+      extra_guest_charges,
       adults,
       children,
       infants,
@@ -391,7 +393,8 @@ const getBookingDetails = async (req, res) => {
       add_note: booking.add_note,
       book_status: booking.book_status,
       check_intime: booking.check_intime,
-      noguest: booking.noguest,
+      extra_guest: booking.extra_guest,
+      extra_guest_charges: booking.extra_guest_charges,
       check_outtime: booking.check_outtime,
       book_for: booking.book_for,
       is_rate: booking.is_rate,
@@ -729,6 +732,8 @@ const getTravelerBookingsByStatus = async (req, res) => {
           prop_price: booking.prop_price,
           p_method_id: booking.p_method_id,
           total_day: booking.total_day,
+          extra_guest: booking.extra_guest,
+          extra_guest_charges: booking.extra_guest_charges, 
         };
       })
     );

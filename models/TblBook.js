@@ -120,9 +120,13 @@ const TblBook = sequelize.define(
     check_outtime: {
       type: DataTypes.DATE,
     },
-    noguest: {
+    extra_guest: {
       type: DataTypes.INTEGER,
       allowNull: true,
+    },
+    extra_guest_charges:{
+      type:DataTypes.FLOAT,
+      allowNull:true
     },
     adults: {
       type: DataTypes.INTEGER,

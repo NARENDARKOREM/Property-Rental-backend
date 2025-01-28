@@ -452,7 +452,8 @@ const getPropertyList = async (req, res) => {
           country_name: property.country?.title || "Unknown",
           setting_id: property.setting_id,
           extra_images:property.extra_images,
-          video:property.video
+          video:property.video,
+          extra_guest_charges:property.extra_guest_charges
         };
       })
     );
