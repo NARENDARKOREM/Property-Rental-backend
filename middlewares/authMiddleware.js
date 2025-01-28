@@ -93,50 +93,33 @@ exports.isGuest = (req, res, next) => {
 
 exports.isAdminOrHost = async (req, res, next) => {
   try {
-    const { id, userType } = req.user;
-    console.log("User Data from Token:", req.user);
+    console.log("User Data from Token:", req.user); // Log the user data
+
+    const { id, userType, role } = req.user; 
 
     if (userType === "admin") {
       const admin = await Admin.findByPk(id);
-
       if (!admin) {
         return res.status(403).json({ error: "Permission denied. Admin access only." });
       }
-      
       console.log("Admin access granted.");
       return next();
-    } 
-
-    else if (userType === "user") {
-      const user = await User.findByPk(id);
-
-      if (!user) {
-        return res.status(404).json({ error: "User not found." });
-      }
-
-      if (user.role !== "admin" && user.role !== "host") {
-        return res.status(403).json({
-          error: "Permission denied. Admin or Host access only."
-        });
-      }
-
-      console.log("Host access granted.");
-      return next();
-    } 
-
-    else {
-      return res.status(403).json({ error: "Permission denied." });
     }
+
+    if (userType === "user") {
+      if (role !== "admin" && role !== "host") {
+        return res.status(403).json({ error: "Permission denied. Admin or Host access only." });
+      }
+      console.log("Host access granted.");
+      return next(); 
+    }
+
+    return res.status(403).json({ error: "Permission denied." }); 
   } catch (error) {
     console.error("Error in isAdminOrHost middleware:", error);
-
-    res.status(500).json({
-      error: "Internal server error",
-      details: error.message,
-    });
+    return res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
-
 
 exports.isHost = async (req, res, next) => {
  

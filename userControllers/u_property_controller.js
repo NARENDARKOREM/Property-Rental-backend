@@ -39,6 +39,7 @@ const addProperty = async (req, res) => {
     pets,
     setting_id,
     standard_rules,
+    extra_guest_charges
   } = req.body;
 
   const files = req.files; // Extract uploaded files
@@ -155,6 +156,7 @@ const addProperty = async (req, res) => {
       infants,
       pets,
       setting_id,
+      extra_guest_charges
     });
 
     res.status(201).json({
@@ -186,7 +188,7 @@ const editProperty = async (req, res) => {
       ptype,
       beds,
       bathroom,
-      sqft,
+      sqrft,
       rate,
       rules,
       standard_rules,
@@ -203,6 +205,7 @@ const editProperty = async (req, res) => {
       infants,
       pets,
       setting_id,
+      extra_guest_charges
     } = req.body;
 
     console.log("Request Body:", req.body);
@@ -222,35 +225,37 @@ const editProperty = async (req, res) => {
     const standardRules = JSON.parse(standard_rules);
 
     // Validate required fields
-    if (
-      !prop_id ||
-      !status ||
-      !title ||
-      !address ||
-      !description ||
-      !ccount ||
-      !facility ||
-      !ptype ||
-      !beds ||
-      !bathroom ||
-      !sqft ||
-      !rate ||
-      !rules ||
-      !latitude ||
-      !longtitude ||
-      !mobile ||
-      !listing_date ||
-      !price ||
-      !country_id ||
-      is_sell === undefined || // Ensure boolean is not `undefined`
-      (!files.main_image && !files.extra_files)
-    ) {
+    const missingFields = [];
+
+    if (!prop_id) missingFields.push("prop_id");
+    if (!status) missingFields.push("status");
+    if (!title) missingFields.push("title");
+    if (!address) missingFields.push("address");
+    if (!description) missingFields.push("description");
+    if (!facility) missingFields.push("facility");
+    if (!ptype) missingFields.push("ptype");
+    if (!beds) missingFields.push("beds");
+    if (!bathroom) missingFields.push("bathroom");
+    if (!sqrft) missingFields.push("sqrft");
+    if (!rate) missingFields.push("rate");
+    if (!rules) missingFields.push("rules");
+    if (!latitude) missingFields.push("latitude");
+    if (!longtitude) missingFields.push("longtitude");
+    if (!mobile) missingFields.push("mobile");
+    if (!listing_date) missingFields.push("listing_date");
+    if (!price) missingFields.push("price");
+    if (!country_id) missingFields.push("country_id");
+    if (is_sell === undefined) missingFields.push("is_sell");
+    if (!files || (!files.main_image && !files.extra_files)) missingFields.push("files");
+    
+    if (missingFields.length > 0) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
-        ResponseMsg: "Missing or invalid fields",
+        ResponseMsg: `Missing or invalid fields: ${missingFields.join(", ")}`,
       });
     }
+    
 
     // Check if the country exists
     const country = await TblCountry.findByPk(country_id);
@@ -316,7 +321,7 @@ const editProperty = async (req, res) => {
       description,
       beds,
       bathroom,
-      sqrft: sqft,
+      sqrft: sqrft,
       rate,
       rules,
       standard_rules: standardRules,
@@ -331,6 +336,7 @@ const editProperty = async (req, res) => {
       infants,
       pets,
       setting_id,
+      extra_guest_charges
     });
 
     // Return success response

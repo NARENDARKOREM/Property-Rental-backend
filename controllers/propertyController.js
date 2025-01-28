@@ -1,8 +1,10 @@
 const Property = require("../models/Property");
 const fs = require("fs");
 const path = require("path");
-const { TblCategory, TblCountry } = require("../models");
+const { TblCategory, TblCountry, } = require("../models");
 const TblFacility = require("../models/TblFacility");
+const TblCity = require('../models/TblCity');
+const { error } = require("console");
 
 // Create or Update Property
 const upsertProperty = async (req, res) => {
@@ -34,11 +36,16 @@ const upsertProperty = async (req, res) => {
     children,
     infants,
     pets,
-    setting_id, 
+    setting_id,
+    extra_guest_charges 
   } = req.body;
 
   console.log(req.body,"from bodyyyyyyyyy")
   try {
+    const validateCity = await TblCity.findOne({where:{title:city}})
+    if(validateCity){
+      res.status(400).json({error:"Selected CIty is Found!"})
+    }
     if (id) {
       // Update existing property
       const property = await Property.findByPk(id);
@@ -73,6 +80,7 @@ const upsertProperty = async (req, res) => {
         infants,
         pets,
         setting_id,
+        extra_guest_charges
       });
 
       await property.save();
@@ -108,7 +116,7 @@ const upsertProperty = async (req, res) => {
         infants,
         pets,
         setting_id,
-        // add_user_id is omitted, so it will be NULL by default
+        extra_guest_charges
       });
       res
         .status(201)

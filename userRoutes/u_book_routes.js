@@ -11,6 +11,7 @@ router.post(
   adminMiddleware.isAdmin,
   userBookings.confirmBooking
 );
+router.post("/block-date",authMiddleware.isAuthenticated,userBookings.hostBlockBookingProperty);
 router.post("/check-in",authMiddleware.isAuthenticated, userBookings.userCheckIn);
 router.post("/check-out",authMiddleware.isAuthenticated, userBookings.userCheckOut);
 router.post("/booking-details", authMiddleware.isAuthenticated, userBookings.getBookingDetails);
