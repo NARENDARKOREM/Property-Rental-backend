@@ -87,34 +87,75 @@ const upsertCity = async (req, res, next) => {
   }
 };
 
+
+// const getCities = async (req, res) => {
+//   try {
+//     const cities = await TblCity.findAll({
+//       include: [
+//         {
+//           model: TblCountry,
+//           as: "country",
+//           // attributes: [[sequelize.col('title'), 'countryName']], 
+//           attributes: [["title", "countryName"]],
+//         },
+//       ],
+//     });
+
+//     // Format cities with their country names
+//     const formattedCities = cities.map((city) => ({
+//       id: city.id,
+//       title: `${city.title} (${city.country.countryName})`,
+//     }));
+
+//     return res.status(200).json({
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Cities fetched successfully",
+//       cities: formattedCities,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching cities:", error);
+//     return res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error",
+//     });
+//   }
+// };
+
 const getCities = async (req, res) => {
-    try {
-      const cities = await TblCity.findAll({
-        include: [
-          {
-            model: TblCountry,
-            // attributes: [[sequelize.col('title'), 'countryName']], 
-            attributes: [['title', 'countryName']], 
-          }
-        ]
-      });
-  
-      return res.status(200).json({
-        ResponseCode: "200",
-        Result: "true",
-        ResponseMsg: "Cities fetched successfully",
-        cities,
-      });
-    } catch (error) {
-      console.error("Error fetching cities:", error);
-      return res.status(500).json({
-        ResponseCode: "500",
-        Result: "false",
-        ResponseMsg: "Internal Server Error",
-      });
-    }
-  };
-   
+  try {
+    const cities = await TblCity.findAll({
+      include: [
+        {
+          model: TblCountry,
+          as: "country",
+          attributes: [["title", "countryName"]],
+        },
+      ],
+    });
+
+    // Format cities with their country names
+    const formattedCities = cities.map((city) => ({
+      id: city.id,
+      title: `${city.title} (${city.country.countryName})`,
+    }));
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Cities fetched successfully",
+      cities: formattedCities,
+    });
+  } catch (error) {
+    console.error("Error fetching cities:", error);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+    });
+  }
+};
 
 const toggleCityStatus = async (req, res) => {
   const { id, field, value } = req.body;

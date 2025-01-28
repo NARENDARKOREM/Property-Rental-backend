@@ -140,9 +140,16 @@ const getAllProperties = async (req, res) => {
           attributes: ["title"],
         },
         {
-          model: TblCountry,
-          as: "country",
+          model: TblCity,
+          as: "city", // Correct alias for TblCity
           attributes: ["title"],
+          include: [
+            {
+              model: TblCountry,
+              as: "country",
+              attributes: ["title"], // Fetch the country name
+            },
+          ],
         },
       ],
     });
@@ -163,9 +170,16 @@ const getAllProperties = async (req, res) => {
             })
           : [];
 
+        // Format city name with country name
+        const cityWithCountry =
+          property.city && property.city.country
+            ? `${property.city.title} (${property.city.country.title})`
+            : property.city?.title || "";
+
         return {
           ...property.toJSON(),
           facilities,
+          city: cityWithCountry, // Add the formatted city with country name
         };
       })
     );
@@ -178,6 +192,7 @@ const getAllProperties = async (req, res) => {
       .json({ error: "Internal server error", details: error.message });
   }
 };
+
 
 // Get Property Count
 const getPropertyCount = async (req, res) => {
