@@ -7,24 +7,16 @@ const uploadToS3 = require("../config/fileUpload.aws");
 // Create or Update Category
 const upsertCategory = async (req, res) => {
   const { id, title, status } = req.body;
-
-
-  if(!title || !status || !req.file){
+  console.log(req.body)
+  if(!title || !status){
     return res.status(401).json({ error: "All fields are required" });
   }
 
   try {
-     
     let img;
-
     if (req.file) {
-      
-      img = await uploadToS3(req.file, "cities");
-    } else if (!id) {
-      return res
-        .status(400)
-        .json({ error: "Image is required for a new city." });
-    }
+      img = await uploadToS3(req.file, "category");
+    } 
 
     if (id) {
       // Update category
@@ -38,7 +30,7 @@ const upsertCategory = async (req, res) => {
       }
 
       category.title = title;
-      category.img = img;
+      category.img = img || category.img;
       category.status = status;
 
       await category.save();

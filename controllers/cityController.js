@@ -124,22 +124,16 @@ const getCities = async (req, res) => {
         {
           model: TblCountry,
           as: "country",
-          attributes: [["title", "countryName"]],
+          attributes: ["title"],
         },
       ],
     });
-
-    // Format cities with their country names
-    const formattedCities = cities.map((city) => ({
-      id: city.id,
-      title: `${city.title} (${city.country.countryName})`,
-    }));
 
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Cities fetched successfully",
-      cities: formattedCities,
+      cities: cities,
     });
   } catch (error) {
     console.error("Error fetching cities:", error);
@@ -153,6 +147,7 @@ const getCities = async (req, res) => {
 
 const toggleCityStatus = async (req, res) => {
   const { id, field, value } = req.body;
+  // console.log(req.body)
   try {
     if (id === undefined || field === undefined || value === undefined) {
       return res.status(400).json({ message: "Invalid request!" });

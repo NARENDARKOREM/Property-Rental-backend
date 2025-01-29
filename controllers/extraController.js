@@ -4,15 +4,25 @@ const path = require("path");
 const Property = require("../models/Property");
 const TblExtraImage = require("../models/TableExtraImages");
 const { fileURLToPath } = require("url");
+const uploadToS3 = require("../config/fileUpload.aws");
 
 // Create or Update Extra Image
 const upsertExtra = async (req, res) => {
-  const { id, pid, img, status } = req.body;
+  const { id, pid, status } = req.body;
   console.log(req.body, "from body");
-  // const imgUrl;
+
   const add_user_id = 1;
+  let imgUrls = [];
 
   try {
+    // Handle single or multiple images
+    if (req.files && req.files.length > 0) {
+      imgUrls = await Promise.all(req.files.map(file => uploadToS3(file, "ExtraImages")));
+    } else if (req.file) {
+      const singleImage = await uploadToS3(req.file, "ExtraImages");
+      imgUrls.push(singleImage);
+    }
+
     if (id) {
       const extra = await TblExtra.findByPk(id, { include: "images" });
       if (!extra) {
@@ -24,28 +34,24 @@ const upsertExtra = async (req, res) => {
 
       await TblExtraImage.destroy({ where: { extra_id: id } });
 
-      const newImages = img.map((urls) => ({ extra_id: id, url: urls.url }));
+      const newImages = imgUrls.map(url => ({ extra_id: id, url }));
       await TblExtraImage.bulkCreate(newImages);
 
-      res.status(200).json({ message: "Extra updated successfully", extra });
+      return res.status(200).json({ message: "Extra updated successfully", extra });
     } else {
       const extra = await TblExtra.create({ pid, status, add_user_id });
 
-      const newImages = img.map((urls) => ({
-        extra_id: extra.id,
-        url: urls.url,
-      }));
-
+      const newImages = imgUrls.map(url => ({ extra_id: extra.id, url }));
       await TblExtraImage.bulkCreate(newImages);
 
-      res.status(201).json({ message: "Extra created successfully", extra });
+      return res.status(201).json({ message: "Extra created successfully", extra });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
+    console.error("Error in upsertExtra:", error);
+    return res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
+
 
 // Get All Extra Images
 const getAllExtras = async (req, res) => {
