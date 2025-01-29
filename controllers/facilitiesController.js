@@ -3,11 +3,17 @@ const TblFacility = require("../models/TblFacility");
 const fs = require("fs");
 const path = require("path");
 const { messaging } = require("firebase-admin");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
+const s3 = require("../config/awss3Config");
+const uploadToS3 = require("../config/fileUpload.aws");
 
 // Create or Update Facility
 const upsertFacility = async (req, res) => {
-  const { id, title, status, img } = req.body;
-
+  const { id, title, status } = req.body;
+  let imgUrl;
+  if(req.file){
+    imgUrl=await uploadToS3(req.file ,"facility")
+  }
   try {
     if (id) {
       // Update facility
@@ -18,7 +24,7 @@ const upsertFacility = async (req, res) => {
 
       facility.title = title;
       facility.status = status;
-      facility.img = img || facility.img;
+      facility.img = imgUrl || facility.img;
 
       await facility.save();
       res
@@ -29,7 +35,7 @@ const upsertFacility = async (req, res) => {
       const facility = await TblFacility.create({
         title,
         status,
-        img,
+        img:imgUrl,
       });
       res
         .status(201)

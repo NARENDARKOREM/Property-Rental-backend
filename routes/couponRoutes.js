@@ -4,22 +4,10 @@ const multer = require("multer");
 const path = require("path");
 const couponsController = require("../controllers/couponsController");
 const adminMiddleware = require("../middlewares/adminMiddleware");
+const upload = require("../config/multer");
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, "..", "uploads");
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Appending extension
-  },
-});
-const upload = multer({ storage: storage });
-
-router.post("/upsert", adminMiddleware.isAdmin, couponsController.upsertCoupon);
-
+router.post("/upsert", adminMiddleware.isAdmin,upload.single('c_img'), couponsController.upsertCoupon);
 router.get("/all", adminMiddleware.isAdmin, couponsController.getAllCoupons);
-
 router.get("/count", adminMiddleware.isAdmin, couponsController.getCouponCount);
 router.get("/:id",adminMiddleware.isAdmin, couponsController.getCouponById);
 

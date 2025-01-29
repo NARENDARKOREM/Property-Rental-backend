@@ -2,6 +2,9 @@ const { count } = require("console");
 const TblCoupon = require("../models/TblCoupon");
 const fs = require("fs");
 const path = require("path");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
+const s3 = require("../config/awss3Config");
+const uploadToS3 = require("../config/fileUpload.aws");
 
 // Create or Update Coupon
 const upsertCoupon = async (req, res) => {
@@ -9,7 +12,6 @@ const upsertCoupon = async (req, res) => {
   const {
     id,
     cdate,
-    c_img,
     c_title,
     subtitle,
     ctitle,
@@ -19,11 +21,16 @@ const upsertCoupon = async (req, res) => {
     c_desc,
   } = req.body;
 
+  console.log(req.body,"rajeehshhhhhhhhhhhhhhh");
+  let imgUrl
+  if(req.file){
+    imgUrl=await uploadToS3(req.file ,"coupons")
+  }
 
   try {
     // Format the date to YYYY-MM-DD
     const formattedDate = new Date(cdate).toISOString().split('T')[0];
-
+    console.log(formattedDate)
     if (id) {
       // Update coupon
       const coupon = await TblCoupon.findByPk(id);
@@ -31,7 +38,7 @@ const upsertCoupon = async (req, res) => {
         return res.status(404).json({ error: "Coupon not found" });
       }
 
-      coupon.c_img = c_img;
+      coupon.c_img = imgUrl || coupon.c_img;
       coupon.cdate = formattedDate; // Use the formatted date
       coupon.c_title = c_title;
       coupon.ctitle = ctitle;
@@ -46,7 +53,7 @@ const upsertCoupon = async (req, res) => {
     } else {
       // Create new coupon
       const coupon = await TblCoupon.create({
-        c_img,
+        c_img:imgUrl,
         cdate: formattedDate, // Use the formatted date
         c_title,
         ctitle,

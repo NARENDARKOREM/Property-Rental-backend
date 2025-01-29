@@ -4,12 +4,19 @@ const path = require("path");
 const Property = require("../models/Property");
 const { Sequelize } = require("sequelize");
 const { count } = require("console");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
+const s3 = require("../config/awss3Config");
+const uploadToS3 = require("../config/fileUpload.aws");
 
 // Create or Update Country
 const upsertCountry = async (req, res) => {
-  const { id, title, status, img, currency, cities } = req.body;
+  const { id, title, status, currency } = req.body;
   console.log(req.body);
+  let imgUrl;
 
+  if(req.file){
+    imgUrl=await uploadToS3(req.file,"image")
+  }
   try {
     if (id) {
       // Update country
@@ -19,10 +26,9 @@ const upsertCountry = async (req, res) => {
       }
 
       country.title = title;
-      country.img = img;
+      country.img = imgUrl || country.img;
       country.status = status;
       country.currency = currency;
-      country.cities = cities;
 
       await country.save();
       res
@@ -32,11 +38,10 @@ const upsertCountry = async (req, res) => {
       // Create new country
       const country = await TblCountry.create({
         title,
-        img,
+        img:imgUrl,
         status,
         d_con: 0,
-        currency: currency || "INR",
-        cities:cities || [],
+        currency: currency || "INR", 
       });
       res
         .status(201)
