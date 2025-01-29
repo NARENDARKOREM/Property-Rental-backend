@@ -2,9 +2,6 @@ const { count } = require("console");
 const TblFacility = require("../models/TblFacility");
 const fs = require("fs");
 const path = require("path");
-const { messaging } = require("firebase-admin");
-const { PutObjectCommand } = require("@aws-sdk/client-s3");
-const s3 = require("../config/awss3Config");
 const uploadToS3 = require("../config/fileUpload.aws");
 
 // Create or Update Facility
@@ -12,7 +9,7 @@ const upsertFacility = async (req, res) => {
   const { id, title, status } = req.body;
   let imgUrl;
   if(req.file){
-    imgUrl=await uploadToS3(req.file ,"facility")
+    imgUrl=await uploadToS3(req.file ,"Facility")
   }
   try {
     if (id) {
@@ -21,15 +18,13 @@ const upsertFacility = async (req, res) => {
       if (!facility) {
         return res.status(404).json({ error: "Facility not found" });
       }
-
+  
       facility.title = title;
       facility.status = status;
       facility.img = imgUrl || facility.img;
-
+  
       await facility.save();
-      res
-        .status(200)
-        .json({ message: "Facility updated successfully", facility });
+      res.status(200).json({ message: "Facility updated successfully", facility });
     } else {
       // Create new facility
       const facility = await TblFacility.create({
@@ -37,15 +32,13 @@ const upsertFacility = async (req, res) => {
         status,
         img:imgUrl,
       });
-      res
-        .status(201)
-        .json({ message: "Facility created successfully", facility });
+      res.status(201).json({ message: "Facility created successfully", facility });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
+    console.error("Error in facility upsert:", error); // Add this line for more details
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
+  
 };
 
 // Get All Facilities

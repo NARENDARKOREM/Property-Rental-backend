@@ -7,7 +7,7 @@ const upload = require("../config/multer");
 
 // Configure Multer for file uploads
 
-router.post("/upsert",adminMiddleware.isAdmin,upload.single('img'), extraController.upsertExtra);
+router.post("/upsert",adminMiddleware.isAdmin,upload.fields([{name:'img',maxCount:10}]), extraController.upsertExtra);
 router.get("/",adminMiddleware.isAdmin, extraController.getAllExtras);
 router.get("/count",adminMiddleware.isAdmin, extraController.getExtraImagesCount);
 router.get("/:id",adminMiddleware.isAdmin, extraController.getExtraById);
