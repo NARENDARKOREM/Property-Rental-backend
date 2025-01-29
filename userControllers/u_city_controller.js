@@ -19,9 +19,14 @@ const getActiveCities = async (req, res) => {
       return res.status(400).json({ error: "Cities not found" });
     }
 
+    const formattedCities = cities.map((city) => ({
+      id: city.id,
+      title: `${city.title}  (${city.country.title})`,
+    }));
+
     return res.status(200).json({
       message: "Cities Fetched Successfully",
-      cities,
+      formattedCities,
     });
   } catch (error) {
     console.error("Error fetching cities", error);

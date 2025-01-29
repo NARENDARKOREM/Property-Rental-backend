@@ -67,7 +67,7 @@ User.hasMany(HostTravelerReview, { foreignKey: "traveler_id", as:"hostReviews"})
 HostTravelerReview.belongsTo(User, { foreignKey: "host_id", as: "host" });
 User.hasMany(HostTravelerReview, { foreignKey: "host_id", as: "hostedReviews" });
 
-TblCity.belongsTo(TblCountry,{foreignKey:"country_id"});
+TblCity.belongsTo(TblCountry,{foreignKey:"country_id",as:"country"});
 TblCountry.hasMany(TblCity,{foreignKey:"country_id"});
 
 module.exports = {
