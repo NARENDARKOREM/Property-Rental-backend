@@ -819,6 +819,7 @@ const getPropertyDetails = async (req, res) => {
         //   upcomingPrices: upcomingPricesArray,
         // },
         price:price,
+        extra_guest_charges:property.extra_guest_charges,
         buyorrent: property.pbuysell,
         address: property.address,
         beds: property.beds,
