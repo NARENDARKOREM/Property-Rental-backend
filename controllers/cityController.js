@@ -1,6 +1,4 @@
 const TblCity = require("../models/TblCity");
-const { PutObjectCommand } = require("@aws-sdk/client-s3");
-const s3 = require("../config/awss3Config");
 const uploadToS3 = require("../config/fileUpload.aws");
 const { where } = require("sequelize");
 const { TblCountry } = require("../models");
@@ -10,10 +8,7 @@ const upsertCity = async (req, res, next) => {
   try {
     const { id, title, status, country_id } = req.body;
     console.log("req bodyyyyyyyyyyyyyyy", req.body);
-    let imgUrl;
-    if(req.file){
-      imgUrl=await uploadToS3(req.file,"cities")
-    }
+
     if (!country_id) {
       return res.status(400).json({
         ResponseCode: "400",
@@ -31,6 +26,17 @@ const upsertCity = async (req, res, next) => {
       });
     }
 
+    let imageUrl;
+
+    if (req.file) {
+      // Upload file to S3 and get the URL
+      imageUrl = await uploadToS3(req.file, "cities");
+    } else if (!id) {
+      return res
+        .status(400)
+        .json({ error: "Image is required for a new city." });
+    }
+
     let city;
     if (id) {
       city = await TblCity.findByPk(id);
@@ -45,7 +51,7 @@ const upsertCity = async (req, res, next) => {
       // Update city details
       await city.update({
         title,
-        img: imgUrl || city.img,
+        img: imageUrl || city.img, // Use existing image if no new one is uploaded
         status,
         country_id,
       });
@@ -59,7 +65,7 @@ const upsertCity = async (req, res, next) => {
     } else {
       city = await TblCity.create({
         title,
-        img: imgUrl,
+        img: imageUrl,
         status,
         country_id,
       });
@@ -124,15 +130,18 @@ const getCities = async (req, res) => {
         {
           model: TblCountry,
           as: "country",
-          attributes: [["title", "countryName"]],
+          attributes: ["title"],
+          where: { deletedAt:null },
+          required:true
         },
       ],
     });
 
-    // Format cities with their country names
+    console.log("Fetched Cities Data:", JSON.stringify(cities, null, 2));
+
     const formattedCities = cities.map((city) => ({
       id: city.id,
-      title: `${city.title} (${city.country.countryName})`,
+      title: `${city.title} (${city.country ? city.country.title : "No Country Found"})`,
     }));
 
     return res.status(200).json({
@@ -150,6 +159,7 @@ const getCities = async (req, res) => {
     });
   }
 };
+
 
 const toggleCityStatus = async (req, res) => {
   const { id, field, value } = req.body;

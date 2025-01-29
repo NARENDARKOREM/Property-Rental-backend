@@ -68,7 +68,8 @@ const TblBook = sequelize.define(
         "Check_in",
         "Completed",
         "Cancelled",
-        "Confirmed"
+        "Confirmed",
+        "Blocked"
       ),
       allowNull: false,
       defaultValue: "Booked",

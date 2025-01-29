@@ -6,11 +6,13 @@ const getActiveCities = async (req, res) => {
   try {
     const cities = await TblCity.findAll({
       where: { status: 1 },
-    //   attributes: ["id", "title"],
+      //   attributes: ["id", "title"],
       include: [
         {
-          model: TblCountry, 
-          attributes: ["title"], 
+          model: TblCountry,
+          attributes: ["title"],
+          where: { deletedAt: null },
+          required: true,
         },
       ],
     });

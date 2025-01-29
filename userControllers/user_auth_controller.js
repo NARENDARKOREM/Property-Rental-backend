@@ -9,6 +9,7 @@ const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
 const { TblCountry } = require("../models");
+const firebaseAdmin = require('../config/firebaseAdmin');
 
 function generateToken(user) {
   return jwt.sign(
@@ -427,6 +428,44 @@ const verifyOtp = async (req, res) => {
   }
 };
 
+const loginWithMobile = async (req, res) => {
+  try {
+    const { mobile } = req.body;
+    const validateMobile = (mobile) => {
+      const regex = /^[0-9]{10}$/;
+      return regex.test(mobile);
+    };
+
+    if (!mobile) {
+      return res.status(400).json({ message: "Mobile number is required." });
+    }
+
+    if (!validateMobile(mobile)) {
+      return res.status(400).json({ message: "Invalid mobile number." });
+    }
+
+    const newUser = await User.create({
+      mobile,
+      reg_date: new Date(),
+    });
+
+    const token = jwt.sign(
+      { userId: newUser.id, mobile: newUser.mobile },
+      process.env.JWT_SECRET,
+    );
+    return res.status(201).json({
+      message: "Sign-up successful.",
+      user: {
+        mobile: newUser.mobile,
+        token,
+      },
+    });
+  } catch (error) {
+    console.error("Error signing up:", error);
+    return res.status(500).json({ message: "Error signing up." });
+  }
+};
+
 async function forgotPassword(req, res) {
   const { mobile, password, ccode } = req.body;
 
@@ -657,13 +696,13 @@ const deleteUserAccount = async (req, res) => {
 
 const updateOneSignalSubscription = async (req, res) => {
   try {
-    const userId = req.user?.id; 
+    const userId = req.user?.id;
     const { one_subscription } = req.body;
 
     // Validate required fields
     if (!one_subscription) {
-      return res.status(400).json({ 
-        error: "OneSignal subscription ID is required." 
+      return res.status(400).json({
+        error: "OneSignal subscription ID is required.",
       });
     }
 
@@ -671,12 +710,11 @@ const updateOneSignalSubscription = async (req, res) => {
     const user = await User.findByPk(userId);
 
     if (!user) {
-      return res.status(404).json({ 
-        error: "User not found." 
+      return res.status(404).json({
+        error: "User not found.",
       });
     }
 
-    
     await user.update({ one_subscription });
 
     return res.status(200).json({
@@ -684,12 +722,11 @@ const updateOneSignalSubscription = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating OneSignal subscription:", error);
-    return res.status(500).json({ 
-      error: "Internal Server Error. Please try again later." 
+    return res.status(500).json({
+      error: "Internal Server Error. Please try again later.",
     });
   }
 };
-
 
 const handleToggle = async (req, res) => {
   const { id, field, value } = req.body;
@@ -781,33 +818,100 @@ const uploadUserImage = async (req, res) => {
   }
 };
 
-const getUserData = async(req, res)=>{
+const getUserData = async (req, res) => {
   const uid = req.user.id;
-  if(!uid){
-    res.status(400).json({message:"User Not Found!"})
+  if (!uid) {
+    res.status(400).json({ message: "User Not Found!" });
   }
   try {
-    const user = await User.findByPk(uid,{include:[
-      {
-        model:RoleChangeRequest,
-        as:"roleChangeRequests",
-        attributes:["status"],
-      }
-    ]});
-    if(!user){
-      res.status(401).json({message:"User Not Found!"});
+    const user = await User.findByPk(uid, {
+      include: [
+        {
+          model: RoleChangeRequest,
+          as: "roleChangeRequests",
+          attributes: ["status"],
+        },
+      ],
+    });
+    if (!user) {
+      res.status(401).json({ message: "User Not Found!" });
     }
-    res.status(201).json({user});
-
+    res.status(201).json({ user });
   } catch (error) {
-    console.error("Error Occurs While Fetching User Details: ",error);
+    console.error("Error Occurs While Fetching User Details: ", error);
     return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
       ResponseMsg: "Internal Server Error!",
     });
   }
-}
+};
+
+const checkEmailExists = async (req, res) => {
+  const { email } = req.body;
+
+  // Validate the request payload
+  if (!email) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  try {
+    // Use Firebase Admin SDK to check if a user exists by email
+    const userRecord = await firebaseAdmin.auth().getUserByEmail(email);
+
+    // If the user exists, return success response
+    return res.status(200).json({
+      message: "Email is valid",
+      user: {
+        uid: userRecord.uid,
+        email: userRecord.email,
+        emailVerified: userRecord.emailVerified,
+      },
+    });
+  } catch (error) {
+    // If the email doesn't exist, return a 404 response
+    if (error.code === "auth/user-not-found") {
+      return res.status(404).json({ error: "Email not found in Firebase" });
+    }
+
+    // For other errors, return a 500 response
+    return res.status(500).json({ error: "Something went wrong", details: error.message });
+  }
+};
+
+
+const checkMobileExists = async (req, res) => {
+  const { mobile } = req.body;
+
+  // Validate the request payload
+  if (!mobile) {
+    return res.status(400).json({ error: "Mobile number is required" });
+  }
+
+  try {
+    // Use Firebase Admin SDK to check if a user exists by phone number
+    const userRecord = await firebaseAdmin.auth().getUserByPhoneNumber(mobile);
+
+    // If the user exists, return success response
+    return res.status(200).json({
+      message: "Mobile number is valid",
+      user: {
+        uid: userRecord.uid,
+        phoneNumber: userRecord.phoneNumber,
+      },
+    });
+  } catch (error) {
+    // Handle specific error cases
+    if (error.code === "auth/user-not-found") {
+      return res.status(404).json({ error: "Mobile number not found in Firebase" });
+    }
+
+    // For other errors, return a 500 response
+    return res.status(500).json({ error: "Something went wrong", details: error.message });
+  }
+};
+
+
 
 module.exports = {
   userRegister,
@@ -825,5 +929,8 @@ module.exports = {
   uploadUserImage,
   deleteUserAccount,
   updateOneSignalSubscription,
-  getUserData
+  getUserData,
+  loginWithMobile,
+  checkEmailExists,
+  checkMobileExists
 };

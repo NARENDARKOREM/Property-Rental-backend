@@ -7,6 +7,7 @@ const { count } = require("console");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
 const uploadToS3 = require("../config/fileUpload.aws");
+const TblCity = require("../models/TblCity");
 
 // Create or Update Country
 const upsertCountry = async (req, res) => {
@@ -118,11 +119,13 @@ const deleteCountry = async (req, res) => {
       // if (country.img && !country.img.startsWith("http")) {
       //   fs.unlinkSync(path.join(__dirname, "..", country.img)); // Remove image file if it's a local path
       // }
+      await TblCity.destroy({ where: { country_id: id }, force: true }); 
       await country.destroy({ force: true });
       res
         .status(200)
         .json({ message: "Country permanently deleted successfully" });
     } else {
+      await TblCity.destroy({ where: { country_id: id } });
       await country.destroy();
       res.status(200).json({ message: "Country soft-deleted successfully" });
     }
