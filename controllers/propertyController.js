@@ -141,7 +141,7 @@ const getAllProperties = async (req, res) => {
         },
         {
           model: TblCity,
-          as: "city", // Correct alias for TblCity
+          as: "cities",
           attributes: ["title"],
           include: [
             {

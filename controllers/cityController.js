@@ -133,6 +133,7 @@ const getCities = async (req, res) => {
           attributes: ["title"],
           where: { deletedAt:null },
           required:true
+
         },
       ],
     });
@@ -144,11 +145,12 @@ const getCities = async (req, res) => {
       title: `${city.title} (${city.country ? city.country.title : "No Country Found"})`,
     }));
 
+
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Cities fetched successfully",
-      cities: formattedCities,
+      cities: cities,
     });
   } catch (error) {
     console.error("Error fetching cities:", error);
@@ -163,6 +165,7 @@ const getCities = async (req, res) => {
 
 const toggleCityStatus = async (req, res) => {
   const { id, field, value } = req.body;
+  // console.log(req.body)
   try {
     if (id === undefined || field === undefined || value === undefined) {
       return res.status(400).json({ message: "Invalid request!" });
