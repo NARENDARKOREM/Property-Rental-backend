@@ -426,6 +426,14 @@ const getPropertyList = async (req, res) => {
               ).toFixed(0)
             : property.rate;
 
+            const extraImages = property.extra_images
+            ? JSON.parse(property.extra_images)
+            : [];
+          console.log("Extra Images:", extraImages);
+
+          const videoUrl = property.video ? JSON.parse(property.video)[0] : null;
+        console.log("Video URL:", videoUrl);
+
         return {
           id: property.id,
           title: property.title,
@@ -456,8 +464,8 @@ const getPropertyList = async (req, res) => {
           address: property.address,
           country_name: property.country?.title || "Unknown",
           setting_id: property.setting_id,
-          extra_images:property.extra_images,
-          video:property.video,
+          extra_images:extraImages,
+          video:videoUrl,
           extra_guest_charges:property.extra_guest_charges
         };
       })
@@ -485,7 +493,7 @@ const getPropertyList = async (req, res) => {
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
-      ResponseMsg: "Internal Server Error",
+      ResponseMsg: "Internal Server Error", 
       error: error.message || "Unknown error",
     });
   }
@@ -802,12 +810,15 @@ const getPropertyDetails = async (req, res) => {
     const extraImages = property.extra_images
       ? JSON.parse(property.extra_images)
       : [];
-    const video = property.video ? { url: property.video } : null;
+    // const video = property.video ? { url: property.video } : null;
+  const videoUrl = property.video ? JSON.parse(property.video)[0] : null;
+console.log("Video URL:", videoUrl);
 
     const gallery = {
       extra_images: extraImages,
-      video: video,
+      video: videoUrl,
     };
+    
 
     const response = {
       propetydetails: {
