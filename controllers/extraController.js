@@ -9,40 +9,54 @@ const uploadToS3 = require("../config/fileUpload.aws");
 // Create or Update Extra Image
 const upsertExtra = async (req, res) => {
   const { id, pid, status } = req.body;
-  console.log(req.body, "from body");
+  console.log("Request Body:", req.body);
+  console.log("Uploaded Files:", req.files);
 
   const add_user_id = 1;
-  let imgUrls = [];
 
   try {
-    // Handle single or multiple images
-    if (req.files && req.files.length > 0) {
-      imgUrls = await Promise.all(req.files.map(file => uploadToS3(file, "ExtraImages")));
-    } else if (req.file) {
-      const singleImage = await uploadToS3(req.file, "ExtraImages");
-      imgUrls.push(singleImage);
+    const files = req.files;
+    // It ensures that if a single image is provided, it is treated as an array, and if multiple images are provided, they are also treated as an array.
+    const img = files?.img ? (Array.isArray(files.img) ? files.img : [files.img]) : [];
+
+    // Upload images to S3 and ensure result is an array
+    let ext_imgUrls = await uploadToS3(img, "Extra-Images");
+    if (!Array.isArray(ext_imgUrls)) {
+      ext_imgUrls = [ext_imgUrls]; 
     }
 
     if (id) {
-      const extra = await TblExtra.findByPk(id, { include: "images" });
+      const extra = await TblExtra.findByPk(id);
       if (!extra) {
         return res.status(404).json({ error: "Extra not found" });
       }
 
-      Object.assign(extra, { pid, status, add_user_id });
+      extra.pid = pid;
+      extra.status = status;
+      extra.add_user_id = add_user_id;
+      extra.url = ext_imgUrls.length === 1 ? ext_imgUrls[0] : JSON.stringify(ext_imgUrls);
       await extra.save();
 
       await TblExtraImage.destroy({ where: { extra_id: id } });
 
-      const newImages = imgUrls.map(url => ({ extra_id: id, url }));
-      await TblExtraImage.bulkCreate(newImages);
+      if (ext_imgUrls.length > 0) {
+        const newImages = ext_imgUrls.map(url => ({ extra_id: id, url }));
+        await TblExtraImage.bulkCreate(newImages);
+      }
 
       return res.status(200).json({ message: "Extra updated successfully", extra });
     } else {
-      const extra = await TblExtra.create({ pid, status, add_user_id });
+      const extra = await TblExtra.create({
+        pid,
+        status,
+        add_user_id,
+        url: ext_imgUrls.length === 1 ? ext_imgUrls[0] : JSON.stringify(ext_imgUrls),
+      });
 
-      const newImages = imgUrls.map(url => ({ extra_id: extra.id, url }));
-      await TblExtraImage.bulkCreate(newImages);
+      if (ext_imgUrls.length > 0) {
+        const newImages = ext_imgUrls.map(url => ({ extra_id: extra.id, url }));
+        await TblExtraImage.bulkCreate(newImages);
+      }
 
       return res.status(201).json({ message: "Extra created successfully", extra });
     }
@@ -51,7 +65,6 @@ const upsertExtra = async (req, res) => {
     return res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
-
 
 // Get All Extra Images
 const getAllExtras = async (req, res) => {

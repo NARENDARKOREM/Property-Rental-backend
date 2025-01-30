@@ -21,13 +21,14 @@ exports.getPendingRoleChangeRequests = async (req, res) => {
 exports.handleRoleChangeRequest = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-
+  // console.log(id + " "+ status) // 9 approved
   if (!status) {
     return res.status(400).json({ message: "Status is required." });
   }
-
+  // console.log(status ,2) //approved 2
   try {
     const request = await RoleChangeRequest.findByPk(id);
+    // console.log(request , 3)
 
     if (!request) {
       return res.status(404).json({ message: "Request not found." });
@@ -35,38 +36,35 @@ exports.handleRoleChangeRequest = async (req, res) => {
 
     if (status === "approved") {
       const user = await User.findByPk(request.user_id);
-
+      // console.log(user,4)
       if (!user) {
         return res.status(404).json({ message: "User not found." });
       }
-
+      // console.log(5)
       user.role = request.requested_role;
       await user.save();
+      // console.log(6)
+      // const notificationContent = {
+      //   app_id: process.env.ONESIGNAL_APP_ID,
+      //   include_player_ids: [user.one_subscription], 
+      //   data: { user_id: user.id, type: "role_change" },
+      //   contents: { en: `${user.name}, Your role change to '${user.role}' has been approved.` },
+      //   headings: { en: "Role Change Approved!" },
+      // };
 
-      const notificationContent = {
-        app_id: process.env.ONESIGNAL_APP_ID,
-        include_player_ids: [user.one_subscription], 
-        data: { user_id: user.id, type: "role_change" },
-        contents: { en: `${user.name}, Your role change to '${user.role}' has been approved.` },
-        headings: { en: "Role Change Approved!" },
-      };
+      // const response = await axios.post("https://onesignal.com/api/v1/notifications", notificationContent, {
+      //   headers: {
+      //     "Content-Type": "application/json; charset=utf-8",
+      //     Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+      //   },
+      // });
 
-      const response = await axios.post("https://onesignal.com/api/v1/notifications", notificationContent, {
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
-        },
-      });
-
-      console.log("Notification sent successfully:", response.data);
-
-
-
+      // console.log("Notification sent successfully:", response.data);
     }
 
     request.status = status;
     await request.save();
-
+    console.log(7)
     res.status(200).json({ message: `Request ${status} successfully.` });
   } catch (error) {
     console.error("Error processing role change request:", error.message);
