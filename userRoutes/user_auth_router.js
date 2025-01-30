@@ -24,8 +24,7 @@ const {
 
   getUserData,
   loginWithMobile,
-  checkEmailExists,
-  checkMobileExists
+  removeOneSignalId
 
 } = require("../userControllers/user_auth_controller");
 
@@ -48,6 +47,7 @@ router.put("/user/delete", authMiddleware.isAuthenticated, deleteUserAccount);
 router.put("/user/one_subscribe", authMiddleware.isAuthenticated, updateOneSignalSubscription);
 
 router.get("/user/getData",authMiddleware.isAuthenticated,getUserData)
+router.put("/user/remove_onesignal_id",authMiddleware.isAuthenticated,removeOneSignalId)
 
 
 module.exports = router;  
