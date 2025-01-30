@@ -137,7 +137,15 @@ const Property = sequelize.define(
       type:DataTypes.FLOAT,
       allowNull:true,
       defaultValue:0.0
-    }
+    },
+    block_start: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    block_end: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    }, 
   },
   {
     tableName: "tbl_property",

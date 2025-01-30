@@ -30,6 +30,14 @@ const TblBook = sequelize.define(
       type: DataTypes.DATEONLY,
       allowNull: false,
     },
+    block_start: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    block_end: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },    
     subtotal: {
       type: DataTypes.FLOAT,
       allowNull: false,

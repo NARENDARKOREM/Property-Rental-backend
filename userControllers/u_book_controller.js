@@ -110,6 +110,18 @@ const createBooking = async (req, res) => {
     }
 
     if (
+      (check_in >= property.block_start && check_in <= property.block_end) ||
+      (check_out >= property.block_start && check_out <= property.block_end) ||
+      (check_in <= property.block_start && check_out >= property.block_end)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "This Property is blocked during the selected dates. Please select different dates.",
+      });
+    }
+
+    if (
       adults > property.adults ||
       children > property.children ||
       infants > property.infants ||
@@ -1329,12 +1341,7 @@ const hostBlockBookingProperty = async (req, res) => {
 
   try {
     // Log prop_id and host_id for debugging purposes
-    console.log(
-      "Blocking property with prop_id:",
-      prop_id,
-      "by host_id:",
-      host_id
-    );
+    console.log(`Blocking property ${prop_id} by host ${host_id}`);
 
     // Fetch property details to ensure the host owns the property
     const property = await Property.findOne({
@@ -1345,13 +1352,19 @@ const hostBlockBookingProperty = async (req, res) => {
       console.log(
         `No property found for prop_id: ${prop_id} and host_id: ${host_id}`
       );
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "You are not authorized to block this property!",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to block this property!",
+      });
     }
+
+    // Update the Property table with the block_start and block_end dates
+    await Property.update(
+      { block_start, block_end },
+      { where: { id: prop_id } }
+    );
+
+    console.log(`Property ${prop_id} has been updated with block dates`);
 
     // Find all bookings affected by the block
     const affectedBookings = await TblBook.findAll({
@@ -1369,75 +1382,64 @@ const hostBlockBookingProperty = async (req, res) => {
       },
     });
 
+    // Log affected bookings to verify the result
+    console.log("Affected bookings:", affectedBookings);
+
     // If no bookings are affected, return early
     if (affectedBookings.length === 0) {
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "No travelers are affected by this block.",
-        });
+      return res.status(200).json({
+        success: true,
+        message: "No travelers are affected by this block.",
+      });
     }
-
-    console.log("Affected bookings:", affectedBookings);
 
     // Iterate over affected bookings and process each one
     for (const booking of affectedBookings) {
       const traveler = await User.findByPk(booking.uid);
 
-      if (traveler && traveler.one_subscription) {
+      if (traveler?.one_subscription) {
         try {
           console.log(`Notifying traveler ${traveler.email}`);
 
-          // Prepare notification content
-          const notificationContent = {
-            app_id: process.env.ONESIGNAL_APP_ID,
-            include_player_ids: [traveler.one_subscription],
-            data: { prop_id, type: "booking_cancellation" },
-            contents: {
-              en: `Your booking for ${property.title} has been canceled due to: ${reason}`,
-            },
-            headings: { en: "Booking Canceled!" },
-          };
-
-          // Send notification
-          const notificationResponse = await axios.post(
+          await axios.post(
             "https://onesignal.com/api/v1/notifications",
-            notificationContent,
+            {
+              app_id: process.env.ONESIGNAL_APP_ID,
+              include_player_ids: [traveler.one_subscription],
+              data: { prop_id, type: "booking_cancellation" },
+              contents: {
+                en: `Your booking for ${property.title} has been blocked due to: ${reason}`,
+              },
+              headings: { en: "Booking Blocked!" },
+            },
             {
               headers: {
-                "Content-Type": "application/json; charset=utf-8",
+                "Content-Type": "application/json",
                 Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
               },
             }
           );
 
-          console.log("Notification sent:", notificationResponse.data);
-
-          // Create notification record in the database
-          const notification = await TblNotification.create({
+          await TblNotification.create({
             uid: traveler.id,
-            datetime: Date(),
-            title: "Booking Cancelled!",
-            description: `Your booking for ${property.title} has been cancelled due to: ${reason}`,
+            datetime: new Date(),
+            title: "Booking Blocked!",
+            description: `Your booking for ${property.title} has been blocked due to: ${reason}`,
           });
 
-          console.log("Notification record created:", notification);
-
-          // Update the booking status to 'Cancelled'
-          // const updateResponse = await TblBook.update({ book_status: "Blocked" }, { where: { id: booking.id } });
-          const affectedRows = await TblBook.update(
+          // Update booking status to "Blocked"
+          console.log(`Updating booking ${booking.id} to Blocked`);
+          await TblBook.update(
             { book_status: "Blocked" },
             { where: { id: booking.id } }
           );
-          
-          console.log(`Updated Rows: ${affectedRows}`);
-          
-          const updatedBooking = await TblBook.findByPk(booking.id);
-          console.log("Updated Booking Details:", updatedBooking);
-          
+          console.log(`Booking ${booking.id} status updated to Blocked`);
 
-          // console.log("Booking status updated:", updateResponse);
+          // Log update result to ensure it's successful
+          console.log(
+            `Booking update result for booking ID ${booking.id}:`,
+            updateResult
+          );
         } catch (error) {
           console.error(
             `Error sending notification to ${traveler.email}:`,
