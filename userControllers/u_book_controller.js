@@ -154,7 +154,7 @@ const createBooking = async (req, res) => {
     try {
       // Wrap the single file into an array to work with uploadToS3
       const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
-      idProofUrl = uploadedFiles[0]; // Extract the first URL (only one file uploaded)
+      idProofUrl = uploadedFiles; // Extract the first URL (only one file uploaded)
     } catch (error) {
       console.error("Error uploading ID proof to S3:", error);
       return res.status(500).json({
