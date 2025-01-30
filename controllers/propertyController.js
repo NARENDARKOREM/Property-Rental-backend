@@ -5,6 +5,7 @@ const { TblCategory, TblCountry, } = require("../models");
 const TblFacility = require("../models/TblFacility");
 const TblCity = require('../models/TblCity');
 const { error } = require("console");
+const { formatDate } = require("../../helper/formatedDate");
 
 // Create or Update Property
 const upsertProperty = async (req, res) => {
@@ -147,7 +148,7 @@ const getAllProperties = async (req, res) => {
             {
               model: TblCountry,
               as: "country",
-              attributes: ["title"], // Fetch the country name
+              attributes: ["title"], 
             },
           ],
         },
@@ -176,10 +177,16 @@ const getAllProperties = async (req, res) => {
             ? `${property.city.title} (${property.city.country.title})`
             : property.city?.title || "";
 
+        // Format the listing date
+        const formattedListingDate = property.listing_date
+          ? formatDate(property.listing_date) 
+          : null;
+
         return {
           ...property.toJSON(),
           facilities,
-          city: cityWithCountry, // Add the formatted city with country name
+          city: cityWithCountry, 
+          listing_date: formattedListingDate, 
         };
       })
     );
@@ -192,7 +199,6 @@ const getAllProperties = async (req, res) => {
       .json({ error: "Internal server error", details: error.message });
   }
 };
-
 
 // Get Property Count
 const getPropertyCount = async (req, res) => {

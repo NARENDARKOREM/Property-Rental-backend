@@ -9,6 +9,7 @@ const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
 const { TblCountry } = require("../models");
+const { formatDate } = require("../../helper/formatedDate");
 // const firebaseAdmin = require('../config/firebaseAdmin');
 
 function generateToken(user) {
@@ -512,7 +513,18 @@ async function forgotPassword(req, res) {
 
 const getAllusers = async (req, res) => {
   try {
-    const data = await User.findAll();
+      const getAllData = await User.findAll();
+      // console.log(getAllData)
+      const data = getAllData.map(user => {
+        const formattedJoinDate = user.reg_date ? formatDate(user.reg_date) : null;
+        
+        return {
+          ...user.toJSON(),
+          reg_date: formattedJoinDate,  
+        };
+    });
+
+    // Sending back the formatted user data
     res.status(200).json(data);
   } catch (error) {
     res
@@ -520,6 +532,7 @@ const getAllusers = async (req, res) => {
       .json({ error: "Internal server error", details: error.message });
   }
 };
+
 
 const getUsersCount = async (req, res) => {
   try {
