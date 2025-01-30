@@ -847,7 +847,26 @@ const getUserData = async (req, res) => {
   }
 };
 
-
+const removeOneSignalId = async (req, res) => {
+  const userId = req.user.id;
+  if (!userId) {
+    return res.status(400).json({ message: "User not found!" });
+  }
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found!" });
+    }
+    if (!user.one_subscription) {
+      return res.status(400).json({ message: "OneSignal ID not found." });
+    }
+    await user.update({ one_subscription: null });
+    return res.status(200).json({ message: "OneSignal ID removed successfully." });
+  } catch (error) {
+    console.error("Error removing OneSignal ID:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
 
 module.exports = {
   userRegister,
@@ -867,4 +886,5 @@ module.exports = {
   updateOneSignalSubscription,
   getUserData,
   loginWithMobile,
+  removeOneSignalId
 };
