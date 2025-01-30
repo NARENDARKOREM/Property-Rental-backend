@@ -448,7 +448,7 @@ const getPropertyList = async (req, res) => {
           rules: property.rules,
           status: property.status,
           latitude: property.latitude,
-          longitude: property.longitude,
+          longtitude: property.longtitude,
           mobile: property.mobile,
           city: property.city,
           rate: rate,
