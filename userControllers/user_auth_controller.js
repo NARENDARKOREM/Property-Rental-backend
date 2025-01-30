@@ -9,7 +9,7 @@ const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
 const { TblCountry } = require("../models");
-const firebaseAdmin = require('../config/firebaseAdmin');
+// const firebaseAdmin = require('../config/firebaseAdmin');
 
 function generateToken(user) {
   return jwt.sign(
@@ -847,69 +847,69 @@ const getUserData = async (req, res) => {
   }
 };
 
-const checkEmailExists = async (req, res) => {
-  const { email } = req.body;
+// const checkEmailExists = async (req, res) => {
+//   const { email } = req.body;
 
-  // Validate the request payload
-  if (!email) {
-    return res.status(400).json({ error: "Email is required" });
-  }
+//   // Validate the request payload
+//   if (!email) {
+//     return res.status(400).json({ error: "Email is required" });
+//   }
 
-  try {
-    // Use Firebase Admin SDK to check if a user exists by email
-    const userRecord = await firebaseAdmin.auth().getUserByEmail(email);
+//   try {
+//     // Use Firebase Admin SDK to check if a user exists by email
+//     const userRecord = await firebaseAdmin.auth().getUserByEmail(email);
 
-    // If the user exists, return success response
-    return res.status(200).json({
-      message: "Email is valid",
-      user: {
-        uid: userRecord.uid,
-        email: userRecord.email,
-        emailVerified: userRecord.emailVerified,
-      },
-    });
-  } catch (error) {
-    // If the email doesn't exist, return a 404 response
-    if (error.code === "auth/user-not-found") {
-      return res.status(404).json({ error: "Email not found in Firebase" });
-    }
+//     // If the user exists, return success response
+//     return res.status(200).json({
+//       message: "Email is valid",
+//       user: {
+//         uid: userRecord.uid,
+//         email: userRecord.email,
+//         emailVerified: userRecord.emailVerified,
+//       },
+//     });
+//   } catch (error) {
+//     // If the email doesn't exist, return a 404 response
+//     if (error.code === "auth/user-not-found") {
+//       return res.status(404).json({ error: "Email not found in Firebase" });
+//     }
 
-    // For other errors, return a 500 response
-    return res.status(500).json({ error: "Something went wrong", details: error.message });
-  }
-};
+//     // For other errors, return a 500 response
+//     return res.status(500).json({ error: "Something went wrong", details: error.message });
+//   }
+// };
 
 
-const checkMobileExists = async (req, res) => {
-  const { mobile } = req.body;
+// const checkMobileExists = async (req, res) => {
+//   const { mobile } = req.body;
 
-  // Validate the request payload
-  if (!mobile) {
-    return res.status(400).json({ error: "Mobile number is required" });
-  }
+//   // Validate the request payload
+//   if (!mobile) {
+//     return res.status(400).json({ error: "Mobile number is required" });
+//   }
 
-  try {
-    // Use Firebase Admin SDK to check if a user exists by phone number
-    const userRecord = await firebaseAdmin.auth().getUserByPhoneNumber(mobile);
+//   try {
+//     // Use Firebase Admin SDK to check if a user exists by phone number
+//     const userRecord = await firebaseAdmin.auth().getUserByPhoneNumber(mobile);
 
-    // If the user exists, return success response
-    return res.status(200).json({
-      message: "Mobile number is valid",
-      user: {
-        uid: userRecord.uid,
-        phoneNumber: userRecord.phoneNumber,
-      },
-    });
-  } catch (error) {
-    // Handle specific error cases
-    if (error.code === "auth/user-not-found") {
-      return res.status(404).json({ error: "Mobile number not found in Firebase" });
-    }
+//     // If the user exists, return success response
+//     return res.status(200).json({
+//       message: "Mobile number is valid",
+//       user: {
+//         uid: userRecord.uid,
+//         phoneNumber: userRecord.phoneNumber,
+//       },
+//     });
+//   } catch (error) {
+//     // Handle specific error cases
+//     if (error.code === "auth/user-not-found") {
+//       return res.status(404).json({ error: "Mobile number not found in Firebase" });
+//     }
 
-    // For other errors, return a 500 response
-    return res.status(500).json({ error: "Something went wrong", details: error.message });
-  }
-};
+//     // For other errors, return a 500 response
+//     return res.status(500).json({ error: "Something went wrong", details: error.message });
+//   }
+// };
 
 
 
@@ -931,6 +931,6 @@ module.exports = {
   updateOneSignalSubscription,
   getUserData,
   loginWithMobile,
-  checkEmailExists,
-  checkMobileExists
+  // checkEmailExists,
+  // checkMobileExists
 };
