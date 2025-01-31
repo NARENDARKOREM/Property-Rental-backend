@@ -9,7 +9,7 @@ const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
 const { TblCountry } = require("../models");
-const firebaseAdmin = require('../config/firebase-config');
+const firebaseAdmin = require("../config/firebase-config");
 
 function generateToken(user) {
   return jwt.sign(
@@ -292,6 +292,15 @@ const googleAuth = async (req, res) => {
   }
 
   try {
+    const userRecord = await firebaseAdmin.auth().getUserByEmail(email);
+    if (!userRecord.emailVerified) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Email is not verified!",
+      });
+    }
+
     const existingUserByEmail = await User.findOne({ where: { email } });
 
     if (existingUserByEmail) {
@@ -305,26 +314,14 @@ const googleAuth = async (req, res) => {
       });
     }
 
-    const timestamp = new Date();
-
-    // Create a new user
-    const newUser = await User.create({
-      name,
-      email,
-      pro_pic,
-      reg_date: timestamp,
-    });
-
-    // Generate a token for the user
-    const token = generateToken(newUser);
-    return res.status(201).json({
-      user: newUser,
-      token,
-      ResponseCode: "200",
-      Result: "true",
-      message: "Sign Up Done Successfully!",
-    });
   } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        message: "User does not exist in Firebase. Please sign up.",
+      });
+    }
     console.error(error);
     return res.status(500).json({
       ResponseCode: "500",
@@ -913,24 +910,29 @@ const verifyEmail = async (req, res) => {
 };
 
 const verifyMobileNumber = async (req, res) => {
-  const { mobile } = req.body;
+  const { mobile,ccode } = req.body;
 
   try {
-    const userRecord = await firebaseAdmin
-      .auth()
-      .getUserByPhoneNumber(mobile);
+    const fullMobileNumber = `${ccode}${mobile}`;
+    const userRecord = await firebaseAdmin.auth().getUserByPhoneNumber(fullMobileNumber);
+    if(!userRecord.phoneNumber){
+      return res.status(404).json({
+        success: false,
+        message: "Mobile is not verified!.",
+      });
+    }
 
-    res.status(200).json({
-      success: true,
-      message: "Phone number is verified and exists.",
-      user: {
-        uid: userRecord.uid,
-        mobile: userRecord.mobile,
-        email: userRecord.email,
-        emailVerified: userRecord.emailVerified,
-        displayName: userRecord.displayName,
-      },
-    });
+    const existingUserByMobile = await User.findOne({ where: { mobile } });
+    if(existingUserByMobile){
+      const token = generateToken(existingUserByMobile);
+      return res.status(200).json({
+        user: existingUserByMobile,
+        token,
+        ResponseCode: "200",
+        Result: "true",
+        message: "Login Successfully!",
+      });
+    }
   } catch (error) {
     if (error.code === "auth/user-not-found") {
       res.status(404).json({
