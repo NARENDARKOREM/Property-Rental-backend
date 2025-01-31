@@ -24,8 +24,9 @@ const {
 
   getUserData,
   loginWithMobile,
-  removeOneSignalId
-
+  removeOneSignalId,
+  verifyEmail,
+verifyMobileNumber
 } = require("../userControllers/user_auth_controller");
 
 router.post("/user/signup", userRegister);
@@ -34,6 +35,8 @@ router.post("/user/googleauth", googleAuth);
 router.post("/user/otplogin", otpLogin);
 router.post("/user/verifyotp", verifyOtp);
 router.post("/user/mobile",loginWithMobile);
+router.post("/user/verifyemail",verifyEmail);
+router.post("/user/verifymobile",verifyMobileNumber);
 router.post("/user/changerole",authMiddleware.isAuthenticated,upload.single("image"), requestRoleChange);
 router.put("/user/forgotpassword",authMiddleware.isAuthenticated, forgotPassword);
 router.get("/user/getalluser",adminMiddleware.isAdmin, getAllusers);

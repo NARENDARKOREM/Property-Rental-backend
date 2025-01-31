@@ -9,7 +9,7 @@ const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
 const { TblCountry } = require("../models");
-// const firebaseAdmin = require('../config/firebaseAdmin');
+const firebaseAdmin = require("../config/firebaseAdmin");
 
 function generateToken(user) {
   return jwt.sign(
@@ -451,7 +451,7 @@ const loginWithMobile = async (req, res) => {
 
     const token = jwt.sign(
       { userId: newUser.id, mobile: newUser.mobile },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET
     );
     return res.status(201).json({
       message: "Sign-up successful.",
@@ -861,10 +861,90 @@ const removeOneSignalId = async (req, res) => {
       return res.status(400).json({ message: "OneSignal ID not found." });
     }
     await user.update({ one_subscription: null });
-    return res.status(200).json({ message: "OneSignal ID removed successfully." });
+    return res
+      .status(200)
+      .json({ message: "OneSignal ID removed successfully." });
   } catch (error) {
     console.error("Error removing OneSignal ID:", error);
     return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+const verifyEmail = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const userRecord = await firebaseAdmin.auth().getUserByEmail(email);
+
+    res.status(200).json({
+      success: true,
+      message: "Email is verified and exists.",
+      user: {
+        uid: userRecord.uid,
+        email: userRecord.email,
+        emailVerified: userRecord.emailVerified,
+        displayName: userRecord.displayName,
+      },
+    });
+
+    firebaseAdmin
+      .auth()
+      .listUsers(1)
+      .then((userRecords) => {
+        console.log("Firebase is connected:", userRecords.users.length);
+      })
+      .catch((error) => {
+        console.error("Firebase Connection Error:", error);
+      });
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      res.status(404).json({
+        success: false,
+        message: "Email does not exist in the database.",
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "An error occurred while verifying the email.",
+        error: error.message,
+      });
+    }
+  }
+};
+
+const verifyMobileNumber = async (req, res) => {
+  const { mobile } = req.body;
+
+  try {
+    const userRecord = await firebaseAdmin
+      .auth()
+      .getUserByPhoneNumber(mobile);
+
+    res.status(200).json({
+      success: true,
+      message: "Phone number is verified and exists.",
+      user: {
+        uid: userRecord.uid,
+        mobile: userRecord.mobile,
+        email: userRecord.email,
+        emailVerified: userRecord.emailVerified,
+        displayName: userRecord.displayName,
+      },
+    });
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      res.status(404).json({
+        success: false,
+        message: "Phone number does not exist in the database.",
+      });
+    } else {
+      // For other errors
+      res.status(500).json({
+        success: false,
+        message: "An error occurred while verifying the phone number.",
+        error: error.message,
+      });
+    }
   }
 };
 
@@ -886,5 +966,7 @@ module.exports = {
   updateOneSignalSubscription,
   getUserData,
   loginWithMobile,
-  removeOneSignalId
+  removeOneSignalId,
+  verifyEmail,
+  verifyMobileNumber,
 };
