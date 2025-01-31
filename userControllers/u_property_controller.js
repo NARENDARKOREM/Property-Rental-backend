@@ -39,7 +39,7 @@ const addProperty = async (req, res) => {
     pets,
     setting_id,
     standard_rules,
-    extra_guest_charges
+    extra_guest_charges,
   } = req.body;
 
   const files = req.files; // Extract uploaded files
