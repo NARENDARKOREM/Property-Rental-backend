@@ -9,7 +9,7 @@ const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
 const { TblCountry } = require("../models");
-const firebaseAdmin = require("../config/firebaseAdmin");
+const firebaseAdmin = require('../config/firebase-config');
 
 function generateToken(user) {
   return jwt.sign(
