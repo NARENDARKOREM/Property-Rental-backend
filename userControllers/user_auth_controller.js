@@ -283,7 +283,7 @@ const googleAuth = async (req, res) => {
 
   console.log(req.body, "Userrtyui");
 
-  if (!name || !email) {
+  if (!name || !email || !pro_pic) {
     return res.status(400).json({
       ResponseCode: "400",
       Result: "false",
