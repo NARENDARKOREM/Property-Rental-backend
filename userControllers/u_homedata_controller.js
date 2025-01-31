@@ -27,7 +27,7 @@ const homeDataApi = async (req, res) => {
       categoryList.unshift({
         id: 0,
         title: "All",
-        img: "/uploads/all.svg",
+        img: "https://servostay-images.s3.us-east-1.amazonaws.com/all.svg",
         status: 1,
       });
 
