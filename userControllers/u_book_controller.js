@@ -192,7 +192,7 @@ const createBooking = async (req, res) => {
       id_proof,
       id_proof_img: idProofUrl,
 
-      book_status: "Booked",
+      book_status: "Confirmed",
     };
 
     const booking = await TblBook.create(bookingData);
@@ -221,9 +221,9 @@ const createBooking = async (req, res) => {
         include_player_ids: [host.one_subscription],
         data: { user_id: user.id, type: "role_change" },
         contents: {
-          en: `${user.name}, Your booking for ${booking.prop_title} has been booked! Your Booking ID is ${booking.id}`,
+          en: `${user.name}, Your booking for ${booking.prop_title} has been Confirmed! Your Booking ID is ${booking.id}`,
         },
-        headings: { en: "Booking booked!" },
+        headings: { en: "Booking Confirmed!" },
       };
 
       const response = await axios.post(
@@ -246,12 +246,12 @@ const createBooking = async (req, res) => {
       uid: uid,
       datetime: new Date(),
       title: "Property has been Booked",
-      description: `Your booking for ${booking.prop_title} has been booked! Your Booking ID is ${booking.id}`,
+      description: `Your booking for ${booking.prop_title} has been Confirmed! Your Booking ID is ${booking.id}`,
     });
 
     return res.status(200).json({
       success: true,
-      message: "Booking Booked Successfully!!!",
+      message: "Booking Confirmed Successfully!!!",
       data: {
         book_id: booking.id,
         booking_details: booking,
@@ -278,7 +278,7 @@ const confirmBooking = async (req, res) => {
 
   try {
     const booking = await TblBook.findOne({
-      where: { id: book_id, uid: uid, book_status: "Booked" },
+      where: { id: book_id, uid: uid, book_status: "Confirmed" },
     });
     if (!booking) {
       return sendResponse(

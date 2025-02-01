@@ -19,13 +19,13 @@ const Property = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: false,
     },
-    video:{
-      type:DataTypes.TEXT,
-      allowNull:true,
+    video: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
-    extra_images:{
-      type:DataTypes.TEXT,
-      allowNull:true,
+    extra_images: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
     price: {
       type: DataTypes.FLOAT,
@@ -129,14 +129,14 @@ const Property = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
-    standard_rules:{
-      type:DataTypes.JSON,
-      allowNull:true
+    standard_rules: {
+      type: DataTypes.JSON,
+      allowNull: true,
     },
-    extra_guest_charges:{
-      type:DataTypes.FLOAT,
-      allowNull:true,
-      defaultValue:0.0
+    extra_guest_charges: {
+      type: DataTypes.FLOAT,
+      allowNull: true,
+      defaultValue: 0.0,
     },
     block_start: {
       type: DataTypes.DATE,
