@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { Property, TblBook } from '../models'; 
 import axios from 'axios';
-import * as ical from 'node-ical';
+const ical = require('node-ical');
 
 
 const importICal = async (calendarUrl) => {
@@ -28,7 +28,6 @@ const syncBookings = async () => {
   try {
     console.log('Running scheduled iCal sync...');
 
-    
     const properties = await Property.findAll({ where: { calendarUrl: { [Op.ne]: null } } });
 
     for (const property of properties) {
