@@ -3,6 +3,6 @@ const { homeDataApi } = require("../userControllers/u_homedata_controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 const router = express.Router();
 
-router.get("/:country_id", authMiddleware.optionalAuth, homeDataApi);
+router.get("/:country_id", authMiddleware.isAuthenticated, homeDataApi);
 
 module.exports = router;
