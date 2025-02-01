@@ -145,7 +145,15 @@ const Property = sequelize.define(
     block_end: {
       type: DataTypes.DATE,
       allowNull: true,
-    }, 
+    },
+    ical_name: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    ical_url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     tableName: "tbl_property",
