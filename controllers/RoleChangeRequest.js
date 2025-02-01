@@ -123,10 +123,10 @@ exports.statusRoleChangeRequest = async (req, res) => {
       return res.status(404).json({ message: "Role change request not found." });
     }
 
-    // Dynamically compute `requested_role` based on `status`
+    
     const requested_role = status === 'approved' ? 'host' : 'guest';
 
-    // Log the changes
+    
     console.log("Updating Role:", { status, requested_role });
 
     // Update the fields
