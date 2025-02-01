@@ -6,7 +6,7 @@ const homeDataApi = async (req, res) => {
   const uid = req.user?.id || 0;
 
   if (!uid) {
-    const { country_id } = req.params;
+    const { country_id } = req.query;
     console.log(country_id, "from parammmmmmmmsssssssssssssss")
 
     if (!country_id) {
