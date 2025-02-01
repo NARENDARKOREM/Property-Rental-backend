@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { Property, TblBook } from '../models'; // Adjust based on your DB models
+import { Property, TblBook } from '../models'; 
 import axios from 'axios';
 import * as ical from 'node-ical';
 
