@@ -95,7 +95,7 @@ app.use(
       "https://property-rental-backend-6.onrender.com",
       "http://localhost:58160"
     ],
-    // credentials: true,
+    credentials: true,
   })
 );
 
