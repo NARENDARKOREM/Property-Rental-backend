@@ -4,16 +4,17 @@ const User = require("../models/User");
 const Setting = require("../models/Setting");
 const WalletReport = require("../models/WalletReport");
 const RoleChangeRequest = require("../models/RoleChangeRequest");
-const { Op } = require("sequelize");
+const { Op, NOW } = require("sequelize");
 const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
 const { TblCountry } = require("../models");
 const firebaseAdmin = require("../config/firebase-config");
+const { now } = require("sequelize/lib/utils");
 
 function generateToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, userType: user.userType },
+    { userId: user.id, email: user.email, userType: user.userType },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
@@ -279,70 +280,53 @@ async function requestRoleChange(req, res) {
 }
 
 const googleAuth = async (req, res) => {
-  const { name, email, pro_pic } = req.body;
-
-  console.log(req.body, "Userrtyui");
-
-  if (!name || !email || !pro_pic) {
-    return res.status(400).json({
-      ResponseCode: "400",
-      Result: "false",
-      ResponseMsg: "All fields are required!",
-    });
-  }
-
   try {
-    // console.log(`Checking Firebase for email: ${email}`);
-    // const userRecord = await firebaseAdmin.auth().getUserByEmail(email);
-    // console.log(`User found: ${userRecord.email}`);
-    // if (!userRecord.emailVerified) {
-    //   return res.status(400).json({
-    //     ResponseCode: "400",
-    //     Result: "false",
-    //     ResponseMsg: "Email is not verified!",
-    //   });
-    // }
+    const { name, email, pro_pic } = req.body;
 
-    const existingUserByEmail = await User.findOne({ where: { email } });
-
-    if (existingUserByEmail) {
-      const token = generateToken(existingUserByEmail);
-      return res.status(200).json({
-        user: existingUserByEmail,
-        token,
-        ResponseCode: "200",
-        Result: "true",
-        message: "Login Successfully!",
+    if (!name || !email || !pro_pic) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "All fields are required!",
       });
     }
-    const user = await User.create({
-      name,
-      email,
-      pro_pic,
-      reg_date: new Date(),
-    });
-    const token = generateToken(existingUserByEmail);
-    return res.status(201).json({
-      user: user,
+
+    // Check if user already exists
+    let user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      // Create a new user if not found
+      user = await User.create({
+        name,
+        email,
+        pro_pic,
+        reg_date: new Date(),
+      });
+
+      responseMessage = "Account Created Successfully!";
+      responseCode = "201";
+    } else {
+      responseMessage = "Login Successfully!";
+      responseCode = "200";
+    }
+
+    // Generate token
+    const token = generateToken(user);
+
+    return res.status(200).json({
+      user,
       token,
-      ResponseCode: "201",
+      ResponseCode: responseCode,
       Result: "true",
-      message: "Login Successfully!",
-    })
-    
+      message: responseMessage,
+    });
+
   } catch (error) {
-    // if (error.code === "auth/user-not-found") {
-    //   return res.status(404).json({
-    //     ResponseCode: "404",
-    //     Result: "false",
-    //     message: "User does not exist in Firebase. Please sign up.",
-    //   });
-    // }
-    console.error(error);
+    console.error("Google Auth Error:", error);
     return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
-      message: "Internal Server Error",
+      message: error.message || "Internal Server Error",
     });
   }
 };
@@ -849,7 +833,7 @@ const getUserData = async (req, res) => {
     if (!user) {
       res.status(401).json({ message: "User Not Found!" });
     }
-    res.status(201).json({ user });
+    res.status(200).json({ user });
   } catch (error) {
     console.error("Error Occurs While Fetching User Details: ", error);
     return res.status(500).json({
@@ -929,17 +913,6 @@ const verifyMobileNumber = async (req, res) => {
   const { mobile, ccode } = req.body;
 
   try {
-    const fullMobileNumber = `${ccode}${mobile}`;
-    const userRecord = await firebaseAdmin
-      .auth()
-      .getUserByPhoneNumber(fullMobileNumber);
-    if (!userRecord.phoneNumber) {
-      return res.status(404).json({
-        success: false,
-        message: "Mobile is not verified!.",
-      });
-    }
-
     const existingUserByMobile = await User.findOne({ where: { mobile } });
     if (existingUserByMobile) {
       const token = generateToken(existingUserByMobile);
@@ -951,21 +924,26 @@ const verifyMobileNumber = async (req, res) => {
         message: "Login Successfully!",
       });
     }
+    const newUser = await User.create({
+      ccode,
+      mobile,
+      reg_date: new Date()
+    })
+    const token = generateToken(existingUserByMobile);
+    return res.status(200).json({
+      user: newUser,
+        token,
+        ResponseCode: "200",
+        Result: "true",
+        message: "Login Successfully!",
+    })
   } catch (error) {
-    if (error.code === "auth/user-not-found") {
-      res.status(404).json({
-        success: false,
-        message: "Phone number does not exist in the database.",
-      });
-    } else {
-      // For other errors
       res.status(500).json({
         success: false,
-        message: "An error occurred while verifying the phone number.",
+        message: "Internal server error.",
         error: error.message,
       });
     }
-  }
 };
 
 module.exports = {
