@@ -24,7 +24,7 @@ const getActiveCities = async (req, res) => {
 
     const formattedCities = cities.map((city) => ({
       id: city.id,
-      title: `${city.title} (${city.country.title})`, // Access the country title using the alias
+      title: city.title,
       img:city.img
     }));
 

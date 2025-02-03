@@ -93,9 +93,9 @@ app.use(
       "https://servostay-ten.vercel.app",
       "http://localhost:3000",
       "https://property-rental-backend-6.onrender.com",
-      "http://localhost:58160"
+      "http://localhost:58160", 
     ],
-    credentials: true,
+    // credentials: true,
   })
 );
 
