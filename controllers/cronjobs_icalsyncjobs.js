@@ -25,40 +25,41 @@ const importICal = async (calendarUrl) => {
 
 
 const syncBookings = async () => {
-  try {
-    console.log('Running scheduled iCal sync...');
-
-    const properties = await Property.findAll({ where: { calendarUrl: { [Op.ne]: null } } });
-
-    for (const property of properties) {
-      const bookings = await importICal(property.calendarUrl);
-
-      if (bookings.length) {
-        
-        await TblBook.destroy({ where: { prop_id: property.id } });
-
-        
-        const formattedBookings = bookings.map(b => ({
-          prop_id: property.id,
-          check_in: b.check_in,
-          check_out: b.check_out,
-          add_user_id: null, 
-        }));
-
-        await TblBook.bulkCreate(formattedBookings);
-        console.log(`Bookings updated for Property ID: ${property.id}`);
-      } else {
-        console.log(`No valid bookings found for Property ID: ${property.id}`);
+    try {
+      console.log('Running scheduled iCal sync...');
+  
+      
+      const properties = await Property.findAll({ where: { calendarUrl: { [Op.ne]: null } } });
+  
+      for (const property of properties) {
+        const bookings = await importICal(property.calendarUrl);
+  
+        if (bookings.length) {
+          
+          await TblBook.destroy({ where: { prop_id: property.id, is_imported: true } });
+  
+          
+          const formattedBookings = bookings.map(b => ({
+            prop_id: property.id,
+            check_in: b.check_in,
+            check_out: b.check_out,
+            add_user_id: null,  
+            is_imported: true,  
+          }));
+  
+          await TblBook.bulkCreate(formattedBookings);
+          console.log(`Bookings updated for Property ID: ${property.id}`);
+        } else {
+          console.log(`No valid bookings found for Property ID: ${property.id}`);
+        }
       }
+      console.log('iCal sync completed.');
+    } catch (error) {
+      console.error('Error in scheduled iCal sync:', error.message);
     }
+  };
 
-    console.log('iCal sync completed.');
-  } catch (error) {
-    console.error('Error in scheduled iCal sync:', error.message);
-  }
-};
 
-// Schedule the cron job (Runs every hour)
 cron.schedule('0 * * * *', syncBookings);
 
 console.log('iCal sync cron job scheduled to run every hour.');
