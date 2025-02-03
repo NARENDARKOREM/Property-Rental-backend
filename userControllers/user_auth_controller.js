@@ -4,17 +4,17 @@ const User = require("../models/User");
 const Setting = require("../models/Setting");
 const WalletReport = require("../models/WalletReport");
 const RoleChangeRequest = require("../models/RoleChangeRequest");
-const { Op } = require("sequelize");
+const { Op, NOW } = require("sequelize");
 const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
 const { TblCountry } = require("../models");
-const { formatDate } = require("../../helper/formatedDate");
-// const firebaseAdmin = require('../config/firebaseAdmin');
+const firebaseAdmin = require("../config/firebase-config");
+const { now } = require("sequelize/lib/utils");
 
 function generateToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, userType: user.userType },
+    { userId: user.id, email: user.email, userType: user.userType },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
@@ -280,57 +280,53 @@ async function requestRoleChange(req, res) {
 }
 
 const googleAuth = async (req, res) => {
-  const { name, email, pro_pic } = req.body;
-
-  console.log(req.body, "Userrtyui");
-
-  if (!name || !email) {
-    return res.status(400).json({
-      ResponseCode: "400",
-      Result: "false",
-      ResponseMsg: "All fields are required!",
-    });
-  }
-
   try {
-    const existingUserByEmail = await User.findOne({ where: { email } });
+    const { name, email, pro_pic } = req.body;
 
-    if (existingUserByEmail) {
-      const token = generateToken(existingUserByEmail);
-      return res.status(200).json({
-        user: existingUserByEmail,
-        token,
-        ResponseCode: "200",
-        Result: "true",
-        message: "Login Successfully!",
+    if (!name || !email || !pro_pic) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "All fields are required!",
       });
     }
 
-    const timestamp = new Date();
+    // Check if user already exists
+    let user = await User.findOne({ where: { email } });
 
-    // Create a new user
-    const newUser = await User.create({
-      name,
-      email,
-      pro_pic,
-      reg_date: timestamp,
-    });
+    if (!user) {
+      // Create a new user if not found
+      user = await User.create({
+        name,
+        email,
+        pro_pic,
+        reg_date: new Date(),
+      });
 
-    // Generate a token for the user
-    const token = generateToken(newUser);
-    return res.status(201).json({
-      user: newUser,
+      responseMessage = "Account Created Successfully!";
+      responseCode = "201";
+    } else {
+      responseMessage = "Login Successfully!";
+      responseCode = "200";
+    }
+
+    // Generate token
+    const token = generateToken(user);
+
+    return res.status(200).json({
+      user,
       token,
-      ResponseCode: "200",
+      ResponseCode: responseCode,
       Result: "true",
-      message: "Sign Up Done Successfully!",
+      message: responseMessage,
     });
+
   } catch (error) {
-    console.error(error);
+    console.error("Google Auth Error:", error);
     return res.status(500).json({
       ResponseCode: "500",
       Result: "false",
-      message: "Internal Server Error",
+      message: error.message || "Internal Server Error",
     });
   }
 };
@@ -452,7 +448,7 @@ const loginWithMobile = async (req, res) => {
 
     const token = jwt.sign(
       { userId: newUser.id, mobile: newUser.mobile },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET
     );
     return res.status(201).json({
       message: "Sign-up successful.",
@@ -513,18 +509,7 @@ async function forgotPassword(req, res) {
 
 const getAllusers = async (req, res) => {
   try {
-      const getAllData = await User.findAll();
-      // console.log(getAllData)
-      const data = getAllData.map(user => {
-        const formattedJoinDate = user.reg_date ? formatDate(user.reg_date) : null;
-        
-        return {
-          ...user.toJSON(),
-          reg_date: formattedJoinDate,  
-        };
-    });
-
-    // Sending back the formatted user data
+    const data = await User.findAll();
     res.status(200).json(data);
   } catch (error) {
     res
@@ -532,7 +517,6 @@ const getAllusers = async (req, res) => {
       .json({ error: "Internal server error", details: error.message });
   }
 };
-
 
 const getUsersCount = async (req, res) => {
   try {
@@ -849,7 +833,7 @@ const getUserData = async (req, res) => {
     if (!user) {
       res.status(401).json({ message: "User Not Found!" });
     }
-    res.status(201).json({ user });
+    res.status(200).json({ user });
   } catch (error) {
     console.error("Error Occurs While Fetching User Details: ", error);
     return res.status(500).json({
@@ -874,11 +858,92 @@ const removeOneSignalId = async (req, res) => {
       return res.status(400).json({ message: "OneSignal ID not found." });
     }
     await user.update({ one_subscription: null });
-    return res.status(200).json({ message: "OneSignal ID removed successfully." });
+    return res
+      .status(200)
+      .json({ message: "OneSignal ID removed successfully." });
   } catch (error) {
     console.error("Error removing OneSignal ID:", error);
     return res.status(500).json({ message: "Internal server error." });
   }
+};
+
+const verifyEmail = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const userRecord = await firebaseAdmin.auth().getUserByEmail(email);
+
+    res.status(200).json({
+      success: true,
+      message: "Email is verified and exists.",
+      user: {
+        uid: userRecord.uid,
+        email: userRecord.email,
+        emailVerified: userRecord.emailVerified,
+        displayName: userRecord.displayName,
+      },
+    });
+
+    firebaseAdmin
+      .auth()
+      .listUsers(1)
+      .then((userRecords) => {
+        console.log("Firebase is connected:", userRecords.users.length);
+      })
+      .catch((error) => {
+        console.error("Firebase Connection Error:", error);
+      });
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      res.status(404).json({
+        success: false,
+        message: "Email does not exist in the database.",
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "An error occurred while verifying the email.",
+        error: error.message,
+      });
+    }
+  }
+};
+
+const verifyMobileNumber = async (req, res) => {
+  const { mobile, ccode } = req.body;
+
+  try {
+    const existingUserByMobile = await User.findOne({ where: { mobile } });
+    if (existingUserByMobile) {
+      const token = generateToken(existingUserByMobile);
+      return res.status(200).json({
+        user: existingUserByMobile,
+        token,
+        ResponseCode: "200",
+        Result: "true",
+        message: "Login Successfully!",
+      });
+    }
+    const newUser = await User.create({
+      ccode,
+      mobile,
+      reg_date: new Date()
+    })
+    const token = generateToken(existingUserByMobile);
+    return res.status(200).json({
+      user: newUser,
+        token,
+        ResponseCode: "200",
+        Result: "true",
+        message: "Login Successfully!",
+    })
+  } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Internal server error.",
+        error: error.message,
+      });
+    }
 };
 
 module.exports = {
@@ -899,5 +964,7 @@ module.exports = {
   updateOneSignalSubscription,
   getUserData,
   loginWithMobile,
-  removeOneSignalId
+  removeOneSignalId,
+  verifyEmail,
+  verifyMobileNumber,
 };

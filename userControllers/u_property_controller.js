@@ -39,7 +39,7 @@ const addProperty = async (req, res) => {
     pets,
     setting_id,
     standard_rules,
-    extra_guest_charges
+    extra_guest_charges,
   } = req.body;
 
   const files = req.files; // Extract uploaded files
@@ -96,8 +96,8 @@ const addProperty = async (req, res) => {
 
     const standardRules = JSON.parse(standard_rules);
     const facilityIds = Array.isArray(facility)
-      ? facility
-      : facility.split(",").map((id) => parseInt(id));
+      ? facility  
+      : facility.split(",").map((id) => parseInt(id));   
 
     // Separate main image
     const mainImage = files.main_image[0]; // Single main image file

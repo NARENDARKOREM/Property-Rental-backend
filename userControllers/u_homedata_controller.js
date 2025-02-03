@@ -6,13 +6,14 @@ const homeDataApi = async (req, res) => {
   const uid = req.user?.id || 0;
 
   if (!uid) {
-    const { country_id } = req.params;
+    const { country_id } = req.query;
+    console.log(country_id, "from parammmmmmmmsssssssssssssss")
 
     if (!country_id) {
       return res.status(400).json({
         ResponseCode: "401",
         Result: "false",
-        ResponseMsg: "Something Went Wrong!",
+        ResponseMsg: "COuntry Id is required!",
       });
     }
 
@@ -27,7 +28,7 @@ const homeDataApi = async (req, res) => {
       categoryList.unshift({
         id: 0,
         title: "All",
-        img: "/uploads/all.svg",
+        img: "https://servostay-images.s3.us-east-1.amazonaws.com/all.svg",
         status: 1,
       });
 
@@ -112,15 +113,18 @@ const homeDataApi = async (req, res) => {
     }
   }
 
-  const user = await User.findByPk(uid);
-
+  const user = await User.findByPk(uid,{
+    attributes:["id","country_id"]
+  });
+  console.log("User Object:", JSON.stringify(user, null, 2));
+  console.log("User Object:", user);
   const country_id = user?.country_id;
-
+  console.log("Country ID:", user?.country_id, "from userrrrrrrrrrrrrrrrrrrrrr");
   if (!country_id) {
     return res.status(400).json({
       ResponseCode: "401",
       Result: "false",
-      ResponseMsg: "Something Went Wrong!",
+      ResponseMsg: "Country Id is Required!",
     });
   }
 
@@ -135,7 +139,7 @@ const homeDataApi = async (req, res) => {
     categoryList.unshift({
       id: 0,
       title: "All",
-      img: "",
+      img: "https://servostay-images.s3.us-east-1.amazonaws.com/all.svg",
       status: 1,
     });
 

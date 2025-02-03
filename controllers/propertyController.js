@@ -6,6 +6,7 @@ const TblFacility = require("../models/TblFacility");
 const TblCity = require('../models/TblCity');
 const { error } = require("console");
 const { formatDate } = require("../../helper/formatedDate");
+const uploadToS3 = require("../config/fileUpload.aws");
 
 // Create or Update Property
 const upsertProperty = async (req, res) => {
@@ -13,7 +14,6 @@ const upsertProperty = async (req, res) => {
     id,
     title,
     is_panorama,
-    image,
     price,
     status,
     address,
@@ -38,26 +38,73 @@ const upsertProperty = async (req, res) => {
     infants,
     pets,
     setting_id,
-    extra_guest_charges 
+    extra_guest_charges
   } = req.body;
 
-  console.log(req.body,"from bodyyyyyyyyy")
+  console.log(req.body, "from bodyyyyyyyyy");
+
+  let imgUrl;
+
+  if (req.file) {
+    // If there's a file, upload it to S3
+    imgUrl = await uploadToS3(req.file, "Property");
+    console.log(imgUrl)
+  }
+
   try {
     const validateCity = await TblCity.findOne({where:{title:city}})
     if(validateCity){
       res.status(400).json({error:"Selected CIty is Found!"})
     }
+
     if (id) {
-      // Update existing property
+      // Update an existing property
       const property = await Property.findByPk(id);
       if (!property) {
         return res.status(404).json({ error: "Property not found" });
       }
-      Object.assign(property, {
+
+      // Update the property fields
+      property.title = title;
+      property.image = imgUrl || property.image; // Update image only if a new one is provided
+      property.price = price;
+      property.is_panorama = is_panorama;
+      property.status = status;
+      property.address = address;
+      property.facility = facility;
+      property.description = description;
+      property.beds = beds;
+      property.bathroom = bathroom;
+      property.sqrft = sqrft;
+      property.rate = rate;
+      property.ptype = ptype;
+      property.latitude = latitude;
+      property.longtitude = longtitude;
+      property.mobile = mobile;
+      property.city = city;
+      property.listing_date = listing_date;
+      property.rules = rules;
+      property.country_id = country_id;
+      property.plimit = plimit;
+      property.is_sell = is_sell;
+      property.adults = adults;
+      property.children = children;
+      property.infants = infants;
+      property.pets = pets;
+      property.setting_id = setting_id;
+      property.extra_guest_charges = extra_guest_charges;
+
+      // Save the updated property
+      await property.save();
+
+      return res.status(200).json({ message: "Property updated successfully", property });
+    } else {
+      // Create a new property
+      const property = await Property.create({
         title,
-        image,
-        price,
+        image: imgUrl, // Upload image to S3 and get the URL
         is_panorama,
+        price,
         status,
         address,
         facility,
@@ -74,7 +121,6 @@ const upsertProperty = async (req, res) => {
         listing_date,
         rules,
         country_id,
-        plimit,
         is_sell,
         adults,
         children,
@@ -84,51 +130,14 @@ const upsertProperty = async (req, res) => {
         extra_guest_charges
       });
 
-      await property.save();
-      res
-        .status(200)
-        .json({ message: "Property updated successfully", property });
-    } else {
-      // Create new property without adding add_user_id
-      const property = await Property.create({
-        title,
-        image,
-        is_panorama,
-        price,
-        status,
-        address,
-        facility,
-        description,
-        beds,
-        bathroom,
-        sqrft,
-        rate,
-        ptype,
-        latitude,
-        longtitude,
-        mobile,
-        city,
-        listing_date,
-        rules,
-        country_id,
-        is_sell,
-        adults,
-        children,
-        infants,
-        pets,
-        setting_id,
-        extra_guest_charges
-      });
-      res
-        .status(201)
-        .json({ message: "Property created successfully", property });
+      return res.status(201).json({ message: "Property created successfully", property });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
+
 
 // Get All Properties
 const getAllProperties = async (req, res) => {

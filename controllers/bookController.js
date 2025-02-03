@@ -1,9 +1,12 @@
-const { Op } = require("sequelize");
+const { Op, where } = require("sequelize");
 const TblBook = require("../models/TblBook");
 const TblNotification = require("../models/TblNotification");
 const Property = require("../models/Property");
 const User = require("../models/User"); // Import the User model
 const sendPushNotification = require("../config/pushNotification");
+const { default: ical } = require("ical-generator");
+const { default: axios } = require("axios");
+const icals = require('node-ical');
 
 // Create a Booking
 const createBooking = async (req, res) => {
@@ -411,6 +414,102 @@ const seAllDetails = async (req, res) => {
 };
 
 
+ const exportIcal = async (req, res) => {
+  try {
+      const { propertyId } = req.params;
+
+      
+      if (!propertyId) {
+          return res.status(400).json({ message: 'Property ID is required.' });
+      }
+
+      
+      const bookings = await TblBook.findAll({
+          where: { prop_id: propertyId },
+          attributes:['check_in','check_out'],
+          include: [
+              { model: User, as: 'User', attributes: ['name'] } 
+          ]
+      });
+
+     
+      if (!bookings.length) {
+          return res.status(404).json({ message: 'No bookings found for this property.' });
+      }
+
+      
+      const cal = ical({ name: `Bookings for Property ${propertyId}` });
+
+      bookings.forEach(booking => {
+          cal.createEvent({
+              start: booking.check_in,
+              end: booking.check_out,
+              summary: 'Reserved',
+              description: `Guest: ${booking.User?.name || 'Unknown'}`, 
+          });
+      });
+
+     
+      res.setHeader('Content-Type', 'text/calendar');
+      res.setHeader('Content-Disposition', `attachment; filename="servostay_${propertyId}.ics"`);
+
+      res.send(cal.toString());
+  } catch (error) {
+      console.error('Error generating iCalendar:', error);
+
+      
+      if (error.name === 'SequelizeDatabaseError') {
+          return res.status(500).json({ message: 'Database Error. Please check your query.' });
+      }
+
+      res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+
+
+const importIcal = async (req, res) => {
+  try {
+    const { calendarUrl, propertyId, calendarName } = req.body;
+    console.log(req.body,"request from import ical");
+    
+    if (!calendarUrl || !propertyId || !calendarName) {
+      return res.status(400).json({ message: 'Calendar URL, Calendar Name, and Property ID are required.' });
+    }
+
+    const response = await axios.get(calendarUrl);
+    console.log(response,"from icallllllllllllllll")
+    const events = icals.parseICS(response.data);
+    // console.log(events,"from servostayyyyyyyyyyyy");
+    const bookings = Object.values(events)
+      .filter(event => event.start && event.end)
+      .map(event => ({
+        prop_id: propertyId,
+        check_in: new Date(event.start),
+        check_out: new Date(event.end),
+        add_user_id: req.user?.id || null,
+        is_import:true
+      }));
+
+    if (!bookings.length) {
+      return res.status(400).json({ message: 'No valid bookings found in the iCal file.' });
+    }
+
+    await TblBook.bulkCreate(bookings);
+
+    await Property.update(
+      { calendarUrl, calendarName },
+      { where: { id: propertyId } } 
+    );
+
+    res.status(200).json({ message: 'Bookings imported and property updated successfully!', bookings });
+  } catch (error) {
+    console.error('Error importing iCal:', error);
+    res.status(500).json({ message: 'Internal Server Error', error: error.message });
+  }
+};
+
+
 module.exports = {
   createBooking,
   getBookingDetailsByUser,
@@ -421,5 +520,7 @@ module.exports = {
   gettingAllBookings,
   getUserNotifications,
   getBookingCountByStatus,
-  seAllDetails
+  seAllDetails,
+  exportIcal,
+  importIcal
 };

@@ -160,6 +160,10 @@ const TblBook = sequelize.define(
     id_proof_img:{
       type:DataTypes.TEXT,
       allowNull:true
+    },
+    is_import:{
+      type:DataTypes.BOOLEAN,
+      allowNull:true
     }
   },
   {
