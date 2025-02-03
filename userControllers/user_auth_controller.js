@@ -946,6 +946,31 @@ const verifyMobileNumber = async (req, res) => {
     }
 };
 
+const verifyMobile = async(req,res)=>{
+  const {mobile}=req.body;
+  if(!mobile){
+      return res.status(400).json({ message: "Mobile number is required!" });
+  }
+  try {
+      const userRecord = await firebaseAdmin.auth().getUserByPhoneNumber(mobile)
+      if (!userRecord) {
+          return res.status(404).json({ message: "Mobile number not found!" });
+      }
+      const token = jwt.sign({uid:userRecord.uid,mobile:userRecord.phoneNumber},process.env.JWT_SECRET)
+      return res.status(200).json({
+          message: "Mobile number verified successfully!",
+          mobile: userRecord.phoneNumber,
+          token
+      });
+  } catch (error) {
+      console.error("Error verifying mobile number:", error.message);
+      if (error.code === "auth/user-not-found") {
+          return res.status(404).json({ message: "Mobile number not found!" });
+      }
+      return res.status(500).json({ message: "Error verifying mobile number: " + error.message });
+  }
+}
+
 module.exports = {
   userRegister,
   userLogin,
@@ -967,4 +992,5 @@ module.exports = {
   removeOneSignalId,
   verifyEmail,
   verifyMobileNumber,
+  verifyMobile
 };
