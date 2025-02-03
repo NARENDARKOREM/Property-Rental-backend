@@ -94,11 +94,29 @@ app.use(
       "http://localhost:3000",
       "https://property-rental-backend-6.onrender.com",
       "http://localhost:58160",
-      "*"
     ],
     // credentials: true,
   })
 );
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true); // Allow request
+    } else {
+      callback(new Error("Not allowed by CORS")); // Block request
+    }
+  },
+  methods: "GET,POST,PUT,DELETE,OPTIONS",
+  // allowedHeaders: "Content-Type,Authorization",
+  // credentials: true, // Enable if needed
+};
+
+app.use(cors(corsOptions));
+
+app.get("/", (req, res) => {
+  res.json({ message: "CORS configured successfully!" });
+});
 
 app.use(cookieParser());
 app.use(
