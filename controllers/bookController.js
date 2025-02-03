@@ -492,16 +492,15 @@ const importIcal = async (req, res) => {
         check_in: new Date(event.start),
         check_out: new Date(event.end),
         add_user_id: req.user?.id || null,
+        is_import:true
       }));
 
     if (!bookings.length) {
       return res.status(400).json({ message: 'No valid bookings found in the iCal file.' });
     }
 
-    
     await TblBook.bulkCreate(bookings);
 
-   
     await Property.update(
       { calendarUrl, calendarName },
       { where: { id: propertyId } } 

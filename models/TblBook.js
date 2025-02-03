@@ -162,7 +162,7 @@ const TblBook = sequelize.define(
       allowNull:true
     },
     is_import:{
-      type:DataTypes.TEXT,
+      type:DataTypes.BOOLEAN,
       allowNull:true
     }
   },
