@@ -938,9 +938,13 @@ const verifyMobileNumber = async (req, res) => {
         message: "Login Successfully!",
     })
   } catch (error) {
+    console.error("Error verifying mobile number:", error.message);
+      if (error.code === "auth/user-not-found") {
+          return res.status(404).json({ message: "Mobile number not found!" });
+      }
       res.status(500).json({
         success: false,
-        message: "Internal server error.",
+        message: "Internal server error.", 
         error: error.message,
       });
     }
@@ -971,6 +975,46 @@ const verifyMobile = async(req,res)=>{
   }
 }
 
+const setLanguage = async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { languages, language_id } = req.body;
+    if (!uid) {
+      return res.status(401).json({ message: "User not found!" });
+    }
+
+    if (!Array.isArray(languages) || !Array.isArray(language_id)) {
+      return res.status(400).json({ message: "Languages and language_id must be arrays." });
+    }
+    if (languages.length !== language_id.length) {
+      return res.status(400).json({ message: "languages and language_id must have the same length." });
+    }
+
+    const user = await User.findByPk(uid);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found!" });
+    }
+
+    user.languages = JSON.stringify(languages);
+    user.language_id = JSON.stringify(language_id);
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Languages updated successfully!",
+      user: {
+        id: user.id,
+        languages: JSON.parse(user.languages),
+        language_id: JSON.parse(user.language_id),
+      },
+    });
+  } catch (error) {
+    console.error("Error updating languages:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 module.exports = {
   userRegister,
   userLogin,
@@ -992,5 +1036,6 @@ module.exports = {
   removeOneSignalId,
   verifyEmail,
   verifyMobileNumber,
-  verifyMobile
+  verifyMobile,
+  setLanguage
 };

@@ -102,6 +102,14 @@ const User = sequelize.define(
     one_subscription:{
       type:DataTypes.TEXT,
       allowNull:true
+    },
+    languages:{
+      type:DataTypes.JSON,
+      allowNull:false,
+      defaultValue:["English"] 
+    },
+    language_id:{
+      type:DataTypes.JSON,
     }
   },
   {

@@ -4,7 +4,6 @@ const TblBook = require("../models/TblBook");
 const Property = require("../models/Property");
 const { Op, or, where } = require("sequelize");
 // const { sendResponse } = require("../utils");
-const PaymentList = require("../models/PaymentList");
 
 const { default: axios } = require("axios");
 
@@ -266,6 +265,116 @@ const createBooking = async (req, res) => {
   }
 };
 
+const editBooking = async(req,res)=>{
+  const uid = req.user.id;
+  const {book_id}=req.params;
+  const {check_in,check_out,add_note,book_for,id_proof,extra_guest,
+        adults,children,infants,pets,fname,lname,gender,mobile,email,country,ccode}=req.body;
+        const id_proof_img = req.file;
+        try {
+          const booking = await TblBook.findOne({where:{id:book_id,uid}})
+          if(!booking){
+            return res.status(403).json({
+              success:false,
+              message:"Your not authorized to edit the booking."
+            })
+          }
+          const property = await Property.findOne({ where: { id: booking.prop_id } });
+    if (
+      (check_in >= property.block_start && check_in <= property.block_end) ||
+      (check_out >= property.block_start && check_out <= property.block_end) ||
+      (check_in <= property.block_start && check_out >= property.block_end)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "This Property is blocked during the selected dates. Please select different dates.",
+      });
+    }
+    if (
+      adults > property.adults ||
+      children > property.children ||
+      infants > property.infants ||
+      pets > property.pets
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: `Guests limit exceeded! Adults: ${property.adults}, Children: ${property.children}, Infants: ${property.infants}, Pets: ${property.pets}`,
+      });
+    }
+    let idProofUrl = booking.id_proof_img;
+    if (id_proof_img) {
+      try {
+        const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
+        idProofUrl = uploadedFiles;
+      } catch (error) {
+        console.error("Error uploading ID proof to S3:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to upload ID proof. Please try again later.",
+        });
+      }
+    }
+
+    await booking.update({
+      check_in,
+      check_out,
+      add_note,
+      book_for,
+      id_proof,
+      id_proof_img: idProofUrl,
+      extra_guest,
+      adults,
+      children,
+      infants,
+      pets,
+    });
+    if(book_for === 'other'){
+      const personRecord = await PersonRecord.findOne({where:{book_id}})
+      if(personRecord){
+        await personRecord.update({fname,lname,gender,mobile,email,country,ccode})
+      }else{
+        await PersonRecord.create({ book_id, fname, lname, gender, email, mobile,country,ccode });
+      }
+    }
+    const traveler = await User.findByPk(uid);
+    const host = await User.findByPk(property.add_user_id);
+    try {
+      const notificationContent = {
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_player_ids: [traveler.one_subscription, host.one_subscription],
+        data: { user_id: traveler.id, type: "booking_update" },
+        contents: {
+          en: `${traveler.name}, Your booking for ${property.title} has been updated!`,
+        },
+        headings: { en: "Booking Updated!" },
+      };
+
+      await axios.post("https://onesignal.com/api/v1/notifications", notificationContent, {
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+        },
+      });
+
+      console.log("Notification sent for booking update.");
+    } catch (error) {
+      console.error("Error sending notification:", error);
+    }
+    return res.status(201).json({
+      success:true,
+      message:"Booking Updated successfully!",
+      data:booking
+    })
+     } catch (error) {
+      console.error("Error updating booking:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal Server Error!",
+      });
+    }
+}
+
 const confirmBooking = async (req, res) => {
   const uid = req.user.id;
   if (!uid) {
@@ -364,9 +473,17 @@ const getBookingDetails = async (req, res) => {
   }
   const { book_id } = req.body;
 
-  const user = await User.findByPk(uid);
+  const user = await User.findByPk(uid,{attributes:["name","languages"]});
   if (!user) {
     return sendResponse(res, 401, "false", "User Not Found!");
+  }
+
+  let languages = [];
+  try {
+    languages = user.languages ? JSON.parse(user.languages) : ["English"];
+  } catch (error) {
+    console.error("Error parsing languages:", error);
+    languages = ["English"];
   }
 
   // Validation
@@ -423,6 +540,7 @@ const getBookingDetails = async (req, res) => {
       prop_price: booking.prop_price,
       total_day: booking.total_day,
       cancle_reason: booking.cancle_reason || "",
+      languages:languages
     };
 
     // Fetch payment method title
@@ -1465,6 +1583,7 @@ const hostBlockBookingProperty = async (req, res) => {
 
 module.exports = {
   createBooking,
+  editBooking,
   confirmBooking,
   userCheckIn,
   userCheckOut,
