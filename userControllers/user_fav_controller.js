@@ -164,21 +164,24 @@ const getFavoriteList = async (req, res) => {
 
     // Map the favorite properties
     const favoriteList = await Promise.all(
-      favorites.map(async (fav) => {
-        const property = fav.property;
-        return {
-          id: property.id,
-          title: property.title,
-          rate: await getPropertyRate(property.id),
-          city: property.city,
-          buyorrent: property.is_sell,
-          property_type: property.ptype,
-          image: property.image,
-          price: property.price,
-          IS_FAVOURITE: true,
-        };
-      })
+      favorites
+        .filter((fav) => fav.property) // Filter out null properties
+        .map(async (fav) => {
+          const property = fav.property;
+          return {
+            id: property.id,
+            title: property.title,
+            rate: await getPropertyRate(property.id),
+            city: property.city,
+            buyorrent: property.is_sell,
+            property_type: property.ptype,
+            image: property.image,
+            price: property.price,
+            IS_FAVOURITE: true,
+          };
+        })
     );
+    
 
     return res.status(200).json({
       ResponseCode: "200",
