@@ -86,21 +86,21 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// app.use(
-//   cors({
-//     origin: [
-//       "https://servostay-flame.vercel.app",
-//       "https://servostay-ten.vercel.app",
-//       "http://localhost:3000",
-//       "https://property-rental-backend-6.onrender.com",
-//       "http://localhost:58160",
-//       "*"
-//     ],
-//     // credentials: true,
-//   })
-// );
+app.use(
+  cors({
+    origin: [
+      "https://servostay-flame.vercel.app",
+      "https://servostay-ten.vercel.app",
+      "http://localhost:3000",
+      "https://property-rental-backend-6.onrender.com",
+      "http://localhost:58160",
+      "https://servostayweb1.vercel.app/"
+    ],
+    credentials: true,
+  })
+);
 
-app.use(cors({ origin: "*" }));;
+// app.use(cors({ origin: "*" }));;
 
 app.use(cookieParser());
 app.use(

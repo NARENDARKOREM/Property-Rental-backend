@@ -237,7 +237,7 @@ const editProperty = async (req, res) => {
     if (!beds) missingFields.push("beds");
     if (!bathroom) missingFields.push("bathroom");
     if (!sqrft) missingFields.push("sqrft");
-    if (!rate) missingFields.push("rate");
+    // if (!rate) missingFields.push("rate");
     if (!rules) missingFields.push("rules");
     if (!latitude) missingFields.push("latitude");
     if (!longtitude) missingFields.push("longtitude");
@@ -386,10 +386,15 @@ const getPropertyList = async (req, res) => {
       properties.map(async (property) => {
         console.log("Processing property:", property);
 
+        // const facilityIds = property.facility
+        //   ? property.facility.split(",")
+        //   : [];
         const facilityIds = property.facility
-          ? property.facility.split(",")
-          : [];
+  ? property.facility.replace(/[\[\]']/g, "").split(",").filter(id => id.trim() !== "null")
+  : [];
+
         console.log("Facility IDs:", facilityIds);
+        console.log(typeof(facilityIds),"data typeeeeeeeeeeeeeeeeeeeee")
 
         const facilityTitles = await TblFacility.findAll({
           where: { id: { [Op.in]: facilityIds } },

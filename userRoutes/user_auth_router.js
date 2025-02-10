@@ -27,7 +27,8 @@ const {
   removeOneSignalId,
   verifyEmail,
 verifyMobileNumber,
-verifyMobile
+verifyMobile,
+setLanguage
 } = require("../userControllers/user_auth_controller");
 
 router.post("/user/signup", userRegister);
@@ -52,7 +53,8 @@ router.put("/user/delete", authMiddleware.isAuthenticated, deleteUserAccount);
 router.put("/user/one_subscribe", authMiddleware.isAuthenticated, updateOneSignalSubscription);
 
 router.get("/user/getData",authMiddleware.isAuthenticated,getUserData)
-router.put("/user/remove_onesignal_id",authMiddleware.isAuthenticated,removeOneSignalId)
+router.put("/user/remove_onesignal_id",authMiddleware.isAuthenticated,removeOneSignalId);
+router.put("/user/language",authMiddleware.isAuthenticated,setLanguage)
 
 
 module.exports = router;  
