@@ -18,6 +18,7 @@ router.post("/check-in",authMiddleware.isAuthenticated, userBookings.userCheckIn
 router.post("/check-out",authMiddleware.isAuthenticated, userBookings.userCheckOut);
 router.post("/booking-details", authMiddleware.isAuthenticated, userBookings.getBookingDetails);
 router.post("/booking-cancel", authMiddleware.isAuthenticated, userBookings.cancelBooking);
+router.post("/cancel-by-host",authMiddleware.isAuthenticated,userBookings.cancelTravelerBookingByHost)
 
 // Traveller booking status
 router.post(
