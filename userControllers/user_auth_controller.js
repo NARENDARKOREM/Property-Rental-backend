@@ -609,7 +609,9 @@ const updateUser = async (req, res) => {
         mobile: user.mobile,
         languages: JSON.parse(user.languages), 
         currency: user.currency,
-        role:user.role
+        roleChangeRequests:user.role,
+        status:user.status,
+        pro_pic:user.pro_pic
       },
       availableCountries, // Send country list in response
     });
