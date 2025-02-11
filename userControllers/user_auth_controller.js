@@ -558,7 +558,7 @@ const updateUser = async (req, res) => {
       });
     }
 
-    const { name, gender, email, ccode, country_id, mobile } = req.body;
+    const { name, gender, email, ccode, country_id, mobile,languages } = req.body;
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
@@ -567,6 +567,7 @@ const updateUser = async (req, res) => {
     if (ccode !== undefined) updateData.ccode = ccode;
     if (country_id !== undefined) updateData.country_id = country_id;
     if (mobile !== undefined) updateData.mobile = mobile;
+    if (languages !== undefined) updateData.languages = languages;
 
     // Fetch country and currency details if country_id is updated
     if (country_id) {
