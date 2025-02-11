@@ -168,6 +168,7 @@ app.use("/price-calendar", priceCalendarRoutes);
 app.use("/traveler-review", traverlerReviewRoutes);
 app.use("/host-review", hostTravelerReviewRoutes);
 app.use("/u_cities",uCityRoutes)
+app.use("/app-settings",require("./userRoutes/setting_routes"))
 
 app.get("/", (req, res) => {
   // const query
