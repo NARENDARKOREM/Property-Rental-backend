@@ -169,6 +169,7 @@ app.use("/traveler-review", traverlerReviewRoutes);
 app.use("/host-review", hostTravelerReviewRoutes);
 app.use("/u_cities",uCityRoutes)
 app.use("/app-settings",require("./userRoutes/setting_routes"))
+app.use("/notifications",require('./userRoutes/u_nofifications_routes'))
 
 app.get("/", (req, res) => {
   // const query

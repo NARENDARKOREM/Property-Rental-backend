@@ -209,44 +209,47 @@ const createBooking = async (req, res) => {
       });
     }
     let host = null;
+    // if (property.add_user_id) {
+    //   const u_id = property.add_user_id;
+    //   host = await User.findByPk(u_id);
+    // }
     if (property.add_user_id) {
-      const u_id = property.add_user_id;
-      host = await User.findByPk(u_id);
+      host = await User.findByPk(property.add_user_id);
     }
 
-    try {
-      const notificationContent = {
-        app_id: process.env.ONESIGNAL_APP_ID,
-        include_player_ids: [host.one_subscription],
-        data: { user_id: user.id, type: "role_change" },
-        contents: {
-          en: `${user.name}, Your booking for ${booking.prop_title} has been Confirmed! Your Booking ID is ${booking.id}`,
-        },
-        headings: { en: "Booking Confirmed!" },
-      };
+     // Send notifications
+     try {
+      if (host && host.one_subscription) {
+        await axios.post("https://onesignal.com/api/v1/notifications", {
+          app_id: process.env.ONESIGNAL_APP_ID,
+          include_player_ids: [host.one_subscription],
+          data: { user_id: user.id, type: "booking_confirmed" },
+          contents: { en: `New booking confirmed for ${booking.prop_title}. Booking ID: ${booking.id}` },
+          headings: { en: "New Booking Received!" },
+        }, {
+          headers: { "Content-Type": "application/json", Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}` },
+        });
+      }
 
-      const response = await axios.post(
-        "https://onesignal.com/api/v1/notifications",
-        notificationContent,
-        {
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
-          },
-        }
-      );
-
-      console.log(response, "notification sent");
+      if (user.one_subscription) {
+        await axios.post("https://onesignal.com/api/v1/notifications", {
+          app_id: process.env.ONESIGNAL_APP_ID,
+          include_player_ids: [user.one_subscription],
+          data: { user_id: user.id, type: "booking_confirmed" },
+          contents: { en: `Your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}` },
+          headings: { en: "Booking Confirmed!" },
+        }, {
+          headers: { "Content-Type": "application/json", Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}` },
+        });
+      }
     } catch (error) {
-      console.log(error);
+      console.log("Error sending notifications:", error);
     }
 
-    await TblNotification.create({
-      uid: uid,
-      datetime: new Date(),
-      title: "Property has been Booked",
-      description: `Your booking for ${booking.prop_title} has been Confirmed! Your Booking ID is ${booking.id}`,
-    });
+    await TblNotification.create({ uid: uid, datetime: new Date(), title: "Booking Confirmed", description: `Your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}` });
+    if (host) {
+      await TblNotification.create({ uid: host.id, datetime: new Date(), title: "New Booking", description: `A new booking has been confirmed for ${booking.prop_title}. Booking ID: ${booking.id}` });
+    }
 
     return res.status(200).json({
       success: true,
@@ -340,22 +343,42 @@ const editBooking = async(req,res)=>{
     const traveler = await User.findByPk(uid);
     const host = await User.findByPk(property.add_user_id);
     try {
-      const notificationContent = {
+      // Notification for Traveler
+      const travelerNotification = {
         app_id: process.env.ONESIGNAL_APP_ID,
-        include_player_ids: [traveler.one_subscription, host.one_subscription],
+        include_player_ids: [traveler.one_subscription],
         data: { user_id: traveler.id, type: "booking_update" },
         contents: {
-          en: `${traveler.name}, Your booking for ${property.title} has been updated!`,
+          en: `Your booking for ${property.title} has been successfully updated!`,
         },
         headings: { en: "Booking Updated!" },
       };
 
-      await axios.post("https://onesignal.com/api/v1/notifications", notificationContent, {
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+      // Notification for Host
+      const hostNotification = {
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_player_ids: [host.one_subscription],
+        data: { user_id: host.id, type: "booking_update" },
+        contents: {
+          en: `The booking for ${property.title} has been updated by ${traveler.name}.`,
         },
-      });
+        headings: { en: "Booking Updated by Guest!" },
+      };
+
+     // Send notifications separately
+     await axios.post("https://onesignal.com/api/v1/notifications", travelerNotification, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+      },
+    });
+
+    await axios.post("https://onesignal.com/api/v1/notifications", hostNotification, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+      },
+    });
 
       console.log("Notification sent for booking update.");
     } catch (error) {
@@ -650,6 +673,7 @@ const userCheckIn = async (req, res) => {
             "price",
             "address",
             "rate",
+            "add_user_id"
           ],
         },
       ],
@@ -664,10 +688,59 @@ const userCheckIn = async (req, res) => {
       );
     }
 
+    const property = booking.properties
+    const host = await User.findByPk(property.add_user_id)
+    if (!host) {
+      return sendResponse(res, 404, "false", "Host not found!");
+    }
+
     await TblBook.update(
       { book_status: "Check_in" },
       { where: { id: book_id, uid } }
     );
+
+    try {
+      const notificationContent = {
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_player_ids: [req.user.one_subscription, host.one_subscription],
+        data: { user_id: uid, type: "check_in" },
+        contents: {
+          en: `Check-in successful for ${property.title}!`,
+        },
+        headings: { en: "Check-in Confirmed!" },
+      };
+
+      const response = await axios.post(
+        "https://onesignal.com/api/v1/notifications",
+        notificationContent,
+        {
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+          },
+        }
+      );
+
+      console.log("Notification sent for check-in:", response.data);
+    } catch (error) {
+      console.error("Error sending notification:", error);
+    }
+
+    // Save notifications for both traveler and host
+    await TblNotification.bulkCreate([
+      {
+        uid: uid,
+        datetime: new Date(),
+        title: "Check-in Successful",
+        description: `You have successfully checked into ${property.title}. Enjoy your stay!`,
+      },
+      {
+        uid: host.id,
+        datetime: new Date(),
+        title: "Guest Checked In",
+        description: `A guest has checked into your property: ${property.title}.`,
+      },
+    ]);
 
     return res.status(200).json({
       ResponseCode: "200",
@@ -687,6 +760,45 @@ const userCheckIn = async (req, res) => {
   }
 };
 
+// const userCheckOut = async (req, res) => {
+//   const uid = req.user.id;
+//   if (!uid) {
+//     return res.status(401).json({ message: "User Not Found!" });
+//   }
+//   const { book_id } = req.body;
+
+//   if (!book_id) {
+//     return sendResponse(res, 401, "false", "book_id is Required!");
+//   }
+
+//   try {
+//     const booking = await TblBook.findOne({
+//       where: { id: book_id, uid: uid, book_status: "Check_in" },
+//     });
+
+//     if (!booking) {
+//       return sendResponse(
+//         res,
+//         404,
+//         "false",
+//         "Booking not found, or you don't have permission to check-out this booking!"
+//       );
+//     }
+
+//     await TblBook.update(
+//       { book_status: "Completed" },
+//       { where: { id: book_id, uid } }
+//     );
+
+//     return sendResponse(res, 200, "true", "Checked Out Successfully!");
+//   } catch (error) {
+//     console.error("Error checking out:", error);
+//     return sendResponse(res, 500, "false", "Internal Server Error!");
+//   }
+// };
+
+// Cancel Booking
+
 const userCheckOut = async (req, res) => {
   const uid = req.user.id;
   if (!uid) {
@@ -695,12 +807,27 @@ const userCheckOut = async (req, res) => {
   const { book_id } = req.body;
 
   if (!book_id) {
-    return sendResponse(res, 401, "false", "book_id is Required!");
+    return sendResponse(res, 401, "false", "book_id is required!");
   }
 
   try {
     const booking = await TblBook.findOne({
       where: { id: book_id, uid: uid, book_status: "Check_in" },
+      include: [
+        {
+          model: Property,
+          as: "properties",
+          attributes: [
+            "id",
+            "title",
+            "address",
+            "ptype",
+            "price",
+            "rate",
+            "add_user_id", // Get the host's user ID
+          ],
+        },
+      ],
     });
 
     if (!booking) {
@@ -708,14 +835,63 @@ const userCheckOut = async (req, res) => {
         res,
         404,
         "false",
-        "Booking not found, or you don't have permission to check-out this booking!"
+        "Booking not found, or you don't have permission to check out of this booking!"
       );
+    }
+
+    const property = booking.properties;
+    const host = await User.findByPk(property.add_user_id);
+    if (!host) {
+      return sendResponse(res, 404, "false", "Host not found!");
     }
 
     await TblBook.update(
       { book_status: "Completed" },
       { where: { id: book_id, uid } }
     );
+
+    try {
+      const notificationContent = {
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_player_ids: [req.user.one_subscription, host.one_subscription],
+        data: { user_id: uid, type: "check_out" },
+        contents: {
+          en: `You have successfully checked out from ${property.title}.`,
+        },
+        headings: { en: "Check-out Completed!" },
+      };
+
+      const response = await axios.post(
+        "https://onesignal.com/api/v1/notifications",
+        notificationContent,
+        {
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+          },
+        }
+      );
+
+      console.log("Notification sent for check-out:", response.data);
+    } catch (error) {
+      console.error("Error sending notification:", error);
+    }
+
+    // Save notifications for both traveler and host
+    await TblNotification.bulkCreate([
+      {
+        uid: uid,
+        datetime: new Date(),
+        title: "Check-out Successful",
+        description: `You have successfully checked out from ${property.title}. We hope you had a great stay!`,
+      },
+      {
+        uid: host.id,
+        datetime: new Date(),
+        title: "Guest Checked Out",
+        description: `A guest has checked out from your property: ${property.title}.`,
+      },
+    ]);
 
     return sendResponse(res, 200, "true", "Checked Out Successfully!");
   } catch (error) {
@@ -724,7 +900,7 @@ const userCheckOut = async (req, res) => {
   }
 };
 
-// Cancel Booking
+
 const cancelBooking = async (req, res) => {
   const uid = req.user.id;
   if (!uid) {
@@ -758,6 +934,15 @@ const cancelBooking = async (req, res) => {
         "Booking not found, or you don't have permission to cancel this booking!"
       );
     }
+    const property = await Property.findOne({ where: { id: booking.prop_id } });
+    if (!property) {
+      return sendResponse(res, 404, "false", "Property not found!");
+    }
+
+    const host = await User.findByPk(property.add_user_id);
+    if (!host) {
+      return sendResponse(res, 404, "false", "Host not found!");
+    }
 
     await TblBook.update(
       { book_status: "Cancelled", cancle_reason },
@@ -767,7 +952,7 @@ const cancelBooking = async (req, res) => {
     try {
       const notificationContent = {
         app_id: process.env.ONESIGNAL_APP_ID,
-        include_player_ids: [user.one_subscription],
+        include_player_ids: [user.one_subscription,host.one_subscription],
         data: { user_id: user.id, type: "booking Cancelled" },
         contents: {
           en: `${user.name}, Your booking for ${booking.prop_title} has been cancelled!`,
@@ -791,13 +976,21 @@ const cancelBooking = async (req, res) => {
       console.log(error);
     }
 
-    // Create a notification record in the database
-    await TblNotification.create({
+   // Create notifications for both traveler and host
+   await TblNotification.bulkCreate([
+    {
       uid: uid,
       datetime: new Date(),
-      title: "Booking Confirmed",
-      description: `Your booking for ${booking.prop_title} has been confirmed! Your Booking ID is ${booking.id}`,
-    });
+      title: "Booking Cancelled",
+      description: `Your booking for ${property.title} has been cancelled!`,
+    },
+    {
+      uid: host.id,
+      datetime: new Date(),
+      title: "Booking Cancelled",
+      description: `A booking for your property ${property.title} has been cancelled!`,
+    },
+  ]);
 
     return sendResponse(res, 200, "true", "Booking Cancelled Successfully!");
   } catch (error) {
@@ -853,6 +1046,7 @@ const cancelTravelerBookingByHost = async (req, res) => {
 
     // Notify the traveler
     const traveler = await User.findByPk(booking.uid);
+    const hostUser = await User.findByPk(hostId);
     if (traveler && traveler.one_subscription) {
       try {
         const notificationContent = {
@@ -880,6 +1074,32 @@ const cancelTravelerBookingByHost = async (req, res) => {
         console.log(error);
       }
     }
+
+    if (hostUser && hostUser.one_subscription) {
+      try {
+        await axios.post(
+          "https://onesignal.com/api/v1/notifications",
+          {
+            app_id: process.env.ONESIGNAL_APP_ID,
+            include_player_ids: [hostUser.one_subscription],
+            data: { user_id: hostUser.id, type: "booking_cancelled" },
+            contents: {
+              en: `You have successfully cancelled the booking for "${booking.prop_title}".`,
+            },
+            headings: { en: "Booking Cancellation Confirmed" },
+          },
+          {
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+              Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+            },
+          }
+        );
+      } catch (error) {
+        console.log("Host notification error:", error);
+      }
+    }
+
 
     // Create a notification record in the database
     await TblNotification.create({
