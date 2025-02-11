@@ -108,9 +108,6 @@ const User = sequelize.define(
       allowNull:false,
       defaultValue:["English"] 
     },
-    language_id:{
-      type:DataTypes.JSON,
-    }
   },
   {
     tableName: "tbl_user",

@@ -54,7 +54,7 @@ router.put("/user/one_subscribe", authMiddleware.isAuthenticated, updateOneSigna
 
 router.get("/user/getData",authMiddleware.isAuthenticated,getUserData)
 router.put("/user/remove_onesignal_id",authMiddleware.isAuthenticated,removeOneSignalId);
-router.put("/user/language",authMiddleware.isAuthenticated,setLanguage)
+router.put("/user/set-language",authMiddleware.isAuthenticated,setLanguage)
 
 
 module.exports = router;  

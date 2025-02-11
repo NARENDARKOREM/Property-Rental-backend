@@ -567,7 +567,7 @@ const updateUser = async (req, res) => {
     if (ccode !== undefined) updateData.ccode = ccode;
     if (country_id !== undefined) updateData.country_id = country_id;
     if (mobile !== undefined) updateData.mobile = mobile;
-    if (languages !== undefined) updateData.languages = languages;
+    if (languages !== undefined) updateData.languages = JSON.stringify(languages);
 
     // Fetch country and currency details if country_id is updated
     if (country_id) {
@@ -599,7 +599,17 @@ const updateUser = async (req, res) => {
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "User updated successfully!",
-      user,
+      user: {
+        id: user.id,
+        name: user.name,
+        gender: user.gender,
+        email: user.email,
+        ccode: user.ccode,
+        country_id: user.country_id,
+        mobile: user.mobile,
+        languages: JSON.parse(user.languages), 
+        currency: user.currency,
+      },
       availableCountries, // Send country list in response
     });
   } catch (error) {
@@ -978,41 +988,35 @@ const verifyMobile = async(req,res)=>{
 
 const setLanguage = async (req, res) => {
   try {
-    const uid = req.user.id;
-    const { languages, language_id } = req.body;
+    const uid = req.user?.id;
+    const { languages } = req.body;
+
     if (!uid) {
       return res.status(401).json({ message: "User not found!" });
     }
 
-    if (!Array.isArray(languages) || !Array.isArray(language_id)) {
-      return res.status(400).json({ message: "Languages and language_id must be arrays." });
-    }
-    if (languages.length !== language_id.length) {
-      return res.status(400).json({ message: "languages and language_id must have the same length." });
+    if (!Array.isArray(languages)) {
+      return res.status(400).json({ message: "Languages must be an array." });
     }
 
     const user = await User.findByPk(uid);
-
     if (!user) {
       return res.status(404).json({ message: "User not found!" });
     }
 
     user.languages = JSON.stringify(languages);
-    user.language_id = JSON.stringify(language_id);
-
     await user.save();
 
     return res.status(200).json({
       message: "Languages updated successfully!",
       user: {
         id: user.id,
-        languages: JSON.parse(user.languages),
-        language_id: JSON.parse(user.language_id),
+        languages: JSON.parse(user.languages), 
       },
     });
   } catch (error) {
     console.error("Error updating languages:", error);
-    res.status(500).json({ message: "Internal server error." });
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
