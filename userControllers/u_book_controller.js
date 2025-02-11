@@ -806,6 +806,96 @@ const cancelBooking = async (req, res) => {
   }
 };
 
+const cancelTravelerBookingByHost = async (req, res) => {
+  const hostId = req.user.id;
+  if (!hostId) {
+    return res.status(401).json({ message: "User Not Found!" });
+  }
+  
+  const { book_id, cancle_reason } = req.body;
+
+  if (!book_id || !hostId) {
+    return sendResponse(res, 401, "false", "book_id and hostId are required!");
+  }
+
+  const host = await User.findByPk(hostId);
+  if (!host || host.role !== "host") {
+    return sendResponse(res, 403, "false", "Unauthorized! Only hosts can cancel bookings.");
+  }
+
+  try {
+    const booking = await TblBook.findOne({
+      where: {
+        id: book_id,
+        add_user_id: hostId,
+        book_status: { [Op.in]: ["Confirmed", "Booked"] },
+      },
+      include:{
+        model:Property,
+        as:"properties",
+        where:{add_user_id:hostId}
+      }
+    });
+
+    if (!booking) {
+      return sendResponse(
+        res,
+        404,
+        "false",
+        "Booking not found, or you don't have permission to cancel this booking!"
+      );
+    }
+
+    await TblBook.update(
+      { book_status: "Cancelled", cancle_reason },
+      { where: { id: book_id, add_user_id: hostId } }
+    );
+
+    // Notify the traveler
+    const traveler = await User.findByPk(booking.uid);
+    if (traveler && traveler.one_subscription) {
+      try {
+        const notificationContent = {
+          app_id: process.env.ONESIGNAL_APP_ID,
+          include_player_ids: [traveler.one_subscription],
+          data: { user_id: traveler.id, type: "booking Cancelled" },
+          contents: {
+            en: `Dear ${traveler.name}, your booking for ${booking.prop_title} has been cancelled by the host!`,
+          },
+          headings: { en: "Booking Cancelled By Host" },
+        };
+
+        const response = await axios.post(
+          "https://onesignal.com/api/v1/notifications",
+          notificationContent,
+          {
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+              Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+            },
+          }
+        );
+        console.log(response.data, "notification sent");
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    // Create a notification record in the database
+    await TblNotification.create({
+      uid: booking.uid,
+      datetime: new Date(),
+      title: `Booking Cancelled Due to ${cancle_reason}`,
+      description: `Your booking for ${booking.prop_title} has been cancelled by the host. Booking ID: ${booking.id}`,
+    });
+
+    return sendResponse(res, 200, "true", "Booking Cancelled Successfully by Host!");
+  } catch (error) {
+    console.error("Error canceling booking by host:", error);
+    return sendResponse(res, 500, "false", "Internal Server Error!");
+  }
+};
+
 // Get Traveller Bookings Status
 const getTravelerBookingsByStatus = async (req, res) => {
   const uid = req.user?.id; // Ensure user is authenticated
@@ -1593,6 +1683,7 @@ module.exports = {
   hostPropertiesBookingStatus,
   propertyBookingStatus,
   hostBlockBookingProperty,
+  cancelTravelerBookingByHost,
 
   getMyUserBookings,
   getMyUserBookingDetails,
