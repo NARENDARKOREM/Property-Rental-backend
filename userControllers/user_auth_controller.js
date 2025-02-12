@@ -567,7 +567,19 @@ const updateUser = async (req, res) => {
     if (ccode !== undefined) updateData.ccode = ccode;
     if (country_id !== undefined) updateData.country_id = country_id;
     if (mobile !== undefined) updateData.mobile = mobile;
-    if (languages !== undefined) updateData.languages = JSON.stringify(languages);
+    // if (languages !== undefined) updateData.languages = JSON.stringify(languages);
+
+    if (languages !== undefined) {
+      if (Array.isArray(languages)) {
+        updateData.languages = languages; // Store as an array
+      } else {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg: "Languages must be an array!",
+        });
+      }
+    }
 
     // Fetch country and currency details if country_id is updated
     if (country_id) {
@@ -607,7 +619,7 @@ const updateUser = async (req, res) => {
         ccode: user.ccode,
         country_id: user.country_id,
         mobile: user.mobile,
-        languages: JSON.parse(user.languages), 
+        languages: user.languages, 
         currency: user.currency,
         roleChangeRequests:user.role,
         status:user.status,
@@ -923,46 +935,104 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+// const verifyMobileNumber = async (req, res) => {
+//   const { mobile, ccode } = req.body;
+
+//   try {
+//     const existingUserByMobile = await User.findOne({ where: { mobile } });
+//     if (existingUserByMobile) {
+//       const token = generateToken(existingUserByMobile);
+//       return res.status(200).json({
+//         user: existingUserByMobile,
+//         token,
+//         ResponseCode: "200",
+//         Result: "true",
+//         message: "Login Successfully!",
+//       });
+//     }
+//     const newUser = await User.create({
+//       ccode,
+//       mobile,
+//       reg_date: new Date()
+//     })
+//     const token = generateToken(existingUserByMobile);
+//     return res.status(200).json({
+//       user: newUser,
+//         token,
+//         ResponseCode: "200",
+//         Result: "true",
+//         message: "Login Successfully!",
+//     })
+//   } catch (error) {
+//     console.error("Error verifying mobile number:", error.message);
+//       if (error.code === "auth/user-not-found") {
+//           return res.status(404).json({ message: "Mobile number not found!" });
+//       }
+//       res.status(500).json({
+//         success: false,
+//         message: "Internal server error.", 
+//         error: error.message,
+//       });
+//     }
+// };
+
+
 const verifyMobileNumber = async (req, res) => {
   const { mobile, ccode } = req.body;
 
   try {
-    const existingUserByMobile = await User.findOne({ where: { mobile } });
-    if (existingUserByMobile) {
-      const token = generateToken(existingUserByMobile);
-      return res.status(200).json({
-        user: existingUserByMobile,
-        token,
-        ResponseCode: "200",
-        Result: "true",
-        message: "Login Successfully!",
+    let user = await User.findOne({ where: { mobile } });
+
+    if (!user) {
+      user = await User.create({
+        ccode,
+        mobile,
+        reg_date: new Date()
       });
     }
-    const newUser = await User.create({
-      ccode,
-      mobile,
-      reg_date: new Date()
-    })
-    const token = generateToken(existingUserByMobile);
+
+    const token = generateToken(user);
+
+    // Ensure `languages` is properly formatted
+    let languages = [];
+
+    if (user.languages) {
+      console.log("Raw languages value from DB:", user.languages); // Debugging log
+
+      try {
+        // Parse only if stored as a stringified JSON array
+        if (typeof user.languages === "string") {
+          languages = JSON.parse(user.languages);
+        } else if (Array.isArray(user.languages)) {
+          languages = user.languages;
+        }
+      } catch (error) {
+        console.error("Error parsing languages:", error.message);
+      }
+    }
+
     return res.status(200).json({
-      user: newUser,
-        token,
-        ResponseCode: "200",
-        Result: "true",
-        message: "Login Successfully!",
-    })
+      user: {
+        ...user.toJSON(),
+        languages: languages // Directly return the parsed array
+      },
+      token,
+      ResponseCode: "200",
+      Result: "true",
+      message: "Login Successfully!"
+    });
+
   } catch (error) {
     console.error("Error verifying mobile number:", error.message);
-      if (error.code === "auth/user-not-found") {
-          return res.status(404).json({ message: "Mobile number not found!" });
-      }
-      res.status(500).json({
-        success: false,
-        message: "Internal server error.", 
-        error: error.message,
-      });
-    }
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message
+    });
+  }
 };
+
+
 
 const verifyMobile = async(req,res)=>{
   const {mobile}=req.body;
