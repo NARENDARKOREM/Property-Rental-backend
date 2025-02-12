@@ -10,6 +10,7 @@ const { default: axios } = require("axios");
 const uploadToS3 = require("../config/fileUpload.aws");
 const HostTravelerReview = require("../models/HostTravelerReview");
 const TblNotification = require("../models/TblNotification");
+const TravelerHostReview = require("../models/TravelerHostReview");
 
 const sendResponse = (res, code, result, msg, additionalData = {}) => {
   res.status(code).json({
@@ -569,6 +570,10 @@ const getBookingDetails = async (req, res) => {
       book_status: booking.book_status,
       check_intime: booking.check_intime,
       extra_guest: booking.extra_guest,
+      adults:booking.adults,
+      children:booking.children,
+      infants:booking.infants,
+      pets:booking.pets,
       extra_guest_charges: booking.extra_guest_charges,
       check_outtime: booking.check_outtime,
       book_for: booking.book_for,
@@ -1282,12 +1287,23 @@ const getTravelerBookingsByStatus = async (req, res) => {
     });
     const review = reviews.length > 0 ? reviews : 0;
 
+    const travelerReviews = await Promise.all(
+      bookings.map(async (booking) => {
+        return await TravelerHostReview.findOne({
+          where: { traveler_id: uid, host_id: booking.add_user_id },
+          attributes: ["traveler_id", "host_id", "property_id", "review", "rating"]
+        });
+      })
+    );
+    
+
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Bookings fetched successfully!",
-      bookings, // Sending the complete booking details
+      bookings,
       review,
+      travelerReviews
     });
   } catch (error) {
     console.error("Error fetching bookings by status:", error);
