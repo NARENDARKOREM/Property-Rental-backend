@@ -274,7 +274,9 @@ const editBooking = async(req,res)=>{
   const uid = req.user.id;
   const {book_id}=req.params;
   const {check_in,check_out,add_note,book_for,id_proof,extra_guest,
-        adults,children,infants,pets,fname,lname,gender,mobile,email,country,ccode}=req.body;
+        adults,children,infants,pets,fname,lname,gender,mobile,email,country,ccode,
+      subtotal,total,total_day,cou_amt,wall_amt,transaction_id,prop_price,
+    p_method_id,tax,extra_guest_charges,platform_fee}=req.body;
         const id_proof_img = req.file;
         try {
           const booking = await TblBook.findOne({where:{id:book_id,uid}})
@@ -333,6 +335,17 @@ const editBooking = async(req,res)=>{
       children,
       infants,
       pets,
+      subtotal,
+      total,
+      total_day,
+      cou_amt,
+      wall_amt,
+      transaction_id,
+      prop_price,
+      p_method_id,
+      tax,
+      platform_fee,
+      extra_guest_charges
     });
     if(book_for === 'other'){
       const personRecord = await PersonRecord.findOne({where:{book_id}})
@@ -1119,6 +1132,106 @@ const cancelTravelerBookingByHost = async (req, res) => {
 };
 
 // Get Traveller Bookings Status
+// const getTravelerBookingsByStatus = async (req, res) => {
+//   const uid = req.user?.id; // Ensure user is authenticated
+//   if (!uid) {
+//     return res.status(401).json({ message: "User Not Found!" });
+//   }
+
+//   const { status } = req.body;
+
+//   // Validate the `status` parameter
+//   if (!status || !["active", "completed", "cancelled"].includes(status)) {
+//     return res.status(400).json({
+//       ResponseCode: "401",
+//       Result: "false",
+//       ResponseMsg: "Invalid or missing status parameter!",
+//     });
+//   }
+
+//   try {
+//     // Build query filter based on status
+//     let queryFilter = { uid: uid };
+
+//     if (status === "active") {
+//       queryFilter.book_status = { [Op.in]: ["Booked", "Confirmed"] };
+//     } else if (status === "completed") {
+//       queryFilter.book_status = { [Op.eq]: "Completed" };
+//     } else if (status === "cancelled") {
+//       queryFilter.book_status = { [Op.eq]: "Cancelled" };
+//     }
+
+//     // Fetch bookings
+//     const bookings = await TblBook.findAll({
+//       where: queryFilter,
+//       order: [["id", "DESC"]],
+//     });
+
+//     if (bookings.length === 0) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "false",
+//         ResponseMsg: "No bookings found for the specified status.",
+//       });
+//     }
+
+//     const reviews = await TblBook.findAll({
+//       where: { is_rate: 1 },
+//       attributes: ["is_rate", "total_rate", "rate_text"],
+//     });
+//     const review = reviews.length > 0 ? reviews : 0;
+
+//     // Fetch property details for each booking
+//     const bookingDetails = await Promise.all(
+//       bookings.map(async (booking) => {
+//         const property = await Property.findOne({
+//           where: { id: booking.prop_id },
+//           attributes: ["id", "title", "image"],
+//         });
+
+//         if (!property) return null; // Skip if the property does not exist
+
+//         return {
+//           book_id: booking.id,
+//           prop_id: booking.prop_id,
+//           prop_title: property.title,
+//           prop_img: property.image,
+//           book_status: booking.book_status,
+//           prop_price: booking.prop_price,
+//           p_method_id: booking.p_method_id,
+//           total_day: booking.total_day,
+//           extra_guest: booking.extra_guest,
+//           extra_guest_charges: booking.extra_guest_charges,
+//           adults:booking.adults,
+//           children:booking.children,
+//           infants:booking.infants,
+//           pets:booking.pets,
+//           check_in:booking.check_in,
+//           check_out:booking.check_out,
+//         };
+//       })
+//     );
+
+//     // Filter out null values (e.g., if property is not found)
+//     const filteredBookingDetails = bookingDetails.filter((detail) => detail);
+
+//     return res.status(200).json({
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Bookings fetched successfully!",
+//       statuswise: filteredBookingDetails,
+//       review,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching bookings by status:", error);
+//     return res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error!",
+//     });
+//   }
+// };
+
 const getTravelerBookingsByStatus = async (req, res) => {
   const uid = req.user?.id; // Ensure user is authenticated
   if (!uid) {
@@ -1138,23 +1251,23 @@ const getTravelerBookingsByStatus = async (req, res) => {
 
   try {
     // Build query filter based on status
-    let queryFilter = { uid: uid };
+    let queryFilter = { uid };
 
     if (status === "active") {
       queryFilter.book_status = { [Op.in]: ["Booked", "Confirmed"] };
     } else if (status === "completed") {
-      queryFilter.book_status = { [Op.eq]: "Completed" };
+      queryFilter.book_status = "Completed";
     } else if (status === "cancelled") {
-      queryFilter.book_status = { [Op.eq]: "Cancelled" };
+      queryFilter.book_status = "Cancelled";
     }
 
-    // Fetch bookings
+    // Fetch complete booking details
     const bookings = await TblBook.findAll({
       where: queryFilter,
       order: [["id", "DESC"]],
     });
 
-    if (bookings.length === 0) {
+    if (!bookings.length) {
       return res.status(404).json({
         ResponseCode: "404",
         Result: "false",
@@ -1162,45 +1275,18 @@ const getTravelerBookingsByStatus = async (req, res) => {
       });
     }
 
+    // Fetch reviews if any
     const reviews = await TblBook.findAll({
       where: { is_rate: 1 },
       attributes: ["is_rate", "total_rate", "rate_text"],
     });
     const review = reviews.length > 0 ? reviews : 0;
 
-    // Fetch property details for each booking
-    const bookingDetails = await Promise.all(
-      bookings.map(async (booking) => {
-        const property = await Property.findOne({
-          where: { id: booking.prop_id },
-          attributes: ["id", "title", "image"],
-        });
-
-        if (!property) return null; // Skip if the property does not exist
-
-        return {
-          book_id: booking.id,
-          prop_id: booking.prop_id,
-          prop_title: property.title,
-          prop_img: property.image,
-          book_status: booking.book_status,
-          prop_price: booking.prop_price,
-          p_method_id: booking.p_method_id,
-          total_day: booking.total_day,
-          extra_guest: booking.extra_guest,
-          extra_guest_charges: booking.extra_guest_charges,
-        };
-      })
-    );
-
-    // Filter out null values (e.g., if property is not found)
-    const filteredBookingDetails = bookingDetails.filter((detail) => detail);
-
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Bookings fetched successfully!",
-      statuswise: filteredBookingDetails,
+      bookings, // Sending the complete booking details
       review,
     });
   } catch (error) {
