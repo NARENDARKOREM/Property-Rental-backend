@@ -50,6 +50,7 @@ const createBooking = async (req, res) => {
     infants,
     pets,
     id_proof,
+    platform_fee
   } = req.body;
 
   const id_proof_img = req.file; // Single file uploaded via Multer
@@ -192,6 +193,7 @@ const createBooking = async (req, res) => {
       id_proof_img: idProofUrl,
 
       book_status: "Confirmed",
+      platform_fee
     };
 
     const booking = await TblBook.create(bookingData);

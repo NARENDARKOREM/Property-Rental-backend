@@ -109,7 +109,7 @@ const getTravelerHostReviews = async (req, res) => {
         {
           model: User,
           as: "Owner",
-          attributes: ["id", "name", "email", "pro_pic", "mobile"], // Host details
+          attributes: ["id", "name", "email", "pro_pic", "mobile","languages"], // Host details
         },
       ],
     });
@@ -182,6 +182,7 @@ const getTravelerHostReviews = async (req, res) => {
           email: property.Owner.email,
           pro_pic: property.Owner.pro_pic,
           phone: property.Owner.mobile,
+          languages:JSON.parse(property.Owner.languages)
         },
         property: {
           id: property.id,
