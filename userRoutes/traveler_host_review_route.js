@@ -4,6 +4,6 @@ const traverlerReviewController = require('../userControllers/traveler_host_revi
 const authMiddleware = require('../middlewares/authMiddleware');
 
 router.post("/post-review", authMiddleware.isAuthenticated, traverlerReviewController.travelerHostReview);
-router.get("/get-traveler-reviews", traverlerReviewController.getTravelerHostReviews);
+router.get("/get-traveler-reviews",authMiddleware.isAuthenticated, traverlerReviewController.getTravelerHostReviews);
 
 module.exports = router;
