@@ -601,6 +601,12 @@ const updateUser = async (req, res) => {
     // Update user with new data
     await user.update(updateData);
 
+    const roleChangeRequest = await RoleChangeRequest.findOne({
+      where: { user_id: uid },
+      attributes: ["status"],
+      order: [["created_at", "DESC"]], // Get the latest request if multiple exist
+    });
+
     // Fetch the list of available countries for response
     const availableCountries = await TblCountry.findAll({
       where: { status: 1 },
@@ -621,7 +627,8 @@ const updateUser = async (req, res) => {
         mobile: user.mobile,
         languages: user.languages, 
         currency: user.currency,
-        roleChangeRequests:user.role,
+        role:user.role,
+        roleChangeRequests:roleChangeRequest ? roleChangeRequest.status:none,
         status:user.status,
         pro_pic:user.pro_pic
       },

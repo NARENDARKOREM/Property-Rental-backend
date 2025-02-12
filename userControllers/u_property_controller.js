@@ -730,8 +730,14 @@ const getPropertyDetails = async (req, res) => {
     }
 
     if (ownerDetails && ownerDetails.languages) {
-      ownerDetails.languages = JSON.parse(ownerDetails.languages);
+      try {
+        ownerDetails.languages = JSON.parse(ownerDetails.languages);
+      } catch (error) {
+        // If it's a plain comma-separated string, convert it to an array
+        ownerDetails.languages = ownerDetails.languages.split(",");
+      }
     }
+    
 
     const travelerReviews = await TravelerHostReview.findAll({
       where: {
@@ -870,7 +876,7 @@ console.log("Video URL:", videoUrl);
               pro_pic: ownerDetails.pro_pic,
               email: ownerDetails.email,
               phone: ownerDetails.mobile,
-      languages: ownerDetails.languages ? JSON.parse(ownerDetails.languages) : [],
+              languages: ownerDetails.languages ,
               // host_reviews: reviewsArray,
               total_reviews: totalRatings,
               average_ratings:avgRating,
