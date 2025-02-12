@@ -206,8 +206,8 @@ const createBooking = async (req, res) => {
         gender,
         email,
         mobile,
-        // ccode,
-        // country,
+        ccode,
+        country,
         book_id: booking.id,
       });
     }
@@ -1280,30 +1280,67 @@ const getTravelerBookingsByStatus = async (req, res) => {
       });
     }
 
-    // Fetch reviews if any
-    const reviews = await TblBook.findAll({
-      where: { is_rate: 1 },
-      attributes: ["is_rate", "total_rate", "rate_text"],
-    });
-    const review = reviews.length > 0 ? reviews : 0;
+    // Extract booking IDs
+    const bookingIds = bookings.map((b) => b.id);
 
-    const travelerReviews = await Promise.all(
+    // Fetch property reviews (if traveler has posted a review)
+    const propertyReviews = await TblBook.findAll({
+      where: { id: bookingIds, is_rate: 1 },
+      attributes: ["id", "is_rate", "total_rate", "rate_text"],
+    });
+
+    // Create a review mapping (to efficiently check for property reviews)
+    const propertyReviewsMap = propertyReviews.reduce((acc, review) => {
+      acc[review.id] = review;
+      return acc;
+    }, {});
+    const propertyIds = bookings.map((b) => b.prop_id);
+    
+const hostIds = bookings.map((b) => b.add_user_id);
+
+    // Fetch traveler reviews for the hosts (if any exist)
+    const travelerReviews = await TravelerHostReview.findAll({
+      where: {
+        traveler_id: uid,
+        host_id: { [Op.in]: hostIds },
+        property_id: { [Op.in]: propertyIds },
+      },
+      attributes: ["traveler_id", "host_id", "property_id", "review", "rating"],
+    });
+
+    const travelerReviewsMap = travelerReviews.reduce((acc, review) => {
+      if (!acc[review.property_id]) {
+        acc[review.property_id] = [];
+      }
+      acc[review.property_id].push(review);
+      return acc;
+    }, {});
+    
+
+    // Fetch person details where `book_for` exists
+    const bookingsWithDetails = await Promise.all(
       bookings.map(async (booking) => {
-        return await TravelerHostReview.findOne({
-          where: { traveler_id: uid, host_id: booking.add_user_id },
-          attributes: ["traveler_id", "host_id", "property_id", "review", "rating"]
-        });
+        const personDetails = booking.book_for
+          ? await PersonRecord.findOne({
+              where: { book_id: booking.id },
+              attributes: ["fname", "lname", "gender", "email", "mobile", "ccode", "country"],
+            })
+          : null;
+
+        return {
+          ...booking.toJSON(),
+          personDetails, // Include traveler details if they exist
+          propertyReview: propertyReviewsMap[booking.id] || [], // Fetch review if exists, else empty array
+          travelerReview: travelerReviewsMap[booking.prop_id] || [], // Fetch traveler review if exists, else empty array
+        };
       })
     );
-    
 
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Bookings fetched successfully!",
-      bookings,
-      review,
-      travelerReviews
+      bookings: bookingsWithDetails,
     });
   } catch (error) {
     console.error("Error fetching bookings by status:", error);
@@ -1314,6 +1351,8 @@ const getTravelerBookingsByStatus = async (req, res) => {
     });
   }
 };
+
+
 
 // After Becoming Host
 const getMyUserBookings = async (req, res) => {
