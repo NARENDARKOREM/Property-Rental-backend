@@ -701,14 +701,14 @@ const getPropertyDetails = async (req, res) => {
     }
 
     // const rulesArray = JSON.parse(property.rules || "[]");
-    const rulesArray = (() => {
-      try {
-        return JSON.parse(property.rules || "[]");
-      } catch (err) {
-        console.error("Invalid JSON in rules:", property.rules);
-        return property.rules ? [property.rules] : []; // Convert to array if invalid
-      }
-    })();
+    let rulesArray;
+    try {
+      rulesArray = JSON.parse(property.rules);
+    } catch (error) {
+      // If it's not valid JSON, assume it's a comma-separated string
+      rulesArray = property.rules.split(",").map((rule) => rule.trim());
+    }
+    
     
 
     const completedBookings = await TblBook.findAll({
