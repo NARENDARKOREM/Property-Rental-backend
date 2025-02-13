@@ -619,9 +619,19 @@ const getPropertyDetails = async (req, res) => {
       });
     }
 
-    const standardRules = property.standard_rules
-      ? JSON.parse(property.standard_rules)
-      : null;
+    // const standardRules = property.standard_rules
+    //   ? JSON.parse(property.standard_rules)
+    //   : null;
+
+    const standardRules = (() => {
+      try {
+        return property.standard_rules ? JSON.parse(property.standard_rules) : null;
+      } catch (err) {
+        console.error("Invalid JSON in standard_rules:", property.standard_rules);
+        return property.standard_rules; // Return raw value if it's not JSON
+      }
+    })();
+    
 
     // const today = new Date().toISOString().split("T")[0];
     // const originalPrice = property.price;
@@ -690,7 +700,16 @@ const getPropertyDetails = async (req, res) => {
       price = originalPrice;
     }
 
-    const rulesArray = JSON.parse(property.rules || "[]");
+    // const rulesArray = JSON.parse(property.rules || "[]");
+    const rulesArray = (() => {
+      try {
+        return JSON.parse(property.rules || "[]");
+      } catch (err) {
+        console.error("Invalid JSON in rules:", property.rules);
+        return property.rules ? [property.rules] : []; // Convert to array if invalid
+      }
+    })();
+    
 
     const completedBookings = await TblBook.findAll({
       where: {
