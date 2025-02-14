@@ -1030,21 +1030,42 @@ const getAllHostAddedProperties = async (req, res) => {
       }
 
       // Fetch booking details, but only if the booking status is Booked or Confirmed
+      // const bookingDetails = property.properties
+      //   .filter((booking) =>
+      //     ["Booked", "Confirmed"].includes(booking.book_status)
+      //   )
+      //   .map((booking) => ({
+      //     book_status: booking.book_status,
+      //     check_in: booking.check_in,
+      //     check_out: booking.check_out,
+      //     user: {
+      //       name: booking.User.name,
+      //       email: booking.User.email,
+      //       mobile: booking.User.mobile,
+      //       ccode: booking.User.ccode,
+      //     },
+      //   }));
+
       const bookingDetails = property.properties
-        .filter((booking) =>
-          ["Booked", "Confirmed"].includes(booking.book_status)
-        )
-        .map((booking) => ({
-          book_status: booking.book_status,
-          check_in: booking.check_in,
-          check_out: booking.check_out,
-          user: {
-            name: booking.User.name,
-            email: booking.User.email,
-            mobile: booking.User.mobile,
-            ccode: booking.User.ccode,
-          },
-        }));
+  .filter((booking) =>
+    ["Booked", "Confirmed", "Blocked"].includes(booking.book_status)
+  )
+  .map((booking) => ({
+    book_status: booking.book_status,
+    check_in: booking.check_in,
+    check_out: booking.check_out,
+    // blocked_dates:
+    //   booking.book_status === "Blocked"
+    //     ? { start: booking.block_start, end: booking.block_end }
+    //     : null,
+    user: booking.book_status !== "Blocked" ? {
+      name: booking.User?.name,
+      email: booking.User?.email,
+      mobile: booking.User?.mobile,
+      ccode: booking.User?.ccode,
+    } : null,
+  }));
+
 
       // Determine if property is available for booking
       const isAvailableForBooking =
