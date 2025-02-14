@@ -11,6 +11,7 @@ const uploadToS3 = require("../config/fileUpload.aws");
 const HostTravelerReview = require("../models/HostTravelerReview");
 const TblNotification = require("../models/TblNotification");
 const TravelerHostReview = require("../models/TravelerHostReview");
+const PaymentList = require("../models/PaymentList");
 
 const sendResponse = (res, code, result, msg, additionalData = {}) => {
   res.status(code).json({
