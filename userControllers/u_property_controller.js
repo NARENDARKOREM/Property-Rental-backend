@@ -146,9 +146,10 @@ const addProperty = async (req, res) => {
     // Upload files to S3
     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
     const extraImageUrls = extraImages.length
-      ? await uploadToS3(extraImages, "property-extra-images")
+      ? (await uploadToS3(extraImages, "property-extra-images"))
       : [];
-    const videoUrls = videos.length
+      const finalExtraImages = Array.isArray(extraImageUrls) ? extraImageUrls : [extraImageUrls];
+      const videoUrls = videos.length
       ? await uploadToS3(videos, "property-videos")
       : [];
 
@@ -157,9 +158,9 @@ const addProperty = async (req, res) => {
     // Create new property
     const newProperty = await Property.create({
       title,
-      image: mainImageUrl, // Store main image URL
-      extra_images: JSON.stringify(extraImageUrls), // Store extra images as JSON array
-      video: JSON.stringify(videoUrls), // Store video URLs as JSON array
+      image: mainImageUrl,
+      extra_images:finalExtraImages,
+      video:JSON.stringify(videoUrls),
       price,
       status,
       address,
@@ -309,31 +310,58 @@ const editProperty = async (req, res) => {
     }
 
     // Separate main image
+ const allowedImageTypes = ["jpeg", "png", "jpg"];
+    const allowedVideoTypes = ["mp4"];
     const mainImage = files.main_image ? files.main_image[0] : null;
+
+    const getFileExtension = (filename) => filename.split('.').pop().toLowerCase();
+    const mainImageExt = getFileExtension(mainImage.originalname);
+    
+    if (!allowedImageTypes.includes(mainImageExt)) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+      });
+    }
 
     // Separate extra images and videos based on MIME type
     const extraImages = [];
     const videos = [];
     if (files.extra_files) {
+      console.log("Extra files:", files.extra_files);
+      
       files.extra_files.forEach((file) => {
-        if (file.mimetype.startsWith("image/")) {
+        const ext = getFileExtension(file.originalname);
+        
+        console.log("filename:: ", file.originalname, " | extension:: ", ext);
+        
+        if (allowedImageTypes.includes(ext)) {
           extraImages.push(file);
-        } else if (file.mimetype.startsWith("video/")) {
+        } else if (allowedVideoTypes.includes(ext)) {
           videos.push(file);
+        } else {
+          return res.status(400).json({
+            ResponseCode: "400",
+            Result: "false",
+            ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+          });
         }
       });
     }
 
     // Upload files to S3
-    const mainImageUrl = mainImage
-      ? await uploadToS3([mainImage], "property-main-image")
-      : property.image; // Keep the existing main image if no new one is provided
+    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
     const extraImageUrls = extraImages.length
-      ? await uploadToS3(extraImages, "property-extra-images")
-      : JSON.parse(property.extra_images || "[]");
+      ? (await uploadToS3(extraImages, "property-extra-images"))
+      : [];
+    const finalExtraImages = Array.isArray(extraImageUrls) ? extraImageUrls : [extraImageUrls];
+    
     const videoUrls = videos.length
       ? await uploadToS3(videos, "property-videos")
-      : JSON.parse(property.video || "[]");
+      : [];
+
+    console.log("Extra Images:", extraImageUrls);
 
     // Update the property
     await property.update({
@@ -342,7 +370,7 @@ const editProperty = async (req, res) => {
       status,
       title,
       image: mainImageUrl[0] || property.image, // Update main image URL
-      extra_images: JSON.stringify(extraImageUrls), // Update extra images
+      extra_images: finalExtraImages, // Update extra images
       video: JSON.stringify(videoUrls), // Update videos
       price,
       address,
