@@ -107,6 +107,7 @@ const addProperty = async (req, res) => {
     const videos = [];
 
     if (files.extra_files) {
+      console.log("Extra files:", files.extra_files)
       files.extra_files.forEach((file) => {
         if (file.mimetype.startsWith("image/")) {
           extraImages.push(file);
@@ -124,6 +125,8 @@ const addProperty = async (req, res) => {
     const videoUrls = videos.length
       ? await uploadToS3(videos, "property-videos")
       : [];
+
+      console.log("Extra Images", extraImageUrls)
 
     // Create new property
     const newProperty = await Property.create({
@@ -1046,26 +1049,37 @@ const getAllHostAddedProperties = async (req, res) => {
       //     },
       //   }));
 
-      const bookingDetails = property.properties
-  .filter((booking) =>
-    ["Booked", "Confirmed", "Blocked"].includes(booking.book_status)
-  )
-  .map((booking) => ({
-    book_status: booking.book_status,
-    check_in: booking.check_in,
-    check_out: booking.check_out,
-    // blocked_dates:
-    //   booking.book_status === "Blocked"
-    //     ? { start: booking.block_start, end: booking.block_end }
-    //     : null,
-    user: booking.book_status !== "Blocked" ? {
-      name: booking.User?.name,
-      email: booking.User?.email,
-      mobile: booking.User?.mobile,
-      ccode: booking.User?.ccode,
-    } : null,
-  }));
-
+      const isTravelerAffected = property.properties.some(booking => 
+        booking.book_status !== "Blocked" &&
+        (
+          (property.block_start >= booking.check_in && property.block_start <= booking.check_out) || 
+          (property.block_end >= booking.check_in && property.block_end <= booking.check_out)
+        )
+      );
+      
+      const bookingDetails = isTravelerAffected
+        ? property.properties.map(booking => ({
+            book_status: booking.book_status,
+            check_in: booking.check_in,
+            check_out: booking.check_out,
+            user: booking.book_status !== "Blocked"
+              ? {
+                  name: booking.User?.name,
+                  email: booking.User?.email,
+                  mobile: booking.User?.mobile,
+                  ccode: booking.User?.ccode,
+                }
+              : null,
+          }))
+        : [
+            {
+              id: property.id,
+              block_start: property.block_start,
+              block_end: property.block_end,
+            },
+          ];   
+    
+    
 
       // Determine if property is available for booking
       const isAvailableForBooking =
