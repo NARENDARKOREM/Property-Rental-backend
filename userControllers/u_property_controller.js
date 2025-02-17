@@ -98,21 +98,38 @@ const addProperty = async (req, res) => {
     const facilityIds = Array.isArray(facility)
       ? facility  
       : facility.split(",").map((id) => parseInt(id));   
+    
+      const allowedImageTypes = ["image/jpeg", "image/png","image/jpg"];
+      const allowedVideoTypes = ["video/mp4"];
 
     // Separate main image
     const mainImage = files.main_image[0]; // Single main image file
+
+    if (!allowedImageTypes.includes(mainImage.mimetype)) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid main image format! Only .jpg and .png are allowed.",
+      });
+    }
 
     // Separate extra images and videos based on MIME type
     const extraImages = [];
     const videos = [];
 
     if (files.extra_files) {
-      console.log("Extra files:", files.extra_files)
+      console.log("Extra files:", files.extra_files);
       files.extra_files.forEach((file) => {
-        if (file.mimetype.startsWith("image/")) {
+        if (allowedImageTypes.includes(file.mimetype)) {
           extraImages.push(file);
-        } else if (file.mimetype.startsWith("video/")) {
+        } else if (allowedVideoTypes.includes(file.mimetype)) {
           videos.push(file);
+        } else {
+          return res.status(400).json({
+            ResponseCode: "400",
+            Result: "false",
+            ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+          });
         }
       });
     }
