@@ -1123,37 +1123,30 @@ const getAllHostAddedProperties = async (req, res) => {
       //     },
       //   }));
 
-      const isTravelerAffected = property.properties.some(
-        (booking) =>
-          booking.book_status !== "Blocked" &&
-          ((property.block_start >= booking.check_in &&
-            property.block_start <= booking.check_out) ||
-            (property.block_end >= booking.check_in &&
-              property.block_end <= booking.check_out))
-      );
+      let bookingDetails = [];
+      if (property.properties.length > 0) {
+        bookingDetails = property.properties.map((booking) => ({
+          book_status: booking.book_status,
+          check_in: booking.check_in,
+          check_out: booking.check_out,
+          user: {
+            name: booking.User?.name,
+            email: booking.User?.email,
+            mobile: booking.User?.mobile,
+            ccode: booking.User?.ccode,
+          },
+        }));
+      }
 
-      const bookingDetails = isTravelerAffected
-        ? property.properties.map((booking) => ({
-            book_status: booking.book_status,
-            check_in: booking.check_in,
-            check_out: booking.check_out,
-            user:
-              booking.book_status !== "Blocked"
-                ? {
-                    name: booking.User?.name,
-                    email: booking.User?.email,
-                    mobile: booking.User?.mobile,
-                    ccode: booking.User?.ccode,
-                  }
-                : null,
-          }))
-        : [
-            {
-              id: property.id,
-              block_start: property.block_start,
-              block_end: property.block_end,
-            },
-          ];
+      // Include block_start and block_end separately
+      if (property.block_start && property.block_end) {
+        bookingDetails.push({
+          book_status: "Blocked",
+          check_in: property.block_start,
+          check_out: property.block_end,
+          user: null,
+        });
+      }
 
       // Determine if property is available for booking
       const isAvailableForBooking =

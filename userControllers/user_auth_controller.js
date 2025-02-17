@@ -400,7 +400,7 @@ const verifyOtp = async (req, res) => {
     const token = jwt.sign(
       { userId: user.id, mobile: user.mobile },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" }
+      // { expiresIn: "24h" }
     );
 
     await user.update({ status: 1, otp: null, otpExpiresAt: null });
