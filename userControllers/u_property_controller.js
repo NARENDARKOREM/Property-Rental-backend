@@ -310,9 +310,9 @@ const editProperty = async (req, res) => {
     }
 
     // Separate main image
- const allowedImageTypes = ["jpeg", "png", "jpg"];
+    const allowedImageTypes = ["jpeg", "png", "jpg"];
     const allowedVideoTypes = ["mp4"];
-    const mainImage = files.main_image ? files.main_image[0] : null;
+    const mainImage = files.main_image[0];
 
     const getFileExtension = (filename) => filename.split('.').pop().toLowerCase();
     const mainImageExt = getFileExtension(mainImage.originalname);
@@ -369,7 +369,7 @@ const editProperty = async (req, res) => {
       country_id,
       status,
       title,
-      image: mainImageUrl[0] || property.image, // Update main image URL
+      image:mainImageUrl, // Update main image URL
       extra_images: finalExtraImages, // Update extra images
       video: JSON.stringify(videoUrls), // Update videos
       price,
