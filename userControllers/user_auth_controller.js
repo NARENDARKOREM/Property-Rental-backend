@@ -628,7 +628,7 @@ const updateUser = async (req, res) => {
         languages: user.languages, 
         currency: user.currency,
         role:user.role,
-        roleChangeRequests:roleChangeRequest ? roleChangeRequest.status:none,
+        roleChangeRequests:roleChangeRequest ? roleChangeRequest.status:'pending',
         status:user.status,
         pro_pic:user.pro_pic
       },
