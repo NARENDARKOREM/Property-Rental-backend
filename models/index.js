@@ -46,7 +46,7 @@ Property.belongsTo(Setting, { as: "setting", foreignKey: "setting_id" });
 Setting.hasMany(Property, { foreignKey: "setting_id" });
 
 TblBook.belongsTo(User, { foreignKey: "uid", as: "User" });
-User.hasMany(TblBook, { foreignKey: "uid", as: "User" });
+User.hasMany(TblBook, { foreignKey: "uid", as: "User", onDelete: "CASCADE"});
 
 PriceCalendar.belongsTo(Property, { foreignKey: "prop_id", as: "property" });
 Property.hasMany(PriceCalendar, {
@@ -61,7 +61,7 @@ PersonRecord.belongsTo(TblBook, {
 TblBook.hasMany(PersonRecord, { foreignKey: "book_id", as: "travelerDetails" });
 
 Property.belongsTo(User, { foreignKey: "add_user_id", as: "Owner" });
-User.hasMany(Property, { foreignKey: "add_user_id", as: "properties" });
+User.hasMany(Property, { foreignKey: "add_user_id", as: "properties", onDelete: "CASCADE"});
 
 // Reviews
 TravelerHostReview.belongsTo(User, {
@@ -104,6 +104,9 @@ TblCountry.hasMany(TblCity, {
 
 Property.belongsTo(TblCity, { foreignKey: "city", as: "cities" });
 TblCity.hasMany(Property, { foreignKey: "city", as: "cities" });
+
+User.hasMany(TblFav, { foreignKey: "uid", onDelete: "CASCADE" });
+TblFav.belongsTo(User, { foreignKey: "uid" });
 
 module.exports = {
   User,
