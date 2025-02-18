@@ -4,13 +4,16 @@ const User = require("../models/User");
 const Setting = require("../models/Setting");
 const WalletReport = require("../models/WalletReport");
 const RoleChangeRequest = require("../models/RoleChangeRequest");
-const { Op, NOW } = require("sequelize");
+const { Op, NOW, Sequelize } = require("sequelize");
 const admin = require("../config/firebase-config");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const s3 = require("../config/awss3Config");
-const { TblCountry } = require("../models");
+const { TblCountry, Property, TblExtra, PriceCalendar } = require("../models");
 const firebaseAdmin = require("../config/firebase-config");
 const { now } = require("sequelize/lib/utils");
+const TblBook = require("../models/TblBook");
+const TblFav = require("../models/TblFav");
+const sequelize = require("../db");
 
 function generateToken(user) {
   return jwt.sign(
@@ -646,12 +649,15 @@ const updateUser = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
-  const { id } = req.params;
+  const uid = req.user.id;
+  if (!uid) {
+    return res.status(402).json({ message: "User not found!" });
+  }
   const { forceDelete } = req.query;
 
   try {
     const user = await User.findOne({
-      where: { id },
+      where: { id: uid },
       paranoid: forceDelete !== "true",
     });
 
@@ -663,18 +669,73 @@ const deleteUser = async (req, res) => {
       return res.status(400).json({ error: "User is already soft-deleted" });
     }
 
+    // Check if the user is a host and has any properties
+    if (user.role === "host") {
+      const properties = await Property.findAll({ where: { add_user_id: uid } });
+
+      for (const property of properties) {
+        // Check if there are any confirmed bookings
+        const confirmedBookings = await TblBook.count({
+          where: {
+            prop_id: property.id,
+            book_status: "Confirmed", // Prevent deletion if Confirmed bookings exist
+          },
+        });
+
+        if (confirmedBookings > 0) {
+          return res.status(403).json({
+            error: "Cannot delete property",
+            message: "Property has confirmed bookings and cannot be deleted.",
+          });
+        }
+
+        await PriceCalendar.destroy({
+          where: { prop_id: property.id }, // Delete price calendar records first
+          force: forceDelete === "true",
+        });
+
+        await TblBook.destroy({
+          where: { prop_id: property.id },
+          force: forceDelete === "true",
+        });
+
+        await TblExtra.destroy({
+          where: { pid: property.id },
+          force: forceDelete === "true",
+        });
+
+        await property.destroy({ force: forceDelete === "true" });
+      }
+    }
+
+    // Check for active bookings before deleting the user
+    const activeBookings = await TblBook.count({
+      where: {
+        uid: uid,
+        book_status: {
+          [Op.in]: ["Booked", "Check_in", "Confirmed", "Cancelled"], // Prevent deletion if bookings exist
+        },
+      },
+    });
+
+    if (activeBookings > 0) {
+      return res.status(403).json({
+        error: "User cannot be deleted",
+        message: "User has active bookings that are not completed or blocked.",
+      });
+    }
+
+    // Proceed to delete other related records and the user
+    await RoleChangeRequest.destroy({ where: { user_id: uid }, force: forceDelete === "true" });
+    await TblBook.destroy({ where: { uid: uid }, force: forceDelete === "true" });
+    await TblFav.destroy({ where: { uid: uid }, force: forceDelete === "true" });
+
     if (forceDelete === "true") {
-      // Perform hard delete
       await user.destroy({ force: true });
-      return res
-        .status(200)
-        .json({ message: "User permanently deleted successfully" });
+      return res.status(200).json({ message: "User permanently deleted successfully" });
     } else {
-      // Perform soft delete (sets `deletedAt` timestamp)
       await user.destroy();
-      return res
-        .status(200)
-        .json({ message: "User soft-deleted successfully" });
+      return res.status(200).json({ message: "User soft-deleted successfully" });
     }
   } catch (error) {
     console.error("Error deleting user:", error);
