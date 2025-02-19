@@ -669,6 +669,13 @@ const getPropertyDetails = async (req, res) => {
   try {
     const property = await Property.findOne({
       where: { id: pro_id },
+      include:[
+        {
+          model:PriceCalendar,
+          as:'priceCalendars',
+          attributes: ["date", "note", "prop_id", "price"],
+        }
+      ]
     });
 
     if (!property) {
@@ -697,43 +704,9 @@ const getPropertyDetails = async (req, res) => {
       }
     })();
 
-    // const today = new Date().toISOString().split("T")[0];
-    // const originalPrice = property.price;
-
-    // // Fetch the price entry for today or the most recent calendar price
-    // const priceEntry = await PriceCalendar.findOne({
-    //   where: {
-    //     prop_id: pro_id,
-    //   },
-    // });
-
-    // const currentPrice = priceEntry ? priceEntry.price : originalPrice;
-
-    // // Fetch upcoming prices from the calendar
-    // const upcomingPrices = await PriceCalendar.findAll({
-    //   where: {
-    //     prop_id: pro_id,
-    //     date: { [Op.gt]: today }, // Only fetch future dates
-    //   },
-    //   attributes: ["date", "price"], // Include only necessary fields
-    //   order: [["date", "ASC"]], // Sort by date
-    // });
-
-    // const upcomingPricesArray = upcomingPrices.map((entry) => ({
-    //   date: entry.date,
-    //   price: entry.price,
-    // }));
-
-    // const price = upcomingPricesArray.length > 0
-    // ? {
-    //     originalPrice,
-    //     currentPrice,
-    //     upcomingPrices: upcomingPricesArray,
-    //   }
-    // : originalPrice;
-
     const today = new Date().toISOString().split("T")[0];
     const originalPrice = property.price;
+    console.log("Original Price", originalPrice)
 
     // Fetch the price entry for today or the most recent calendar price
     const upcomingPrices = await PriceCalendar.findAll({
@@ -766,13 +739,13 @@ const getPropertyDetails = async (req, res) => {
     } else {
       price = originalPrice;
     }
+    console.log("originalPrice",originalPrice)
+    console.log("upcomingPrice",upcomingPrices)
 
-    // const rulesArray = JSON.parse(property.rules || "[]");
     let rulesArray;
     try {
       rulesArray = JSON.parse(property.rules);
     } catch (error) {
-      // If it's not valid JSON, assume it's a comma-separated string
       rulesArray = property.rules.split(",").map((rule) => rule.trim());
     }
 
@@ -940,11 +913,11 @@ const getPropertyDetails = async (req, res) => {
         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
         property_type: property.ptype,
         property_title: category?.title,
-        // price: {
-        //   originalPrice,
-        //   currentPrice,
-        //   upcomingPrices: upcomingPricesArray,
-        // },
+        price: {
+          originalPrice,
+          currentPrice,
+          upcomingPrices: upcomingPrices,
+        },
         price: price,
         extra_guest_charges: property.extra_guest_charges,
         buyorrent: property.pbuysell,
@@ -1028,7 +1001,7 @@ const getAllHostAddedProperties = async (req, res) => {
           include: [
             {
               model: User,
-              as: "User",
+              as: "travler_details",
               attributes: ["name", "email", "mobile", "ccode"], // Fetch user details
             },
           ],
