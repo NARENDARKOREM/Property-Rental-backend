@@ -421,7 +421,7 @@ const getPropertyList = async (req, res) => {
       return res.status(400).json({
         ResponseCode: "401",
         Result: "false",
-        ResponseMsg: "User  ID not provided",
+        ResponseMsg: "User ID not provided",
       });
     }
 
@@ -443,9 +443,7 @@ const getPropertyList = async (req, res) => {
       properties.map(async (property) => {
         console.log("Processing property:", property);
 
-        // const facilityIds = property.facility
-        //   ? property.facility.split(",")
-        //   : [];
+        // Extract facility IDs
         const facilityIds = property.facility
           ? property.facility
               .replace(/[\[\]']/g, "")
@@ -454,8 +452,8 @@ const getPropertyList = async (req, res) => {
           : [];
 
         console.log("Facility IDs:", facilityIds);
-        console.log(typeof facilityIds, "data typeeeeeeeeeeeeeeeeeeeee");
 
+        // Fetch facility titles
         const facilityTitles = await TblFacility.findAll({
           where: { id: { [Op.in]: facilityIds } },
           attributes: ["title"],
@@ -463,14 +461,19 @@ const getPropertyList = async (req, res) => {
 
         console.log("Facility titles:", facilityTitles);
 
-        // Parse standard_rules from JSON string to object
-        const standardRules = property.standard_rules
-          ? JSON.parse(property.standard_rules)
-          : null;
-        console.log(
-          "standard rulessssssssssssssssssssss: ",
-          JSON.stringify(standardRules)
-        );
+        // Parse `standard_rules` safely
+        let standardRules = null;
+        try {
+          standardRules = property.standard_rules
+            ? JSON.parse(property.standard_rules)
+            : null;
+        } catch (err) {
+          console.error("Error parsing standard_rules:", err.message);
+        }
+
+        console.log("Standard Rules:", standardRules);
+
+        // Fetch completed bookings for rating calculation
         const completedBookings = await TblBook.findAll({
           where: {
             prop_id: property.id,
@@ -491,12 +494,26 @@ const getPropertyList = async (req, res) => {
               ).toFixed(0)
             : property.rate;
 
-        const extraImages = property.extra_images
-          ? JSON.parse(property.extra_images)
-          : [];
+        // Parse `extra_images` safely
+        let extraImages = [];
+        try {
+          extraImages = property.extra_images
+            ? JSON.parse(property.extra_images)
+            : [];
+        } catch (err) {
+          console.error("Error parsing extra_images:", err.message);
+        }
+
         console.log("Extra Images:", extraImages);
 
-        const videoUrl = property.video ? JSON.parse(property.video)[0] : null;
+        // Parse `video` safely
+        let videoUrl = null;
+        try {
+          videoUrl = property.video ? JSON.parse(property.video)[0] : null;
+        } catch (err) {
+          console.error("Error parsing video:", err.message);
+        }
+
         console.log("Video URL:", videoUrl);
 
         return {
@@ -507,7 +524,6 @@ const getPropertyList = async (req, res) => {
           image: property.image,
           price: property.price,
           beds: property.beds,
-          // plimit: property.plimit,
           adults: property.adults,
           children: property.children,
           infants: property.infants,
@@ -515,13 +531,12 @@ const getPropertyList = async (req, res) => {
           bathroom: property.bathroom,
           sqrft: property.sqrft,
           is_sell: property.is_sell,
-          // facility_select: facilityTitles.map((f) => f.title),
           facility: facilityIds,
-          standard_rules: standardRules, // This will now be a JSON object
+          standard_rules: standardRules, // Now safely parsed
           rules: property.rules,
           status: property.status,
           latitude: property.latitude,
-          longtitude: property.longtitude,
+          longitude: property.longitude, // Fixed typo
           mobile: property.mobile,
           city: property.city,
           rate: rate,
@@ -529,14 +544,14 @@ const getPropertyList = async (req, res) => {
           address: property.address,
           country_name: property.country?.title || "Unknown",
           setting_id: property.setting_id,
-          extra_images: extraImages,
-          video: videoUrl,
+          extra_images: extraImages, // Now safely parsed
+          video: videoUrl, // Now safely parsed
           extra_guest_charges: property.extra_guest_charges,
         };
       })
     );
 
-    console.log(propertyList, "propertiesssssssssssssssssssssssssssss");
+    console.log("Final property list:", propertyList);
 
     if (propertyList.length === 0) {
       return res.status(200).json({

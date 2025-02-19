@@ -47,6 +47,8 @@ Setting.hasMany(Property, { foreignKey: "setting_id" });
 
 TblBook.belongsTo(User, { foreignKey: "uid", as: "travler_details" });
 User.hasMany(TblBook, { foreignKey: "uid", as: "travler_details", onDelete: "CASCADE"});
+TblBook.belongsTo(User, { foreignKey: "add_user_id", as: "hostDetails" }); // Host
+
 
 PriceCalendar.belongsTo(Property, { foreignKey: "prop_id", as: "property" });
 Property.hasMany(PriceCalendar, {

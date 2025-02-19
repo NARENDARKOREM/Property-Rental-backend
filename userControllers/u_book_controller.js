@@ -14,6 +14,7 @@ const TblNotification = require("../models/TblNotification");
 const TravelerHostReview = require("../models/TravelerHostReview");
 const PaymentList = require("../models/PaymentList");
 const router = require("../routes/adminRoutes");
+const PropertyBlock = require("../models/PropertyBlock");
 
 const sendResponse = (res, code, result, msg, additionalData = {}) => {
   res.status(code).json({
@@ -1808,6 +1809,11 @@ const hostPropertiesBookingStatus = async (req, res) => {
         as: "travelerDetails", // Fetching traveler details if booked for others
         attributes: ["fname", "mobile", "email"],
       },
+      {
+        model: User,
+        as: "hostDetails", // Fetching host details
+        attributes: ["id", "name", "email"],
+      },
     ];
 
     // Define conditions based on booking status
@@ -1892,15 +1898,12 @@ const hostPropertiesBookingStatus = async (req, res) => {
       );
 
       // Fetch traveler details from either User or PersonRecord
-      const travelerDetails =
-      booking.book_for === "self"
-        ? booking.traveler // Use correct alias
-        : booking.travelerDetails;
+      const travelerDetails = booking.book_for === "self" ? booking.traveler : booking.travelerDetails;
 
-        const travelerReview = travelerReviews.filter(
-          (review) => review.traveler_id === booking.travler_details?.id
-        );
-
+        // const travelerReview = travelerReviews.filter(
+        //   (review) => review.traveler_id === booking.travler_details?.id
+        // );
+      
       return {
         ...booking.toJSON(),
         no_of_days,
@@ -2040,6 +2043,144 @@ const propertyBookingStatus = async (req, res) => {
   }
 };
 
+// const hostBlockBookingProperty = async (req, res) => {
+//   const { prop_id, block_start, block_end, reason } = req.body;
+//   const host_id = req.user.id;
+
+//   if (!host_id) {
+//     return res.status(401).json({ message: "User not found!" });
+//   }
+
+//   if (!prop_id || !block_start || !block_end || !reason) {
+//     return res
+//       .status(400)
+//       .json({ success: false, message: "All fields required!" });
+//   }
+
+//   try {
+//     // Log prop_id and host_id for debugging purposes
+//     console.log(`Blocking property ${prop_id} by host ${host_id}`);
+
+//     // Fetch property details to ensure the host owns the property
+//     const property = await Property.findOne({
+//       where: { id: prop_id, add_user_id: host_id },
+//     });
+
+//     if (!property) {
+//       console.log(
+//         `No property found for prop_id: ${prop_id} and host_id: ${host_id}`
+//       );
+//       return res.status(403).json({
+//         success: false,
+//         message: "You are not authorized to block this property!",
+//       });
+//     }
+
+//     // Update the Property table with the block_start and block_end dates
+//     await Property.update(
+//       { block_start, block_end },
+//       { where: { id: prop_id } }
+//     );
+
+//     console.log(`Property ${prop_id} has been updated with block dates`);
+
+//     // Find all bookings affected by the block
+//     const affectedBookings = await TblBook.findAll({
+//       where: {
+//         prop_id,
+//         book_status: { [Op.in]: ["Booked", "Confirmed"] },
+//         [Op.or]: [
+//           { check_in: { [Op.between]: [block_start, block_end] } },
+//           { check_out: { [Op.between]: [block_start, block_end] } },
+//           {
+//             check_in: { [Op.lte]: block_start },
+//             check_out: { [Op.gte]: block_end },
+//           },
+//         ],
+//       },
+//     });
+
+//     // Log affected bookings to verify the result
+//     console.log("Affected bookings:", affectedBookings);
+
+//     // If no bookings are affected, return early
+//     if (affectedBookings.length === 0) {
+//       return res.status(200).json({
+//         success: true,
+//         message: "No travelers are affected by this block.",
+//       });
+//     }
+
+//     // Iterate over affected bookings and process each one
+//     for (const booking of affectedBookings) {
+//       const traveler = await User.findByPk(booking.uid);
+
+//       if (traveler?.one_subscription) {
+//         try {
+//           console.log(`Notifying traveler ${traveler.email}`);
+
+//           await axios.post(
+//             "https://onesignal.com/api/v1/notifications",
+//             {
+//               app_id: process.env.ONESIGNAL_APP_ID,
+//               include_player_ids: [traveler.one_subscription],
+//               data: { prop_id, type: "booking_cancellation" },
+//               contents: {
+//                 en: `Your booking for ${property.title} has been blocked due to: ${reason}`,
+//               },
+//               headings: { en: "Booking Blocked!" },
+//             },
+//             {
+//               headers: {
+//                 "Content-Type": "application/json",
+//                 Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+//               },
+//             }
+//           );
+
+//           await TblNotification.create({
+//             uid: traveler.id,
+//             datetime: new Date(),
+//             title: "Booking Blocked!",
+//             description: `Your booking for ${property.title} has been blocked due to: ${reason}`,
+//           });
+
+//           // Update booking status to "Blocked"
+//           console.log(`Updating booking ${booking.id} to Blocked`);
+//           await TblBook.update(
+//             { book_status: "Blocked" },
+//             { where: { id: booking.id } }
+//           );
+//           console.log(`Booking ${booking.id} status updated to Blocked`);
+
+//           // Log update result to ensure it's successful
+//           console.log(
+//             `Booking update result for booking ID ${booking.id}:`,
+//             updateResult
+//           );
+//         } catch (error) {
+//           console.error(
+//             `Error sending notification to ${traveler.email}:`,
+//             error
+//           );
+//         }
+//       }
+//     }
+
+//     // Return success response
+//     return res.status(200).json({
+//       success: true,
+//       message:
+//         "Affected travelers have been notified, and bookings are blocked.",
+//     });
+//   } catch (error) {
+//     console.error("Error blocking property booking:", error);
+//     return res
+//       .status(500)
+//       .json({ success: false, message: "Internal Server Error!" });
+//   }
+// };
+
 const hostBlockBookingProperty = async (req, res) => {
   const { prop_id, block_start, block_end, reason } = req.body;
   const host_id = req.user.id;
@@ -2055,10 +2196,8 @@ const hostBlockBookingProperty = async (req, res) => {
   }
 
   try {
-    // Log prop_id and host_id for debugging purposes
     console.log(`Blocking property ${prop_id} by host ${host_id}`);
 
-    // Fetch property details to ensure the host owns the property
     const property = await Property.findOne({
       where: { id: prop_id, add_user_id: host_id },
     });
@@ -2073,15 +2212,17 @@ const hostBlockBookingProperty = async (req, res) => {
       });
     }
 
-    // Update the Property table with the block_start and block_end dates
-    await Property.update(
-      { block_start, block_end },
-      { where: { id: prop_id } }
-    );
+    // Insert a new blocked date range into PropertyBlock
+    const newBlock = await PropertyBlock.create({
+      prop_id,
+      block_start,
+      block_end,
+      reason,
+    });
 
-    console.log(`Property ${prop_id} has been updated with block dates`);
+    console.log(`Property ${prop_id} blocked from ${block_start} to ${block_end}`);
 
-    // Find all bookings affected by the block
+    // Find all bookings affected by the new block
     const affectedBookings = await TblBook.findAll({
       where: {
         prop_id,
@@ -2097,10 +2238,8 @@ const hostBlockBookingProperty = async (req, res) => {
       },
     });
 
-    // Log affected bookings to verify the result
     console.log("Affected bookings:", affectedBookings);
 
-    // If no bookings are affected, return early
     if (affectedBookings.length === 0) {
       return res.status(200).json({
         success: true,
@@ -2108,7 +2247,6 @@ const hostBlockBookingProperty = async (req, res) => {
       });
     }
 
-    // Iterate over affected bookings and process each one
     for (const booking of affectedBookings) {
       const traveler = await User.findByPk(booking.uid);
 
@@ -2142,19 +2280,12 @@ const hostBlockBookingProperty = async (req, res) => {
             description: `Your booking for ${property.title} has been blocked due to: ${reason}`,
           });
 
-          // Update booking status to "Blocked"
           console.log(`Updating booking ${booking.id} to Blocked`);
           await TblBook.update(
             { book_status: "Blocked" },
             { where: { id: booking.id } }
           );
           console.log(`Booking ${booking.id} status updated to Blocked`);
-
-          // Log update result to ensure it's successful
-          console.log(
-            `Booking update result for booking ID ${booking.id}:`,
-            updateResult
-          );
         } catch (error) {
           console.error(
             `Error sending notification to ${traveler.email}:`,
@@ -2164,11 +2295,9 @@ const hostBlockBookingProperty = async (req, res) => {
       }
     }
 
-    // Return success response
     return res.status(200).json({
       success: true,
-      message:
-        "Affected travelers have been notified, and bookings are blocked.",
+      message: "Affected travelers have been notified, and bookings are blocked.",
     });
   } catch (error) {
     console.error("Error blocking property booking:", error);
@@ -2177,6 +2306,7 @@ const hostBlockBookingProperty = async (req, res) => {
       .json({ success: false, message: "Internal Server Error!" });
   }
 };
+
 
 module.exports = {
   createBooking,
