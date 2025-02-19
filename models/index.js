@@ -45,8 +45,8 @@ Property.hasMany(TblFav, { foreignKey: "property_id" });
 Property.belongsTo(Setting, { as: "setting", foreignKey: "setting_id" });
 Setting.hasMany(Property, { foreignKey: "setting_id" });
 
-TblBook.belongsTo(User, { foreignKey: "uid", as: "User" });
-User.hasMany(TblBook, { foreignKey: "uid", as: "User", onDelete: "CASCADE"});
+TblBook.belongsTo(User, { foreignKey: "uid", as: "travler_details" });
+User.hasMany(TblBook, { foreignKey: "uid", as: "travler_details", onDelete: "CASCADE"});
 
 PriceCalendar.belongsTo(Property, { foreignKey: "prop_id", as: "property" });
 Property.hasMany(PriceCalendar, {
