@@ -42,7 +42,7 @@ router.post(
 
 router.post("/status/:id",adminMiddleware.isAdmin,bookController.seAllDetails)   
 router.get("/export-ical/:propertyId.ics",bookController.exportIcal);
-router.post("/import-ical",adminMiddleware.isAdmin,bookController.importIcal);
+router.post("/import-ical",bookController.importIcal);
 
 
 module.exports = router;   
