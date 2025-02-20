@@ -4,8 +4,9 @@ const TblBook = require("../models/TblBook");
 const Property = require("../models/Property");
 const { Op, or, where } = require("sequelize");
 // const { sendResponse } = require("../utils");
-// const twilio = require("twilio");
-// require('dotenv').config();
+const twilio = require("twilio");
+const Sib = require('sib-api-v3-sdk');
+require('dotenv').config();
 const { default: axios } = require("axios");
 
 const uploadToS3 = require("../config/fileUpload.aws");
@@ -26,29 +27,53 @@ const sendResponse = (res, code, result, msg, additionalData = {}) => {
 };
 
 // Twilio Configuration
-// const client = new twilio(
-//   process.env.TWILIO_ACCOUNT_TOKEN,
-//   process.env.TWILIO_AUTH_TOKEN
-// );
+const client = new twilio(
+  process.env.TWILIO_ACCOUNT_TOKEN,
+  process.env.TWILIO_AUTH_TOKEN
+);
 
-// const sendWhatsAppMessage = async (to, message) => {
-//   try {
-//     const response = await client.messages.create({
-//       from: process.env.TWILIO_WHATSAPP_NUMBER,
-//       // channel:"whatsapp",
-//       to: `whatsapp:+91${to}`,
-//       body: message,
-//     });
-//     console.log(`WhatsApp message sent successfully to ${to}`, response.sid);
-//   } catch (error) {
-//     console.error("Error sending WhatsApp message:", error);
-//     if (error.code === 63003) {
-//       console.error("Twilio sandbox not enabled for this number. Ensure the traveler and host have joined Twilio sandbox.");
-//     } else if (error.code === 21606) {
-//       console.error("The recipient is not enabled for WhatsApp messaging.");
-//     }
-//   }
-// };
+const sendWhatsAppMessage = async (to, message) => {
+  try {
+    const response = await client.messages.create({
+      from: process.env.TWILIO_WHATSAPP_NUMBER,
+      // channel:"whatsapp",
+      to: `whatsapp:+91${to}`,
+      body: message,
+    });
+    console.log(`WhatsApp message sent successfully to ${to}`, response.sid);
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+    if (error.code === 63003) {
+      console.error("Twilio sandbox not enabled for this number. Ensure the traveler and host have joined Twilio sandbox.");
+    } else if (error.code === 21606) {
+      console.error("The recipient is not enabled for WhatsApp messaging.");
+    }
+  }
+};
+
+const sendEmailNotification = async (toEmail, subject, content) => {
+  try {
+    const client = Sib.ApiClient.instance;
+    const apiKey = client.authentications["api-key"];
+    apiKey.apiKey = process.env.BREVO_API_KEY;
+
+    const transactionalEmailApi = new Sib.TransactionalEmailsApi();
+    const sender = { email: "narendar.korem@innoitlabs.com", name: "Servostay" };
+    const receivers = [{ email: toEmail }];
+
+    await transactionalEmailApi.sendTransacEmail({
+      sender,
+      to: receivers,
+      subject,
+      htmlContent: content,
+    });
+
+    console.log(`Email sent successfully to ${toEmail}`);
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
+};
+
 
 const createBooking = async (req, res) => {
   const uid = req.user.id;
@@ -249,14 +274,35 @@ const createBooking = async (req, res) => {
       host = await User.findByPk(property.add_user_id);
     }
 
-  //     // Sending WhatsApp Notifications
-    // const userMessage = `Hello ${user.name}, your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}`;
-    // await sendWhatsAppMessage(user.mobile, userMessage);
+    const userEmailContent = `
+  <h3>Hello ${user.name},</h3>
+  <p>Your booking for <strong>${booking.prop_title}</strong> has been confirmed.</p>
+  <p><strong>Booking ID:</strong> ${booking.id}</p>
+  <p>Thank you for choosing our platform!</p>
+`;
 
-    // if (host) {
-    //   const hostMessage = `Hello ${host.name}, you have received a new booking for ${booking.prop_title}. Booking ID: ${booking.id}`;
-    //   await sendWhatsAppMessage(host.mobile, hostMessage);
-    // }
+await sendEmailNotification(user.email, "Booking Confirmed!", userEmailContent);
+
+if (host) {
+  const hostEmailContent = `
+    <h3>Hello ${host.name},</h3>
+    <p>You have received a new booking for <strong>${booking.prop_title}</strong>.</p>
+    <p><strong>Booking ID:</strong> ${booking.id}</p>
+    <p>Please check your dashboard for more details.</p>
+  `;
+
+  await sendEmailNotification(host.email, "New Booking Received!", hostEmailContent);
+}
+
+
+      // Sending WhatsApp Notifications
+    const userMessage = `Hello ${user.name}, your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}`;
+    await sendWhatsAppMessage(user.mobile, userMessage);
+
+    if (host) {
+      const hostMessage = `Hello ${host.name}, you have received a new booking for ${booking.prop_title}. Booking ID: ${booking.id}`;
+      await sendWhatsAppMessage(host.mobile, hostMessage);
+    }
     // Send notifications
     try {
       if (host && host.one_subscription) {
@@ -1082,22 +1128,22 @@ const cancelBooking = async (req, res) => {
       return sendResponse(res, 404, "false", "Host not found!");
     }
 
-    const standardRules = property.standard_rules;
-    if (!standardRules || !standardRules.check_in) {
-      return res
-        .status(404)
-        .json({ message: "Check-in time not defined for this property!" });
-    }
-    const checkInTime = new Date(standardRules.check_in);
-    const currentDate = new Date();
-    const timeDiff = checkInTime - currentDate;
-    const hoursRimining = timeDiff / (1000 * 60 * 60);
-    if (hoursRimining > 24) {
-      return res.status(403).json({
-        message:
-          "You can only cancel booking at least 24 hours before check-in time!",
-      });
-    }
+    // const standardRules = property.standard_rules;
+    // if (!standardRules || !standardRules.check_in) {
+    //   return res
+    //     .status(404)
+    //     .json({ message: "Check-in time not defined for this property!" });
+    // }
+    // const checkInTime = new Date(standardRules.check_in);
+    // const currentDate = new Date();
+    // const timeDiff = checkInTime - currentDate;
+    // const hoursRimining = timeDiff / (1000 * 60 * 60);
+    // if (hoursRimining > 24) {
+    //   return res.status(403).json({
+    //     message:
+    //       "You can only cancel booking at least 24 hours before check-in time!",
+    //   });
+    // }
 
     await TblBook.update(
       { book_status: "Cancelled", cancle_reason },
