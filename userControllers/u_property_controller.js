@@ -1841,15 +1841,20 @@ const deleteUserProperty = async (req, res) => {
   if (!uid) {
     return res.status(401).json({ message: "User not found!" });
   }
+  console.log("User ID from token:", uid);
 
   try {
     const propertyId = req.params.propertyId;
+    const forceDelete = req.query.forceDelete === "true"; 
+
     if (!propertyId) {
       return res.status(400).json({ message: "Property Id is required!" });
     }
+    console.log("Deleting property with ID:", propertyId, "Force delete:", forceDelete);
 
     const property = await Property.findOne({
       where: { id: propertyId, add_user_id: uid },
+      paranoid: false,
     });
 
     if (!property) {
@@ -1861,9 +1866,7 @@ const deleteUserProperty = async (req, res) => {
     const activeBookings = await TblBook.findOne({
       where: {
         prop_id: propertyId,
-        book_status: {
-          [Op.in]: ["Confirmed", "Booked", "Cancelled", "Check_in"],
-        },
+        book_status: { [Op.in]: ["Confirmed", "Booked", "Check_in"] },
       },
     });
 
@@ -1895,16 +1898,23 @@ const deleteUserProperty = async (req, res) => {
       const extraIds = extraRecords.map((extra) => extra.id);
       await TblExtraImage.destroy({ where: { id: extraIds } });
     }
+
     await TravelerHostReview.destroy({ where: { property_id: propertyId } });
 
-    await Property.destroy({ where: { id: propertyId } });
+    // **Soft delete (default) or Force delete if requested**
+    await Property.destroy({ where: { id: propertyId }, force: forceDelete });
 
-    return res.status(200).json({ message: "Property and associated records deleted successfully!" });
+    return res.status(200).json({
+      message: forceDelete
+        ? "Property and associated records permanently deleted!"
+        : "Property and associated records deleted successfully!",
+    });
   } catch (error) {
     console.error("Error Occurred While Deleting Property:", error);
     return res.status(500).json({ message: "An error occurred while deleting the property!" });
   }
 };
+
 
 const nearByProperties = async (req, res) => {
   const { latitude, longitude, maxDistance, id } = req.body;
