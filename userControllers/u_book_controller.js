@@ -4,13 +4,17 @@ const TblBook = require("../models/TblBook");
 const Property = require("../models/Property");
 const { Op, or, where } = require("sequelize");
 // const { sendResponse } = require("../utils");
-
+// const twilio = require("twilio");
+// require('dotenv').config();
 const { default: axios } = require("axios");
 
 const uploadToS3 = require("../config/fileUpload.aws");
 const HostTravelerReview = require("../models/HostTravelerReview");
 const TblNotification = require("../models/TblNotification");
 const TravelerHostReview = require("../models/TravelerHostReview");
+const PaymentList = require("../models/PaymentList");
+const router = require("../routes/adminRoutes");
+const PropertyBlock = require("../models/PropertyBlock");
 
 const sendResponse = (res, code, result, msg, additionalData = {}) => {
   res.status(code).json({
@@ -20,6 +24,31 @@ const sendResponse = (res, code, result, msg, additionalData = {}) => {
     ...additionalData,
   });
 };
+
+// Twilio Configuration
+// const client = new twilio(
+//   process.env.TWILIO_ACCOUNT_TOKEN,
+//   process.env.TWILIO_AUTH_TOKEN
+// );
+
+// const sendWhatsAppMessage = async (to, message) => {
+//   try {
+//     const response = await client.messages.create({
+//       from: process.env.TWILIO_WHATSAPP_NUMBER,
+//       // channel:"whatsapp",
+//       to: `whatsapp:+91${to}`,
+//       body: message,
+//     });
+//     console.log(`WhatsApp message sent successfully to ${to}`, response.sid);
+//   } catch (error) {
+//     console.error("Error sending WhatsApp message:", error);
+//     if (error.code === 63003) {
+//       console.error("Twilio sandbox not enabled for this number. Ensure the traveler and host have joined Twilio sandbox.");
+//     } else if (error.code === 21606) {
+//       console.error("The recipient is not enabled for WhatsApp messaging.");
+//     }
+//   }
+// };
 
 const createBooking = async (req, res) => {
   const uid = req.user.id;
@@ -51,7 +80,7 @@ const createBooking = async (req, res) => {
     infants,
     pets,
     id_proof,
-    platform_fee
+    platform_fee,
   } = req.body;
 
   const id_proof_img = req.file; // Single file uploaded via Multer
@@ -194,7 +223,7 @@ const createBooking = async (req, res) => {
       id_proof_img: idProofUrl,
 
       book_status: "Confirmed",
-      platform_fee
+      platform_fee,
     };
 
     const booking = await TblBook.create(bookingData);
@@ -220,38 +249,74 @@ const createBooking = async (req, res) => {
       host = await User.findByPk(property.add_user_id);
     }
 
-     // Send notifications
-     try {
+  //     // Sending WhatsApp Notifications
+    // const userMessage = `Hello ${user.name}, your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}`;
+    // await sendWhatsAppMessage(user.mobile, userMessage);
+
+    // if (host) {
+    //   const hostMessage = `Hello ${host.name}, you have received a new booking for ${booking.prop_title}. Booking ID: ${booking.id}`;
+    //   await sendWhatsAppMessage(host.mobile, hostMessage);
+    // }
+    // Send notifications
+    try {
       if (host && host.one_subscription) {
-        await axios.post("https://onesignal.com/api/v1/notifications", {
-          app_id: process.env.ONESIGNAL_APP_ID,
-          include_player_ids: [host.one_subscription],
-          data: { user_id: user.id, type: "booking_confirmed" },
-          contents: { en: `New booking confirmed for ${booking.prop_title}. Booking ID: ${booking.id}` },
-          headings: { en: "New Booking Received!" },
-        }, {
-          headers: { "Content-Type": "application/json", Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}` },
-        });
+        await axios.post(
+          "https://onesignal.com/api/v1/notifications",
+          {
+            app_id: process.env.ONESIGNAL_APP_ID,
+            include_player_ids: [host.one_subscription],
+            data: { user_id: user.id, type: "booking_confirmed" },
+            contents: {
+              en: `New booking confirmed for ${booking.prop_title}. Booking ID: ${booking.id}`,
+            },
+            headings: { en: "New Booking Received!" },
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+            },
+          }
+        );
       }
 
       if (user.one_subscription) {
-        await axios.post("https://onesignal.com/api/v1/notifications", {
-          app_id: process.env.ONESIGNAL_APP_ID,
-          include_player_ids: [user.one_subscription],
-          data: { user_id: user.id, type: "booking_confirmed" },
-          contents: { en: `Your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}` },
-          headings: { en: "Booking Confirmed!" },
-        }, {
-          headers: { "Content-Type": "application/json", Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}` },
-        });
+        await axios.post(
+          "https://onesignal.com/api/v1/notifications",
+          {
+            app_id: process.env.ONESIGNAL_APP_ID,
+            include_player_ids: [user.one_subscription],
+            data: { user_id: user.id, type: "booking_confirmed" },
+            contents: {
+              en: `Your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}`,
+            },
+            headings: { en: "Booking Confirmed!" },
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+            },
+          }
+        );
       }
     } catch (error) {
       console.log("Error sending notifications:", error);
     }
 
-    await TblNotification.create({ uid: uid, datetime: new Date(), title: "Booking Confirmed", description: `Your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}` });
+    await TblNotification.create({
+      uid: uid,
+      datetime: new Date(),
+      title: "Booking Confirmed",
+      description: `Your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}`,
+    });
     if (host) {
-      await TblNotification.create({ uid: host.id, datetime: new Date(), title: "New Booking", description: `A new booking has been confirmed for ${booking.prop_title}. Booking ID: ${booking.id}` });
+      await TblNotification.create({
+        uid: host.id,
+        datetime: new Date(),
+        title: "New Booking",
+        description: `A new booking has been confirmed for ${booking.prop_title}. Booking ID: ${booking.id}`,
+      });
     }
 
     return res.status(200).json({
@@ -271,23 +336,49 @@ const createBooking = async (req, res) => {
   }
 };
 
-const editBooking = async(req,res)=>{
+const editBooking = async (req, res) => {
   const uid = req.user.id;
-  const {book_id}=req.params;
-  const {check_in,check_out,add_note,book_for,id_proof,extra_guest,
-        adults,children,infants,pets,fname,lname,gender,mobile,email,country,ccode,
-      subtotal,total,total_day,cou_amt,wall_amt,transaction_id,prop_price,
-    p_method_id,tax,extra_guest_charges,platform_fee}=req.body;
-        const id_proof_img = req.file;
-        try {
-          const booking = await TblBook.findOne({where:{id:book_id,uid}})
-          if(!booking){
-            return res.status(403).json({
-              success:false,
-              message:"Your not authorized to edit the booking."
-            })
-          }
-          const property = await Property.findOne({ where: { id: booking.prop_id } });
+  const { book_id } = req.params;
+  const {
+    check_in,
+    check_out,
+    add_note,
+    book_for,
+    id_proof,
+    extra_guest,
+    adults,
+    children,
+    infants,
+    pets,
+    fname,
+    lname,
+    gender,
+    mobile,
+    email,
+    country,
+    ccode,
+    subtotal,
+    total,
+    total_day,
+    cou_amt,
+    wall_amt,
+    transaction_id,
+    prop_price,
+    p_method_id,
+    tax,
+    extra_guest_charges,
+    platform_fee,
+  } = req.body;
+  const id_proof_img = req.file;
+  try {
+    const booking = await TblBook.findOne({ where: { id: book_id, uid } });
+    if (!booking) {
+      return res.status(403).json({
+        success: false,
+        message: "Your not authorized to edit the booking.",
+      });
+    }
+    const property = await Property.findOne({ where: { id: booking.prop_id } });
     if (
       (check_in >= property.block_start && check_in <= property.block_end) ||
       (check_out >= property.block_start && check_out <= property.block_end) ||
@@ -313,7 +404,10 @@ const editBooking = async(req,res)=>{
     let idProofUrl = booking.id_proof_img;
     if (id_proof_img) {
       try {
-        const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
+        const uploadedFiles = await uploadToS3(
+          [id_proof_img],
+          "id-proof-images"
+        );
         idProofUrl = uploadedFiles;
       } catch (error) {
         console.error("Error uploading ID proof to S3:", error);
@@ -346,14 +440,31 @@ const editBooking = async(req,res)=>{
       p_method_id,
       tax,
       platform_fee,
-      extra_guest_charges
+      extra_guest_charges,
     });
-    if(book_for === 'other'){
-      const personRecord = await PersonRecord.findOne({where:{book_id}})
-      if(personRecord){
-        await personRecord.update({fname,lname,gender,mobile,email,country,ccode})
-      }else{
-        await PersonRecord.create({ book_id, fname, lname, gender, email, mobile,country,ccode });
+    if (book_for === "other") {
+      const personRecord = await PersonRecord.findOne({ where: { book_id } });
+      if (personRecord) {
+        await personRecord.update({
+          fname,
+          lname,
+          gender,
+          mobile,
+          email,
+          country,
+          ccode,
+        });
+      } else {
+        await PersonRecord.create({
+          book_id,
+          fname,
+          lname,
+          gender,
+          email,
+          mobile,
+          country,
+          ccode,
+        });
       }
     }
     const traveler = await User.findByPk(uid);
@@ -381,38 +492,46 @@ const editBooking = async(req,res)=>{
         headings: { en: "Booking Updated by Guest!" },
       };
 
-     // Send notifications separately
-     await axios.post("https://onesignal.com/api/v1/notifications", travelerNotification, {
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
-      },
-    });
+      // Send notifications separately
+      await axios.post(
+        "https://onesignal.com/api/v1/notifications",
+        travelerNotification,
+        {
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+          },
+        }
+      );
 
-    await axios.post("https://onesignal.com/api/v1/notifications", hostNotification, {
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
-      },
-    });
+      await axios.post(
+        "https://onesignal.com/api/v1/notifications",
+        hostNotification,
+        {
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+          },
+        }
+      );
 
       console.log("Notification sent for booking update.");
     } catch (error) {
       console.error("Error sending notification:", error);
     }
     return res.status(201).json({
-      success:true,
-      message:"Booking Updated successfully!",
-      data:booking
-    })
-     } catch (error) {
-      console.error("Error updating booking:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Internal Server Error!",
-      });
-    }
-}
+      success: true,
+      message: "Booking Updated successfully!",
+      data: booking,
+    });
+  } catch (error) {
+    console.error("Error updating booking:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error!",
+    });
+  }
+};
 
 const confirmBooking = async (req, res) => {
   const uid = req.user.id;
@@ -512,7 +631,7 @@ const getBookingDetails = async (req, res) => {
   }
   const { book_id } = req.body;
 
-  const user = await User.findByPk(uid,{attributes:["name","languages"]});
+  const user = await User.findByPk(uid, { attributes: ["name", "languages"] });
   if (!user) {
     return sendResponse(res, 401, "false", "User Not Found!");
   }
@@ -570,10 +689,10 @@ const getBookingDetails = async (req, res) => {
       book_status: booking.book_status,
       check_intime: booking.check_intime,
       extra_guest: booking.extra_guest,
-      adults:booking.adults,
-      children:booking.children,
-      infants:booking.infants,
-      pets:booking.pets,
+      adults: booking.adults,
+      children: booking.children,
+      infants: booking.infants,
+      pets: booking.pets,
       extra_guest_charges: booking.extra_guest_charges,
       check_outtime: booking.check_outtime,
       book_for: booking.book_for,
@@ -583,7 +702,7 @@ const getBookingDetails = async (req, res) => {
       prop_price: booking.prop_price,
       total_day: booking.total_day,
       cancle_reason: booking.cancle_reason || "",
-      languages:languages
+      languages: languages,
     };
 
     // Fetch payment method title
@@ -693,7 +812,7 @@ const userCheckIn = async (req, res) => {
             "price",
             "address",
             "rate",
-            "add_user_id"
+            "add_user_id",
           ],
         },
       ],
@@ -708,8 +827,8 @@ const userCheckIn = async (req, res) => {
       );
     }
 
-    const property = booking.properties
-    const host = await User.findByPk(property.add_user_id)
+    const property = booking.properties;
+    const host = await User.findByPk(property.add_user_id);
     if (!host) {
       return sendResponse(res, 404, "false", "Host not found!");
     }
@@ -920,7 +1039,6 @@ const userCheckOut = async (req, res) => {
   }
 };
 
-
 const cancelBooking = async (req, res) => {
   const uid = req.user.id;
   if (!uid) {
@@ -964,6 +1082,23 @@ const cancelBooking = async (req, res) => {
       return sendResponse(res, 404, "false", "Host not found!");
     }
 
+    const standardRules = property.standard_rules;
+    if (!standardRules || !standardRules.check_in) {
+      return res
+        .status(404)
+        .json({ message: "Check-in time not defined for this property!" });
+    }
+    const checkInTime = new Date(standardRules.check_in);
+    const currentDate = new Date();
+    const timeDiff = checkInTime - currentDate;
+    const hoursRimining = timeDiff / (1000 * 60 * 60);
+    if (hoursRimining > 24) {
+      return res.status(403).json({
+        message:
+          "You can only cancel booking at least 24 hours before check-in time!",
+      });
+    }
+
     await TblBook.update(
       { book_status: "Cancelled", cancle_reason },
       { where: { id: book_id, uid } }
@@ -972,7 +1107,7 @@ const cancelBooking = async (req, res) => {
     try {
       const notificationContent = {
         app_id: process.env.ONESIGNAL_APP_ID,
-        include_player_ids: [user.one_subscription,host.one_subscription],
+        include_player_ids: [user.one_subscription, host.one_subscription],
         data: { user_id: user.id, type: "booking Cancelled" },
         contents: {
           en: `${user.name}, Your booking for ${booking.prop_title} has been cancelled!`,
@@ -996,21 +1131,21 @@ const cancelBooking = async (req, res) => {
       console.log(error);
     }
 
-   // Create notifications for both traveler and host
-   await TblNotification.bulkCreate([
-    {
-      uid: uid,
-      datetime: new Date(),
-      title: "Booking Cancelled",
-      description: `Your booking for ${property.title} has been cancelled!`,
-    },
-    {
-      uid: host.id,
-      datetime: new Date(),
-      title: "Booking Cancelled",
-      description: `A booking for your property ${property.title} has been cancelled!`,
-    },
-  ]);
+    // Create notifications for both traveler and host
+    await TblNotification.bulkCreate([
+      {
+        uid: uid,
+        datetime: new Date(),
+        title: "Booking Cancelled",
+        description: `Your booking for ${property.title} has been cancelled!`,
+      },
+      {
+        uid: host.id,
+        datetime: new Date(),
+        title: "Booking Cancelled",
+        description: `A booking for your property ${property.title} has been cancelled!`,
+      },
+    ]);
 
     return sendResponse(res, 200, "true", "Booking Cancelled Successfully!");
   } catch (error) {
@@ -1024,7 +1159,7 @@ const cancelTravelerBookingByHost = async (req, res) => {
   if (!hostId) {
     return res.status(401).json({ message: "User Not Found!" });
   }
-  
+
   const { book_id, cancle_reason } = req.body;
 
   if (!book_id || !hostId) {
@@ -1033,7 +1168,12 @@ const cancelTravelerBookingByHost = async (req, res) => {
 
   const host = await User.findByPk(hostId);
   if (!host || host.role !== "host") {
-    return sendResponse(res, 403, "false", "Unauthorized! Only hosts can cancel bookings.");
+    return sendResponse(
+      res,
+      403,
+      "false",
+      "Unauthorized! Only hosts can cancel bookings."
+    );
   }
 
   try {
@@ -1043,11 +1183,11 @@ const cancelTravelerBookingByHost = async (req, res) => {
         add_user_id: hostId,
         book_status: { [Op.in]: ["Confirmed", "Booked"] },
       },
-      include:{
-        model:Property,
-        as:"properties",
-        where:{add_user_id:hostId}
-      }
+      include: {
+        model: Property,
+        as: "properties",
+        where: { add_user_id: hostId },
+      },
     });
 
     if (!booking) {
@@ -1120,7 +1260,6 @@ const cancelTravelerBookingByHost = async (req, res) => {
       }
     }
 
-
     // Create a notification record in the database
     await TblNotification.create({
       uid: booking.uid,
@@ -1129,7 +1268,12 @@ const cancelTravelerBookingByHost = async (req, res) => {
       description: `Your booking for ${booking.prop_title} has been cancelled by the host. Booking ID: ${booking.id}`,
     });
 
-    return sendResponse(res, 200, "true", "Booking Cancelled Successfully by Host!");
+    return sendResponse(
+      res,
+      200,
+      "true",
+      "Booking Cancelled Successfully by Host!"
+    );
   } catch (error) {
     console.error("Error canceling booking by host:", error);
     return sendResponse(res, 500, "false", "Internal Server Error!");
@@ -1295,8 +1439,8 @@ const getTravelerBookingsByStatus = async (req, res) => {
       return acc;
     }, {});
     const propertyIds = bookings.map((b) => b.prop_id);
-    
-const hostIds = bookings.map((b) => b.add_user_id);
+
+    const hostIds = bookings.map((b) => b.add_user_id);
 
     // Fetch traveler reviews for the hosts (if any exist)
     const travelerReviews = await TravelerHostReview.findAll({
@@ -1315,7 +1459,6 @@ const hostIds = bookings.map((b) => b.add_user_id);
       acc[review.property_id].push(review);
       return acc;
     }, {});
-    
 
     // Fetch person details where `book_for` exists
     const bookingsWithDetails = await Promise.all(
@@ -1323,7 +1466,15 @@ const hostIds = bookings.map((b) => b.add_user_id);
         const personDetails = booking.book_for
           ? await PersonRecord.findOne({
               where: { book_id: booking.id },
-              attributes: ["fname", "lname", "gender", "email", "mobile", "ccode", "country"],
+              attributes: [
+                "fname",
+                "lname",
+                "gender",
+                "email",
+                "mobile",
+                "ccode",
+                "country",
+              ],
             })
           : null;
 
@@ -1351,8 +1502,6 @@ const hostIds = bookings.map((b) => b.add_user_id);
     });
   }
 };
-
-
 
 // After Becoming Host
 const getMyUserBookings = async (req, res) => {
@@ -1623,11 +1772,10 @@ const myUserCancelBookings = async (req, res) => {
   }
 };
 
-// Host Properties Bookings Status
 const hostPropertiesBookingStatus = async (req, res) => {
-  const uid = req.user?.id; // Fetch current user ID
+  const hostId = req.user?.id; // Fetch current user ID
 
-  if (!uid) {
+  if (!hostId) {
     return res.status(404).json({ message: "User not found!" });
   }
 
@@ -1642,26 +1790,29 @@ const hostPropertiesBookingStatus = async (req, res) => {
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
-    let whereCondition = { add_user_id: uid }; // Base condition to match current user
+    let whereCondition = { add_user_id: hostId }; // Ensure bookings belong to this host
+
+    // Include traveler details from User table
     const includeCondition = [
       {
         model: Property,
         as: "properties",
-        attributes: [
-          "id",
-          "title",
-          "address",
-          "price",
-          "facility",
-          "rules",
-          "image",
-        ],
+        attributes: ["id", "title", "address", "price", "facility", "rules", "image"],
+      },
+      {
+        model: User,
+        as: "travler_details", // Fetching traveler details from User if booked for self
+        attributes: ["id","name", "mobile", "email"],
       },
       {
         model: PersonRecord,
-        as: "travelerDetails", // Match this alias with the association
+        as: "travelerDetails", // Fetching traveler details if booked for others
         attributes: ["fname", "mobile", "email"],
-        // required: false,
+      },
+      {
+        model: User,
+        as: "hostDetails", // Fetching host details
+        attributes: ["id", "name", "email"],
       },
     ];
 
@@ -1684,17 +1835,11 @@ const hostPropertiesBookingStatus = async (req, res) => {
         break;
 
       case "cancelled":
-        whereCondition = {
-          ...whereCondition,
-          book_status: "Cancelled",
-        };
+        whereCondition = { ...whereCondition, book_status: "Cancelled" };
         break;
 
       case "pending":
-        whereCondition = {
-          ...whereCondition,
-          book_status: "Booked",
-        };
+        whereCondition = { ...whereCondition, book_status: "Booked" };
         break;
 
       case "past":
@@ -1732,46 +1877,56 @@ const hostPropertiesBookingStatus = async (req, res) => {
     });
 
     if (bookings.length === 0) {
-      return res
-        .status(404)
-        .json({ message: `No bookings found for status: ${status}` });
+      return res.status(404).json({ message: `No bookings found for status: ${status}` });
     }
 
-    // Process booking data to calculate additional fields like no_of_days
+    const travelerIds = bookings
+    .map((b) => b.travler_details?.id || null)
+    .filter((id) => id !== null);
+
+  // Fetch traveler reviews based on extracted traveler IDs
+  const travelerReviews = await HostTravelerReview.findAll({
+    where: {
+      traveler_id: { [Op.in]: travelerIds },
+    },
+  });
+
+    // Process booking data to include traveler details
     const processedBookings = bookings.map((booking) => {
       const no_of_days = Math.ceil(
-        (new Date(booking.check_out) - new Date(booking.check_in)) /
-          (1000 * 60 * 60 * 24)
+        (new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24)
       );
 
-      // Determine traveler details (either self or from PersonRecord)
-      const travelerDetails =
-        booking.book_for === "self"
-          ? {
-              name: req.user.name, // Get current user's details directly
-              contact: req.user.mobile,
-              email: req.user.email,
-            }
-          : booking.travelerDetails;
+      // Fetch traveler details from either User or PersonRecord
+      const travelerDetails = booking.book_for === "self" ? booking.traveler : booking.travelerDetails;
 
+        // const travelerReview = travelerReviews.filter(
+        //   (review) => review.traveler_id === booking.travler_details?.id
+        // );
+      const travelerName = booking.travler_details?.name || "Unknown";
+      const hostName = booking.hostDetails?.name || "Unknown";
+      const travelerReview = travelerReviews
+    .filter((review) => review.traveler_id === booking.travler_details?.id)
+    .map((review) => ({
+      traveler_name: travelerName, 
+      host_name: hostName,
+      ...review.toJSON(),
+    }));
       return {
         ...booking.toJSON(),
         no_of_days,
         travelerDetails,
+        travelerReviews: travelerReview,
       };
     });
 
     res.status(200).json({
-      message: `${
-        status.charAt(0).toUpperCase() + status.slice(1)
-      } bookings fetched successfully!`,
+      message: `${status.charAt(0).toUpperCase() + status.slice(1)} bookings fetched successfully!`,
       bookings: processedBookings,
     });
   } catch (error) {
     console.error("Error fetching bookings:", error);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
 
@@ -1896,6 +2051,144 @@ const propertyBookingStatus = async (req, res) => {
   }
 };
 
+// const hostBlockBookingProperty = async (req, res) => {
+//   const { prop_id, block_start, block_end, reason } = req.body;
+//   const host_id = req.user.id;
+
+//   if (!host_id) {
+//     return res.status(401).json({ message: "User not found!" });
+//   }
+
+//   if (!prop_id || !block_start || !block_end || !reason) {
+//     return res
+//       .status(400)
+//       .json({ success: false, message: "All fields required!" });
+//   }
+
+//   try {
+//     // Log prop_id and host_id for debugging purposes
+//     console.log(`Blocking property ${prop_id} by host ${host_id}`);
+
+//     // Fetch property details to ensure the host owns the property
+//     const property = await Property.findOne({
+//       where: { id: prop_id, add_user_id: host_id },
+//     });
+
+//     if (!property) {
+//       console.log(
+//         `No property found for prop_id: ${prop_id} and host_id: ${host_id}`
+//       );
+//       return res.status(403).json({
+//         success: false,
+//         message: "You are not authorized to block this property!",
+//       });
+//     }
+
+//     // Update the Property table with the block_start and block_end dates
+//     await Property.update(
+//       { block_start, block_end },
+//       { where: { id: prop_id } }
+//     );
+
+//     console.log(`Property ${prop_id} has been updated with block dates`);
+
+//     // Find all bookings affected by the block
+//     const affectedBookings = await TblBook.findAll({
+//       where: {
+//         prop_id,
+//         book_status: { [Op.in]: ["Booked", "Confirmed"] },
+//         [Op.or]: [
+//           { check_in: { [Op.between]: [block_start, block_end] } },
+//           { check_out: { [Op.between]: [block_start, block_end] } },
+//           {
+//             check_in: { [Op.lte]: block_start },
+//             check_out: { [Op.gte]: block_end },
+//           },
+//         ],
+//       },
+//     });
+
+//     // Log affected bookings to verify the result
+//     console.log("Affected bookings:", affectedBookings);
+
+//     // If no bookings are affected, return early
+//     if (affectedBookings.length === 0) {
+//       return res.status(200).json({
+//         success: true,
+//         message: "No travelers are affected by this block.",
+//       });
+//     }
+
+//     // Iterate over affected bookings and process each one
+//     for (const booking of affectedBookings) {
+//       const traveler = await User.findByPk(booking.uid);
+
+//       if (traveler?.one_subscription) {
+//         try {
+//           console.log(`Notifying traveler ${traveler.email}`);
+
+//           await axios.post(
+//             "https://onesignal.com/api/v1/notifications",
+//             {
+//               app_id: process.env.ONESIGNAL_APP_ID,
+//               include_player_ids: [traveler.one_subscription],
+//               data: { prop_id, type: "booking_cancellation" },
+//               contents: {
+//                 en: `Your booking for ${property.title} has been blocked due to: ${reason}`,
+//               },
+//               headings: { en: "Booking Blocked!" },
+//             },
+//             {
+//               headers: {
+//                 "Content-Type": "application/json",
+//                 Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+//               },
+//             }
+//           );
+
+//           await TblNotification.create({
+//             uid: traveler.id,
+//             datetime: new Date(),
+//             title: "Booking Blocked!",
+//             description: `Your booking for ${property.title} has been blocked due to: ${reason}`,
+//           });
+
+//           // Update booking status to "Blocked"
+//           console.log(`Updating booking ${booking.id} to Blocked`);
+//           await TblBook.update(
+//             { book_status: "Blocked" },
+//             { where: { id: booking.id } }
+//           );
+//           console.log(`Booking ${booking.id} status updated to Blocked`);
+
+//           // Log update result to ensure it's successful
+//           console.log(
+//             `Booking update result for booking ID ${booking.id}:`,
+//             updateResult
+//           );
+//         } catch (error) {
+//           console.error(
+//             `Error sending notification to ${traveler.email}:`,
+//             error
+//           );
+//         }
+//       }
+//     }
+
+//     // Return success response
+//     return res.status(200).json({
+//       success: true,
+//       message:
+//         "Affected travelers have been notified, and bookings are blocked.",
+//     });
+//   } catch (error) {
+//     console.error("Error blocking property booking:", error);
+//     return res
+//       .status(500)
+//       .json({ success: false, message: "Internal Server Error!" });
+//   }
+// };
+
 const hostBlockBookingProperty = async (req, res) => {
   const { prop_id, block_start, block_end, reason } = req.body;
   const host_id = req.user.id;
@@ -1911,10 +2204,8 @@ const hostBlockBookingProperty = async (req, res) => {
   }
 
   try {
-    // Log prop_id and host_id for debugging purposes
     console.log(`Blocking property ${prop_id} by host ${host_id}`);
 
-    // Fetch property details to ensure the host owns the property
     const property = await Property.findOne({
       where: { id: prop_id, add_user_id: host_id },
     });
@@ -1929,15 +2220,17 @@ const hostBlockBookingProperty = async (req, res) => {
       });
     }
 
-    // Update the Property table with the block_start and block_end dates
-    await Property.update(
-      { block_start, block_end },
-      { where: { id: prop_id } }
-    );
+    // Insert a new blocked date range into PropertyBlock
+    const newBlock = await PropertyBlock.create({
+      prop_id,
+      block_start,
+      block_end,
+      reason,
+    });
 
-    console.log(`Property ${prop_id} has been updated with block dates`);
+    console.log(`Property ${prop_id} blocked from ${block_start} to ${block_end}`);
 
-    // Find all bookings affected by the block
+    // Find all bookings affected by the new block
     const affectedBookings = await TblBook.findAll({
       where: {
         prop_id,
@@ -1953,10 +2246,8 @@ const hostBlockBookingProperty = async (req, res) => {
       },
     });
 
-    // Log affected bookings to verify the result
     console.log("Affected bookings:", affectedBookings);
 
-    // If no bookings are affected, return early
     if (affectedBookings.length === 0) {
       return res.status(200).json({
         success: true,
@@ -1964,7 +2255,6 @@ const hostBlockBookingProperty = async (req, res) => {
       });
     }
 
-    // Iterate over affected bookings and process each one
     for (const booking of affectedBookings) {
       const traveler = await User.findByPk(booking.uid);
 
@@ -1998,19 +2288,12 @@ const hostBlockBookingProperty = async (req, res) => {
             description: `Your booking for ${property.title} has been blocked due to: ${reason}`,
           });
 
-          // Update booking status to "Blocked"
           console.log(`Updating booking ${booking.id} to Blocked`);
           await TblBook.update(
             { book_status: "Blocked" },
             { where: { id: booking.id } }
           );
           console.log(`Booking ${booking.id} status updated to Blocked`);
-
-          // Log update result to ensure it's successful
-          console.log(
-            `Booking update result for booking ID ${booking.id}:`,
-            updateResult
-          );
         } catch (error) {
           console.error(
             `Error sending notification to ${traveler.email}:`,
@@ -2020,11 +2303,9 @@ const hostBlockBookingProperty = async (req, res) => {
       }
     }
 
-    // Return success response
     return res.status(200).json({
       success: true,
-      message:
-        "Affected travelers have been notified, and bookings are blocked.",
+      message: "Affected travelers have been notified, and bookings are blocked.",
     });
   } catch (error) {
     console.error("Error blocking property booking:", error);
@@ -2033,6 +2314,7 @@ const hostBlockBookingProperty = async (req, res) => {
       .json({ success: false, message: "Internal Server Error!" });
   }
 };
+
 
 module.exports = {
   createBooking,

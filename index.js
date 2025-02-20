@@ -48,6 +48,7 @@ const PriceCalendar = require("./models/PriceCalendar");
 const TravelerHostReview = require("./models/TravelerHostReview");
 const HostTravelerReview = require("./models/HostTravelerReview");
 const TblCity = require("./models/TblCity");
+const PropertyBlock = require('./models/PropertyBlock');
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 // Routes

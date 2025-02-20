@@ -14,6 +14,7 @@ const PersonRecord = require("./PersonRecord");
 const TravelerHostReview = require("./TravelerHostReview");
 const HostTravelerReview = require("./HostTravelerReview");
 const TblCity = require("./TblCity");
+const PropertyBlock = require("./PropertyBlock");
 
 RoleChangeRequest.belongsTo(User, { foreignKey: "user_id", as: "user" });
 User.hasMany(RoleChangeRequest, {
@@ -45,8 +46,10 @@ Property.hasMany(TblFav, { foreignKey: "property_id" });
 Property.belongsTo(Setting, { as: "setting", foreignKey: "setting_id" });
 Setting.hasMany(Property, { foreignKey: "setting_id" });
 
-TblBook.belongsTo(User, { foreignKey: "uid", as: "User" });
-User.hasMany(TblBook, { foreignKey: "uid", as: "User" });
+TblBook.belongsTo(User, { foreignKey: "uid", as: "travler_details" });
+User.hasMany(TblBook, { foreignKey: "uid", as: "travler_details", onDelete: "CASCADE"});
+TblBook.belongsTo(User, { foreignKey: "add_user_id", as: "hostDetails" }); // Host
+
 
 PriceCalendar.belongsTo(Property, { foreignKey: "prop_id", as: "property" });
 Property.hasMany(PriceCalendar, {
@@ -61,7 +64,7 @@ PersonRecord.belongsTo(TblBook, {
 TblBook.hasMany(PersonRecord, { foreignKey: "book_id", as: "travelerDetails" });
 
 Property.belongsTo(User, { foreignKey: "add_user_id", as: "Owner" });
-User.hasMany(Property, { foreignKey: "add_user_id", as: "properties" });
+User.hasMany(Property, { foreignKey: "add_user_id", as: "properties", onDelete: "CASCADE"});
 
 // Reviews
 TravelerHostReview.belongsTo(User, {
@@ -104,6 +107,11 @@ TblCountry.hasMany(TblCity, {
 
 Property.belongsTo(TblCity, { foreignKey: "city", as: "cities" });
 TblCity.hasMany(Property, { foreignKey: "city", as: "cities" });
+
+User.hasMany(TblFav, { foreignKey: "uid", onDelete: "CASCADE" });
+TblFav.belongsTo(User, { foreignKey: "uid" });
+
+Property.hasMany(PropertyBlock,{foreignKey:'prop_id',as:'blockedDates'})
 
 module.exports = {
   User,

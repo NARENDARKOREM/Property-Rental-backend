@@ -3,14 +3,14 @@ const TblFaq = require("../models/TblFaq");
 // Fetch FAQ List
 const faqList = async (req, res) => {
   try {
-    const uid = req.user.id;
-    if (!uid) {
-      return res.status(400).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "Something went wrong! UID is missing",
-      });
-    }
+    // const uid = req.user.id;
+    // if (!uid) {
+    //   return res.status(400).json({
+    //     ResponseCode: "401",
+    //     Result: "false",
+    //     ResponseMsg: "Something went wrong! UID is missing",
+    //   });
+    // }
 
     // Fetch FAQs with active status
     const faqs = await TblFaq.findAll({

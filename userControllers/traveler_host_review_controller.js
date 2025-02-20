@@ -3,42 +3,129 @@ const User = require("../models/User");
 const Property = require("../models/Property");
 const TblBook = require("../models/TblBook");
 
-const travelerHostReview = async (req, res) => {
-  const uid = req.user.id; // Traveler's user ID
-  const { hostId, propertyId, rating, review } = req.body;
+// const travelerHostReview = async (req, res) => {
+//   const uid = req.user.id; // Traveler's user ID
+//   const { hostId, prop_id, rating, review } = req.body;
 
+//   try {
+//     // Validate the user ID
+//     if (!uid) {
+//       return res.status(401).json({ message: "User Not Found!" });
+//     }
+
+//     // Validate request body fields
+//     if (!hostId || !propertyId || !rating || !review) {
+//       return res.status(400).json({ message: "All fields are required!" });
+//     }
+
+//     // Verify the host exists
+//     const host = await User.findOne({ where: { id: hostId, role: "host" } });
+//     if (!host) {
+//       return res.status(404).json({ message: "Host Not Found!" });
+//     }
+
+//     // Verify the property exists and belongs to the host
+//     const property = await Property.findOne({
+//       where: { id: propertyId, add_user_id: hostId },
+//     });
+//     if (!property) {
+//       return res.status(400).json({
+//         message: "Property not found or does not belong to this host!",
+//       });
+//     }
+
+//     // Verify booking status is "Completed"
+//     const booking = await TblBook.findOne({
+//       where: {
+//         uid: uid,
+//         prop_id: propertyId,
+//         book_status: "Completed",
+//       },
+//     });
+
+//     if (!booking) {
+//       return res.status(403).json({
+//         message: "You can only leave a review after completing your stay.",
+//       });
+//     }
+
+//     // Check if a review already exists for this booking
+//     const existingReview = await TravelerHostReview.findOne({
+//       where: { traveler_id: uid, property_id: propertyId },
+//     });
+
+//     if (existingReview) {
+//       return res.status(400).json({
+//         message: "You have already submitted a review for this stay.",
+//       });
+//     }
+
+//     // Create a new review
+//     const newReview = await TravelerHostReview.create({
+//       traveler_id: uid,
+//       host_id: hostId,
+//       property_id: propertyId,
+//       rating,
+//       review,
+//       created_at: new Date(),
+//       updated_at: new Date(),
+//     });
+
+//     const reviewer = await User.findOne({
+//       where: { id: uid },
+//       attributes: ["id", "name", "email"],
+//     });
+
+//     return res.status(201).json({
+//       message: "Review Submitted Successfully.",
+//       review: {
+//         ...newReview.dataValues,
+//         reviewer,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error submitting review:", error);
+//     return res.status(500).json({ message: "Internal server error!" });
+//   }
+// };
+
+const travelerHostReview = async (req, res) => {
   try {
-    // Validate the user ID
+    const uid = req.user.id; // Traveler's user ID
+    const { prop_id, rating, review } = req.body;
+
+    // Validate traveler ID
     if (!uid) {
-      return res.status(401).json({ message: "User Not Found!" });
+      return res.status(401).json({ message: "Unauthorized: User not found!" });
     }
 
     // Validate request body fields
-    if (!hostId || !propertyId || !rating || !review) {
+    if (!prop_id || !rating || !review) {
       return res.status(400).json({ message: "All fields are required!" });
     }
 
-    // Verify the host exists
-    const host = await User.findOne({ where: { id: hostId, role: "host" } });
-    if (!host) {
-      return res.status(404).json({ message: "Host Not Found!" });
+    // Ensure rating is between 1 and 5
+    if (rating < 1 || rating > 5 || isNaN(rating)) {
+      return res.status(400).json({ message: "Invalid rating! Must be between 1 and 5." });
     }
 
-    // Verify the property exists and belongs to the host
+    // Fetch the property and its associated host
     const property = await Property.findOne({
-      where: { id: propertyId, add_user_id: hostId },
+      where: { id: prop_id },
+      attributes: ["id", "add_user_id"], // Fetch only necessary fields
     });
-    if (!property) {
-      return res.status(400).json({
-        message: "Property not found or does not belong to this host!",
-      });
+
+    if (!property || !property.add_user_id) {
+      return res.status(404).json({ message: "Property not found!" });
     }
+
+    const hostId = property.add_user_id; // Extract host ID from property
 
     // Verify booking status is "Completed"
     const booking = await TblBook.findOne({
       where: {
         uid: uid,
-        prop_id: propertyId,
+        prop_id: prop_id,
         book_status: "Completed",
       },
     });
@@ -49,9 +136,9 @@ const travelerHostReview = async (req, res) => {
       });
     }
 
-    // Check if a review already exists for this booking
+    // Check if a review already exists for this traveler and property
     const existingReview = await TravelerHostReview.findOne({
-      where: { traveler_id: uid, property_id: propertyId },
+      where: { traveler_id: uid, property_id: prop_id },
     });
 
     if (existingReview) {
@@ -60,24 +147,23 @@ const travelerHostReview = async (req, res) => {
       });
     }
 
-    // Create a new review
+    // Create a new review entry
     const newReview = await TravelerHostReview.create({
       traveler_id: uid,
-      host_id: hostId,
-      property_id: propertyId,
+      host_id: hostId, // Retrieved dynamically
+      property_id: prop_id,
       rating,
       review,
-      created_at: new Date(),
-      updated_at: new Date(),
     });
 
+    // Fetch traveler details (optional)
     const reviewer = await User.findOne({
       where: { id: uid },
       attributes: ["id", "name", "email"],
     });
 
     return res.status(201).json({
-      message: "Review Submitted Successfully.",
+      message: "Review submitted successfully.",
       review: {
         ...newReview.dataValues,
         reviewer,
@@ -89,11 +175,12 @@ const travelerHostReview = async (req, res) => {
   }
 };
 
+
 const getTravelerHostReviews = async (req, res) => {
   try {
-    const { propertyId } = req.query;
+    const { prop_id } = req.query;
 
-    if (!propertyId) {
+    if (!prop_id) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
@@ -103,7 +190,7 @@ const getTravelerHostReviews = async (req, res) => {
 
     // Fetch property details along with host details
     const property = await Property.findOne({
-      where: { id: propertyId },
+      where: { id: prop_id },
       attributes: ["id", "title", "city", "add_user_id"], // Property details
       include: [
         {
@@ -124,7 +211,7 @@ const getTravelerHostReviews = async (req, res) => {
 
     // Fetch all reviews for the property
     const reviews = await TravelerHostReview.findAll({
-      where: { property_id: propertyId },
+      where: { property_id: prop_id },
       attributes: ["rating", "review", "createdAt", "traveler_id"],
     });
 

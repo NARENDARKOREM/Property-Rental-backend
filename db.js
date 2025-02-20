@@ -11,6 +11,7 @@ const sequelize = new Sequelize(
     dialect: process.env.DB_DIALECT || "mysql",
     dialectModule: require("mysql2"),
     port: process.env.DB_PORT,
+    timezone: process.env.TIMEZONE || "+05:30",
   }
 );
 
