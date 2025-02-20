@@ -1903,7 +1903,15 @@ const hostPropertiesBookingStatus = async (req, res) => {
         // const travelerReview = travelerReviews.filter(
         //   (review) => review.traveler_id === booking.travler_details?.id
         // );
-      
+      const travelerName = booking.travler_details?.name || "Unknown";
+      const hostName = booking.hostDetails?.name || "Unknown";
+      const travelerReview = travelerReviews
+    .filter((review) => review.traveler_id === booking.travler_details?.id)
+    .map((review) => ({
+      traveler_name: travelerName, 
+      host_name: hostName,
+      ...review.toJSON(),
+    }));
       return {
         ...booking.toJSON(),
         no_of_days,

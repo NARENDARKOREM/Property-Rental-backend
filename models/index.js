@@ -14,6 +14,7 @@ const PersonRecord = require("./PersonRecord");
 const TravelerHostReview = require("./TravelerHostReview");
 const HostTravelerReview = require("./HostTravelerReview");
 const TblCity = require("./TblCity");
+const PropertyBlock = require("./PropertyBlock");
 
 RoleChangeRequest.belongsTo(User, { foreignKey: "user_id", as: "user" });
 User.hasMany(RoleChangeRequest, {
@@ -109,6 +110,8 @@ TblCity.hasMany(Property, { foreignKey: "city", as: "cities" });
 
 User.hasMany(TblFav, { foreignKey: "uid", onDelete: "CASCADE" });
 TblFav.belongsTo(User, { foreignKey: "uid" });
+
+Property.hasMany(PropertyBlock,{foreignKey:'prop_id',as:'blockedDates'})
 
 module.exports = {
   User,
