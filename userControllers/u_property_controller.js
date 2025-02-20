@@ -11,6 +11,8 @@ const Setting = require("../models/Setting");
 const TblExtraImage = require("../models/TableExtraImages");
 const uploadToS3 = require("../config/fileUpload.aws");
 const TravelerHostReview = require("../models/TravelerHostReview");
+const PropertyBlock = require("../models/PropertyBlock");
+const PersonRecord = require("../models/PersonRecord");
 
 const addProperty = async (req, res) => {
   const {
@@ -532,11 +534,11 @@ const getPropertyList = async (req, res) => {
           sqrft: property.sqrft,
           is_sell: property.is_sell,
           facility: facilityIds,
-          standard_rules: standardRules, // Now safely parsed
+          standard_rules: standardRules,
           rules: property.rules,
           status: property.status,
           latitude: property.latitude,
-          longitude: property.longitude, // Fixed typo
+          longtitude: property.longtitude, 
           mobile: property.mobile,
           city: property.city,
           rate: rate,
@@ -544,8 +546,8 @@ const getPropertyList = async (req, res) => {
           address: property.address,
           country_name: property.country?.title || "Unknown",
           setting_id: property.setting_id,
-          extra_images: extraImages, // Now safely parsed
-          video: videoUrl, // Now safely parsed
+          extra_images: extraImages,
+          video: videoUrl,
           extra_guest_charges: property.extra_guest_charges,
         };
       })
@@ -991,13 +993,210 @@ const getPropertyDetails = async (req, res) => {
   }
 };
 
+// const getAllHostAddedProperties = async (req, res) => {
+//   const uid = req.user?.id || null;
+
+//   try {
+//     const today = new Date().toISOString().split("T")[0];
+
+//     // Fetch properties along with associated PriceCalendar and Booking entries
+//     const properties = await Property.findAll({
+//       where: { status: 1, ...(uid ? { add_user_id: uid } : {}) },
+//       include: [
+//         {
+//           model: PriceCalendar,
+//           as: "priceCalendars",
+//           attributes: ["date", "note", "prop_id", "price"],
+//         },
+//         {
+//           model: TblBook,
+//           as: "properties", // Use the correct alias
+//           attributes: ["check_in", "check_out", "uid", "book_status"],
+//           where: {
+//             check_in: { [Op.gte]: today }, // Only include bookings starting from today
+//           },
+//           required: false, // Allow properties without bookings to be included
+//           include: [
+//             {
+//               model: User,
+//               as: "travler_details",
+//               attributes: ["name", "email", "mobile", "ccode"], // Fetch user details
+//             },
+//           ],
+//         },
+//       ],
+//     });
+
+//     if (!properties || properties.length === 0) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "false",
+//         ResponseMsg: "Properties not found!",
+//       });
+//     }
+
+//     let ownerDetails = null;
+//     if (uid) {
+//       ownerDetails = await User.findOne({
+//         where: { id: uid },
+//         attributes: ["id", "pro_pic", "name", "email", "mobile"],
+//       });
+
+//       if (!ownerDetails) {
+//         return res.status(404).json({
+//           ResponseCode: "404",
+//           Result: "false",
+//           ResponseMsg: "Owner not found!",
+//         });
+//       }
+//     }
+
+//     const propertiesWithUpdatedPrices = properties.map((property) => {
+//       const originalPrice = property.price;
+//       let upcomingPrices = [];
+
+//       if (property.priceCalendars) {
+//         const futureEntries = property.priceCalendars.filter(
+//           (calendar) => calendar.date > today
+//         );
+//         const todayEntry = property.priceCalendars.find(
+//           (calendar) => calendar.date === today
+//         );
+
+//         if (todayEntry) {
+//           upcomingPrices.push({
+//             date: todayEntry.date,
+//             price: todayEntry.price,
+//             note: todayEntry.note,
+//           });
+//         }
+
+//         upcomingPrices = [
+//           ...upcomingPrices,
+//           ...futureEntries.map((entry) => ({
+//             date: entry.date,
+//             price: entry.price,
+//             note: entry.note,
+//           })),
+//         ];
+//       }
+
+//       if (typeof property.rules === "string") {
+//         try {
+//           const parsedRules = JSON.parse(property.rules);
+//           property.rules = Array.isArray(parsedRules)
+//             ? parsedRules.join(", ")
+//             : property.rules
+//                 .split(",")
+//                 .map((rule) => rule.trim())
+//                 .join(", ");
+//         } catch (error) {
+//           console.error("Error parsing rules:", error);
+//         }
+//       } else if (Array.isArray(property.rules)) {
+//         property.rules = property.rules.join(", ");
+//       }
+
+//       // Fetch booking details, but only if the booking status is Booked or Confirmed
+//       // const bookingDetails = property.properties
+//       //   .filter((booking) =>
+//       //     ["Booked", "Confirmed"].includes(booking.book_status)
+//       //   )
+//       //   .map((booking) => ({
+//       //     book_status: booking.book_status,
+//       //     check_in: booking.check_in,
+//       //     check_out: booking.check_out,
+//       //     user: {
+//       //       name: booking.User.name,
+//       //       email: booking.User.email,
+//       //       mobile: booking.User.mobile,
+//       //       ccode: booking.User.ccode,
+//       //     },
+//       //   }));
+
+//       let bookingDetails = [];
+//       if (property.properties.length > 0) {
+//         bookingDetails = property.properties.map((booking) => ({
+//           book_status: booking.book_status,
+//           check_in: booking.check_in,
+//           check_out: booking.check_out,
+//           user: {
+//             name: booking.User?.name,
+//             email: booking.User?.email,
+//             mobile: booking.User?.mobile,
+//             ccode: booking.User?.ccode,
+//           },
+//         }));
+//       }
+
+//       // Include block_start and block_end separately
+//       if (property.block_start && property.block_end) {
+//         bookingDetails.push({
+//           book_status: "Blocked",
+//           check_in: property.block_start,
+//           check_out: property.block_end,
+//           user: null,
+//         });
+//       }
+
+//       // Determine if property is available for booking
+//       const isAvailableForBooking =
+//         property.properties.some((booking) =>
+//           ["Completed", "Cancelled"].includes(booking.book_status)
+//         ) || bookingDetails.length === 0;
+
+//       return {
+//         id: property.id,
+//         title: property.title,
+//         image: property.image,
+//         city: property.city,
+//         price: originalPrice,
+//         upcomingPrices,
+//         address: property.address,
+//         rules: property.rules,
+//         beds: property.beds,
+//         bathroom: property.bathroom,
+//         sqrft: property.sqrft,
+//         description: property.description,
+//         bookingDetails,
+//         status: isAvailableForBooking ? "Available" : "Not Available",
+//       };
+//     });
+
+//     res.status(200).json({
+//       properties: propertiesWithUpdatedPrices,
+//       ...(ownerDetails
+//         ? {
+//             owner: {
+//               id: ownerDetails.id,
+//               name: ownerDetails.name,
+//               email: ownerDetails.email,
+//               phone: ownerDetails.mobile,
+//             },
+//           }
+//         : {}),
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Properties fetched successfully!",
+//     });
+//   } catch (error) {
+//     console.error("Error in getAllHostAddedProperties:", error);
+//     res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const getAllHostAddedProperties = async (req, res) => {
   const uid = req.user?.id || null;
 
   try {
     const today = new Date().toISOString().split("T")[0];
 
-    // Fetch properties along with associated PriceCalendar and Booking entries
+    // Fetch properties along with associated PriceCalendar, Booking, and PropertyBlock entries
     const properties = await Property.findAll({
       where: { status: 1, ...(uid ? { add_user_id: uid } : {}) },
       include: [
@@ -1008,19 +1207,25 @@ const getAllHostAddedProperties = async (req, res) => {
         },
         {
           model: TblBook,
-          as: "properties", // Use the correct alias
+          as: "properties",
           attributes: ["check_in", "check_out", "uid", "book_status"],
           where: {
-            check_in: { [Op.gte]: today }, // Only include bookings starting from today
+            check_in: { [Op.gte]: today },
           },
-          required: false, // Allow properties without bookings to be included
+          required: false,
           include: [
             {
               model: User,
               as: "travler_details",
-              attributes: ["name", "email", "mobile", "ccode"], // Fetch user details
+              attributes: ["name", "email", "mobile", "ccode"],
             },
           ],
+        },
+        {
+          model: PropertyBlock,
+          as: "blockedDates",
+          attributes: ["block_start", "block_end", "reason"],
+          required: false, // Allow properties without blocked dates
         },
       ],
     });
@@ -1095,23 +1300,6 @@ const getAllHostAddedProperties = async (req, res) => {
         property.rules = property.rules.join(", ");
       }
 
-      // Fetch booking details, but only if the booking status is Booked or Confirmed
-      // const bookingDetails = property.properties
-      //   .filter((booking) =>
-      //     ["Booked", "Confirmed"].includes(booking.book_status)
-      //   )
-      //   .map((booking) => ({
-      //     book_status: booking.book_status,
-      //     check_in: booking.check_in,
-      //     check_out: booking.check_out,
-      //     user: {
-      //       name: booking.User.name,
-      //       email: booking.User.email,
-      //       mobile: booking.User.mobile,
-      //       ccode: booking.User.ccode,
-      //     },
-      //   }));
-
       let bookingDetails = [];
       if (property.properties.length > 0) {
         bookingDetails = property.properties.map((booking) => ({
@@ -1119,29 +1307,24 @@ const getAllHostAddedProperties = async (req, res) => {
           check_in: booking.check_in,
           check_out: booking.check_out,
           user: {
-            name: booking.User?.name,
-            email: booking.User?.email,
-            mobile: booking.User?.mobile,
-            ccode: booking.User?.ccode,
+            name: booking.travler_details?.name,
+            email: booking.travler_details?.email,
+            mobile: booking.travler_details?.mobile,
+            ccode: booking.travler_details?.ccode,
           },
         }));
       }
 
-      // Include block_start and block_end separately
-      if (property.block_start && property.block_end) {
-        bookingDetails.push({
+      // Include blocked dates
+      let blockedDates = [];
+      if (property.blockedDates && property.blockedDates.length > 0) {
+        blockedDates = property.blockedDates.map((block) => ({
           book_status: "Blocked",
-          check_in: property.block_start,
-          check_out: property.block_end,
-          user: null,
-        });
+          check_in: block.block_start,
+          check_out: block.block_end,
+          reason: block.reason,
+        }));
       }
-
-      // Determine if property is available for booking
-      const isAvailableForBooking =
-        property.properties.some((booking) =>
-          ["Completed", "Cancelled"].includes(booking.book_status)
-        ) || bookingDetails.length === 0;
 
       return {
         id: property.id,
@@ -1156,8 +1339,8 @@ const getAllHostAddedProperties = async (req, res) => {
         bathroom: property.bathroom,
         sqrft: property.sqrft,
         description: property.description,
-        bookingDetails,
-        status: isAvailableForBooking ? "Available" : "Not Available",
+        bookingDetails: [...bookingDetails, ...blockedDates], // Combine bookings and blocked dates
+        status: bookingDetails.length === 0 ? "Available" : "Not Available",
       };
     });
 
@@ -1187,6 +1370,7 @@ const getAllHostAddedProperties = async (req, res) => {
     });
   }
 };
+
 
 const getSortedProperties = async (req, res) => {
   try {
@@ -1651,31 +1835,74 @@ const searchProperties = async (req, res) => {
   }
 };
 
+
 const deleteUserProperty = async (req, res) => {
   const uid = req.user.id;
   if (!uid) {
-    return res.status(401).message({ message: "User not found!" });
+    return res.status(401).json({ message: "User not found!" });
   }
+
   try {
     const propertyId = req.params.propertyId;
     if (!propertyId) {
       return res.status(400).json({ message: "Property Id is required!" });
     }
+
     const property = await Property.findOne({
       where: { id: propertyId, add_user_id: uid },
     });
+
     if (!property) {
       return res.status(404).json({
         message: "Property not found or you don't have permission to delete!",
       });
     }
+
+    const activeBookings = await TblBook.findOne({
+      where: {
+        prop_id: propertyId,
+        book_status: {
+          [Op.in]: ["Confirmed", "Booked", "Cancelled", "Check_in"],
+        },
+      },
+    });
+
+    if (activeBookings) {
+      return res.status(400).json({
+        message: "Property cannot be deleted as it has active or pending bookings!",
+      });
+    }
+
+    const bookings = await TblBook.findAll({
+      where: { prop_id: propertyId },
+      attributes: ["id"],
+    });
+
+    if (bookings.length > 0) {
+      const bookIds = bookings.map((booking) => booking.id);
+      await PersonRecord.destroy({ where: { book_id: bookIds } });
+    }
+
+    await TblBook.destroy({ where: { prop_id: propertyId } });
+    await PropertyBlock.destroy({ where: { prop_id: propertyId } });
+    await PriceCalendar.destroy({ where: { prop_id: propertyId } });
+    await TblExtra.destroy({ where: { pid: propertyId } });
+    await TblFav.destroy({ where: { property_id: propertyId } });
+    await TblGallery.destroy({ where: { pid: propertyId } });
+
+    const extraRecords = await TblExtra.findAll({ where: { pid: propertyId } });
+    if (extraRecords.length > 0) {
+      const extraIds = extraRecords.map((extra) => extra.id);
+      await TblExtraImage.destroy({ where: { id: extraIds } });
+    }
+    await TravelerHostReview.destroy({ where: { property_id: propertyId } });
+
     await Property.destroy({ where: { id: propertyId } });
-    return res.status(200).json({ message: "Property deleted successfully!" });
+
+    return res.status(200).json({ message: "Property and associated records deleted successfully!" });
   } catch (error) {
-    console.error(object);
-    return res
-      .status(500)
-      .json({ message: "An error occurred while deleting the property!" });
+    console.error("Error Occurred While Deleting Property:", error);
+    return res.status(500).json({ message: "An error occurred while deleting the property!" });
   }
 };
 
