@@ -34,10 +34,11 @@ const client = new twilio(
 
 const sendWhatsAppMessage = async (to, message) => {
   try {
+    console.log(`Sending WhatsApp message to: ${to}`);
     const response = await client.messages.create({
       from: process.env.TWILIO_WHATSAPP_NUMBER,
-      // channel:"whatsapp",
-      to: `whatsapp:+91${to}`,
+      // to: `whatsapp:+91${to}`,
+      to: `whatsapp:+91${to.trim()}`,
       body: message,
     });
     console.log(`WhatsApp message sent successfully to ${to}`, response.sid);
@@ -58,22 +59,21 @@ const sendEmailNotification = async (toEmail, subject, content) => {
     apiKey.apiKey = process.env.BREVO_API_KEY;
 
     const transactionalEmailApi = new Sib.TransactionalEmailsApi();
-    const sender = { email: "narendar.korem@innoitlabs.com", name: "Servostay" };
+    const sender = { email: 'narendar.korem@innoitlabs.com', name: 'Servostay' };
     const receivers = [{ email: toEmail }];
 
-    await transactionalEmailApi.sendTransacEmail({
+    const response = await transactionalEmailApi.sendTransacEmail({
       sender,
       to: receivers,
       subject,
       htmlContent: content,
     });
 
-    console.log(`Email sent successfully to ${toEmail}`);
+    console.log(`Email sent successfully to ${toEmail}`, response);
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("Error sending email:", error.response ? error.response.data : error);
   }
 };
-
 
 const createBooking = async (req, res) => {
   const uid = req.user.id;
@@ -108,7 +108,7 @@ const createBooking = async (req, res) => {
     platform_fee,
   } = req.body;
 
-  const id_proof_img = req.file; // Single file uploaded via Multer
+  const id_proof_img = req.file; 
 
   if (
     !prop_id ||
@@ -275,24 +275,24 @@ const createBooking = async (req, res) => {
     }
 
     const userEmailContent = `
-  <h3>Hello ${user.name},</h3>
-  <p>Your booking for <strong>${booking.prop_title}</strong> has been confirmed.</p>
-  <p><strong>Booking ID:</strong> ${booking.id}</p>
-  <p>Thank you for choosing our platform!</p>
-`;
+      <h3>Hello ${user.name},</h3>
+      <p><strong>Booking ID:</strong> ${booking.id}</p>
+      <p>Your booking for <strong>${booking.prop_title}</strong> has been confirmed.</p>
+      <p>Thank you for choosing our platform!</p>
+    `;
 
-await sendEmailNotification(user.email, "Booking Confirmed!", userEmailContent);
+    await sendEmailNotification(user.email, "Booking Confirmed!", userEmailContent);
 
-if (host) {
-  const hostEmailContent = `
-    <h3>Hello ${host.name},</h3>
-    <p>You have received a new booking for <strong>${booking.prop_title}</strong>.</p>
-    <p><strong>Booking ID:</strong> ${booking.id}</p>
-    <p>Please check your dashboard for more details.</p>
-  `;
+    if (host) {
+      const hostEmailContent = `
+        <h3>Hello ${host.name},</h3>
+        <p>You have received a new booking for <strong>${booking.prop_title}</strong>.</p>
+        <p><strong>Booking ID:</strong> ${booking.id}</p>
+        <p>Please check your dashboard for more details.</p>
+      `;
 
-  await sendEmailNotification(host.email, "New Booking Received!", hostEmailContent);
-}
+      await sendEmailNotification(host.email, "New Booking Received!", hostEmailContent);
+    }
 
 
       // Sending WhatsApp Notifications
@@ -515,6 +515,26 @@ const editBooking = async (req, res) => {
     }
     const traveler = await User.findByPk(uid);
     const host = await User.findByPk(property.add_user_id);
+
+    const travelerEmailContent = `
+      <h3>Hello ${traveler.name},</h3>
+      <p>Your booking for <strong>${booking.prop_title}</strong> has been updated.</p>
+      <p><strong>Booking ID:</strong> ${booking.id}</p>
+      <p>Thank you for choosing our platform!</p>
+    `
+    await sendEmailNotification(traveler.email, "Booking Updated!", travelerEmailContent)
+
+    if (host) {
+        const hostEmailContent = `
+        <h3>Hello ${host.name},</h3>
+        <p>You have received a updated booking for <strong>${booking.prop_title}</strong>.</p>
+        <p><strong>Booking ID:</strong> ${booking.id}</p>
+        <p>Please check your dashboard for more details.</p>
+      `;
+
+      await sendEmailNotification(host.email, "Booking has been updated!", hostEmailContent);
+    }
+
     try {
       // Notification for Traveler
       const travelerNotification = {
@@ -1128,27 +1148,30 @@ const cancelBooking = async (req, res) => {
       return sendResponse(res, 404, "false", "Host not found!");
     }
 
-    // const standardRules = property.standard_rules;
-    // if (!standardRules || !standardRules.check_in) {
-    //   return res
-    //     .status(404)
-    //     .json({ message: "Check-in time not defined for this property!" });
-    // }
-    // const checkInTime = new Date(standardRules.check_in);
-    // const currentDate = new Date();
-    // const timeDiff = checkInTime - currentDate;
-    // const hoursRimining = timeDiff / (1000 * 60 * 60);
-    // if (hoursRimining > 24) {
-    //   return res.status(403).json({
-    //     message:
-    //       "You can only cancel booking at least 24 hours before check-in time!",
-    //   });
-    // }
-
     await TblBook.update(
       { book_status: "Cancelled", cancle_reason },
       { where: { id: book_id, uid } }
     );
+
+    const traveler = await User.findByPk(uid);
+
+    const travelerEmailContent = `
+      <h3>Hello ${traveler.name},</h3>
+      <p>Your booking for <strong>${booking.prop_title}</strong> has been Cancelled as per your request.</p>
+      <p><strong>Booking ID:</strong> ${booking.id}</p>
+    `
+    await sendEmailNotification(traveler.email, "Booking has been Cancelled!", travelerEmailContent)
+
+    if (host) {
+      const hostEmailContent = `
+        <h3>Hello ${host.name},</h3>
+        <p>Traveler has been cancelled his booking for <strong>${booking.prop_title}</strong>.</p>
+        <p><strong>Booking ID:</strong> ${booking.id}</p>
+        <p>Please check your dashboard for more details.</p>
+      `;
+
+      await sendEmailNotification(host.email, "Booking has been cancelled!", hostEmailContent);
+    }
 
     try {
       const notificationContent = {
@@ -1158,7 +1181,7 @@ const cancelBooking = async (req, res) => {
         contents: {
           en: `${user.name}, Your booking for ${booking.prop_title} has been cancelled!`,
         },
-        headings: { en: "Booking Cancelled By Owner!" },
+        headings: { en: "Booking Cancelled!" },
       };
 
       const response = await axios.post(
@@ -1253,6 +1276,25 @@ const cancelTravelerBookingByHost = async (req, res) => {
     // Notify the traveler
     const traveler = await User.findByPk(booking.uid);
     const hostUser = await User.findByPk(hostId);
+
+    const travelerEmailContent = `
+      <h3>Hello ${traveler.name},</h3>
+      <p>Your booking for <strong>${booking.prop_title}</strong> has been Cancelled by Owner.</p>
+      <p><strong>Booking ID:</strong> ${booking.id}</p>
+    `
+    await sendEmailNotification(traveler.email, "Booking Updated!", travelerEmailContent)
+
+    if (hostUser) {
+      const hostEmailContent = `
+        <h3>Hello ${host.name},</h3>
+        <p>You have Cancelled Booking for <strong>${booking.prop_title}</strong>.</p>
+        <p><strong>Booking ID:</strong> ${booking.id}</p>
+        <p>Please check your dashboard for more details.</p>
+      `;
+
+      await sendEmailNotification(host.email, "Booking has Cancelled!", hostEmailContent);
+    }
+
     if (traveler && traveler.one_subscription) {
       try {
         const notificationContent = {

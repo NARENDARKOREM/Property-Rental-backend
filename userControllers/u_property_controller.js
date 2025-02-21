@@ -511,7 +511,7 @@ const getPropertyList = async (req, res) => {
         // Parse `video` safely
         let videoUrl = null;
         try {
-          videoUrl = property.video ? JSON.parse(property.video)[0] : null;
+          videoUrl = property.video ? JSON.parse(property.video) : null;
         } catch (err) {
           console.error("Error parsing video:", err.message);
         }
