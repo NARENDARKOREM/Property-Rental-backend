@@ -34,7 +34,7 @@ const hostTravelerReview = async (req, res) => {
     });
 
     if (!booking) {
-      return res(400).json({
+      return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
         message: "Booking not found! or not Completed.",
