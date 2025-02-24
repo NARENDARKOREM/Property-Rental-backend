@@ -1906,8 +1906,8 @@ const deleteUserProperty = async (req, res) => {
 
     return res.status(200).json({
       message: forceDelete
-        ? "Property and associated records permanently deleted!"
-        : "Property and associated records deleted successfully!",
+        ? "Property deleted successfully!"
+        : "Property deleted successfully!",
     });
   } catch (error) {
     console.error("Error Occurred While Deleting Property:", error);

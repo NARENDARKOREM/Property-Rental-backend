@@ -171,6 +171,7 @@ app.use("/host-review", hostTravelerReviewRoutes);
 app.use("/u_cities",uCityRoutes)
 app.use("/app-settings",require("./userRoutes/setting_routes"))
 app.use("/notifications",require('./userRoutes/u_nofifications_routes'))
+app.use("/booking-refund",require('./userRoutes/u_refund_routes'))
 
 app.get("/", (req, res) => {
   // const query
