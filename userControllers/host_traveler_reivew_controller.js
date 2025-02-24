@@ -62,7 +62,7 @@ const hostTravelerReview = async (req, res) => {
 
     await HostTravelerReview.create({
       host_id: uid,
-      traveler_id: booking.User.id,
+      traveler_id: booking.travler_details.id,
       booking_id: bookingId,
       rating,
       review,
