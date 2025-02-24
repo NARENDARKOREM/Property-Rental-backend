@@ -12,6 +12,15 @@ const sequelize = new Sequelize(
     dialectModule: require("mysql2"),
     port: process.env.DB_PORT,
     timezone: process.env.TIMEZONE || "+05:30",
+    dialectOptions:{
+      timezone:"+05:30",
+      typeCast: function (field, next) {
+        if (field.type === "DATETIME") {
+          return new Date(field.string() + " GMT+0530");
+        }
+        return next();
+      },
+    }
   }
 );
 

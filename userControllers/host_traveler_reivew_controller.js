@@ -27,7 +27,7 @@ const hostTravelerReview = async (req, res) => {
         },
         {
           model: User,
-          as: "User",
+          as: "travler_details",
           attributes: ["id", "name"],
         },
       ],
