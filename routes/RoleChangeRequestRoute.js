@@ -8,6 +8,7 @@ const {
   handleRoleChangeRequest,
   deleteRoleChangeRequest,
   statusRoleChangeRequest,
+  ViewRoleChangeRequst,
 } = require("../controllers/RoleChangeRequest");
 const { User } = require("../models");
 const { default: axios } = require("axios");
@@ -17,6 +18,7 @@ router.get("/all",adminMiddleware.isAdmin, getPendingRoleChangeRequests);
 router.put("/update/:id",adminMiddleware.isAdmin, handleRoleChangeRequest);
 router.delete("/delete/:id",adminMiddleware.isAdmin,  deleteRoleChangeRequest);
 router.patch("/status/:id",adminMiddleware.isAdmin, statusRoleChangeRequest);
+router.get("/request/:id",adminMiddleware.isAdmin,ViewRoleChangeRequst)
 // router.post("/test",authMiddleware.isAuthenticated, async (req, res)=>{
 
   

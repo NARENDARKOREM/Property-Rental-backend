@@ -37,7 +37,8 @@ const upsertProperty = async (req, res) => {
     infants,
     pets,
     setting_id,
-    extra_guest_charges 
+    extra_guest_charges,
+    standard_rules
   } = req.body;
 
   console.log(req.body,"from bodyyyyyyyyy")
@@ -45,6 +46,17 @@ const upsertProperty = async (req, res) => {
     const validateCity = await TblCity.findOne({where:{title:city}})
     if(validateCity){
       res.status(400).json({error:"Selected CIty is Found!"})
+    }
+    let parsedStandardRules;
+    try {
+      parsedStandardRules =
+        typeof standard_rules === "string"
+          ? JSON.parse(standard_rules)
+          : standard_rules;
+    } catch (error) {
+      return res.status(400).json({
+        error: "Invalid format for standard_rules. Must be a valid JSON object.",
+      });
     }
     if (id) {
       // Update existing property
@@ -80,7 +92,8 @@ const upsertProperty = async (req, res) => {
         infants,
         pets,
         setting_id,
-        extra_guest_charges
+        extra_guest_charges,
+        standard_rules:parsedStandardRules
       });
 
       await property.save();
@@ -116,7 +129,8 @@ const upsertProperty = async (req, res) => {
         infants,
         pets,
         setting_id,
-        extra_guest_charges
+        extra_guest_charges,
+        standard_rules:parsedStandardRules
       });
       res
         .status(201)

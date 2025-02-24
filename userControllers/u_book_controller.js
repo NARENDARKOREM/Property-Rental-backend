@@ -742,6 +742,8 @@ const getBookingDetails = async (req, res) => {
       prop_title: booking.prop_title,
       uid: booking.uid,
       book_date: booking.book_date,
+      id_proof:booking.id_proof,
+      id_proof_img:booking.id_proof_img,
       check_in: booking.check_in,
       check_out: booking.check_out,
       payment_title: "",
