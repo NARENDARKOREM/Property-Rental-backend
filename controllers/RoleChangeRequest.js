@@ -15,7 +15,22 @@ exports.getPendingRoleChangeRequests = async (req, res) => {
   }
 };
 
-
+exports.ViewRoleChangeRequst=async(req,res)=>{
+  const {id}=req.params
+  try {
+    const viewRequest=await RoleChangeRequest.findByPk(id,{
+      where:{status:'pending'},
+      includes:[{model:User,as:'user',attributes:['id','name','email','role']}]
+    });
+    res.status(200).json({
+      message:"Request Fetched Successfully",
+      viewRequest
+    })
+  } catch (error) {
+    console.error("Error Occurs While Fetching Role Request",error);
+    res.status(500).json({ message: "Failed to fetch pending requests." });
+  }
+}
 
 
 exports.handleRoleChangeRequest = async (req, res) => {
