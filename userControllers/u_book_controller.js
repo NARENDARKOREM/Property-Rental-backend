@@ -1107,15 +1107,158 @@ const userCheckOut = async (req, res) => {
   }
 };
 
+// const cancelBooking = async (req, res) => {
+//   const uid = req.user.id;
+//   if (!uid) {
+//     return res.status(401).json({ message: "User Not Found!" });
+//   }
+//   const { book_id, cancle_reason } = req.body;
+
+//   if (!book_id || !uid) {
+//     return sendResponse(res, 401, "false", "book_id and uid is required!");
+//   }
+
+//   const user = await User.findByPk(uid);
+//   if (!user) {
+//     return sendResponse(res, 401, "false", "User Not Found!");
+//   }
+
+//   try {
+//     const booking = await TblBook.findOne({
+//       where: {
+//         id: book_id,
+//         uid: uid,
+//         book_status: { [Op.in]: ["Confirmed", "Booked"] },
+//       },
+//     });
+
+//     if (!booking) {
+//       return sendResponse(
+//         res,
+//         404,
+//         "false",
+//         "Booking not found, or you don't have permission to cancel this booking!"
+//       );
+//     }
+//     const property = await Property.findOne({ where: { id: booking.prop_id } });
+//     if (!property) {
+//       return sendResponse(res, 404, "false", "Property not found!");
+//     }
+
+//     const host = await User.findByPk(property.add_user_id);
+//     if (!host) {
+//       return sendResponse(res, 404, "false", "Host not found!");
+//     }
+
+//     await TblBook.update(
+//       { book_status: "Cancelled", cancle_reason },
+//       { where: { id: book_id, uid } }
+//     );
+
+//     if (booking.transaction_id && booking.amount_paid > 0) {
+//       try {
+//         const refundAmount = Math.round(booking.amount_paid * 100); // Ensure correct unit
+//         const response = await axios.post(
+//           `https://api.razorpay.com/v1/payments/${booking.transaction_id}/refund`,
+//           {
+//             amount: refundAmount,
+//             notes: { refund_reason: cancle_reason || "User requested cancellation" },
+//           },
+//           {
+//             auth: {
+//               username: process.env.RAZORPAY_KEY_ID,
+//               password: process.env.RAZORPAY_SECRET_KEY,
+//             },
+//           }
+//         );
+
+//         await booking.update({ refund_status: "Processed" });
+//       } catch (refundError) {
+//         console.error("Refund Error:", refundError.response?.data || refundError.message);
+//         await booking.update({ refund_status: "Failed" });
+//       }
+//     }
+
+//     const traveler = await User.findByPk(uid);
+
+//     const travelerEmailContent = `
+//       <h3>Hello ${traveler.name},</h3>
+//       <p>Your booking for <strong>${booking.prop_title}</strong> has been Cancelled as per your request.</p>
+//       <p><strong>Booking ID:</strong> ${booking.id}</p>
+//     `
+//     await sendEmailNotification(traveler.email, "Booking has been Cancelled!", travelerEmailContent)
+
+//     if (host) {
+//       const hostEmailContent = `
+//         <h3>Hello ${host.name},</h3>
+//         <p>Traveler has been cancelled his booking for <strong>${booking.prop_title}</strong>.</p>
+//         <p><strong>Booking ID:</strong> ${booking.id}</p>
+//         <p>Please check your dashboard for more details.</p>
+//       `;
+
+//       await sendEmailNotification(host.email, "Booking has been cancelled!", hostEmailContent);
+//     }
+
+//     try {
+//       const notificationContent = {
+//         app_id: process.env.ONESIGNAL_APP_ID,
+//         include_player_ids: [user.one_subscription, host.one_subscription],
+//         data: { user_id: user.id, type: "booking Cancelled" },
+//         contents: {
+//           en: `${user.name}, Your booking for ${booking.prop_title} has been cancelled!`,
+//         },
+//         headings: { en: "Booking Cancelled!" },
+//       };
+
+//       const response = await axios.post(
+//         "https://onesignal.com/api/v1/notifications",
+//         notificationContent,
+//         {
+//           headers: {
+//             "Content-Type": "application/json; charset=utf-8",
+//             Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+//           },
+//         }
+//       );
+
+//       console.log(response, "notification sent");
+//     } catch (error) {
+//       console.log(error);
+//     }
+
+//     // Create notifications for both traveler and host
+//     await TblNotification.bulkCreate([
+//       {
+//         uid: uid,
+//         datetime: new Date(),
+//         title: "Booking Cancelled",
+//         description: `Your booking for ${property.title} has been cancelled!`,
+//       },
+//       {
+//         uid: host.id,
+//         datetime: new Date(),
+//         title: "Booking Cancelled",
+//         description: `A booking for your property ${property.title} has been cancelled!`,
+//       },
+//     ]);
+
+//     return sendResponse(res, 200, "true", "Booking Cancelled Successfully!");
+//   } catch (error) {
+//     console.error("Error canceling booking:", error);
+//     return sendResponse(res, 500, "false", "Internal Server Error!");
+//   }
+// };
+
+
 const cancelBooking = async (req, res) => {
   const uid = req.user.id;
   if (!uid) {
     return res.status(401).json({ message: "User Not Found!" });
   }
-  const { book_id, cancle_reason } = req.body;
+  const { book_id, cancle_reason } = req.body; // Fixed `cancle_reason`
 
   if (!book_id || !uid) {
-    return sendResponse(res, 401, "false", "book_id and uid is required!");
+    return sendResponse(res, 401, "false", "book_id and uid are required!");
   }
 
   const user = await User.findByPk(uid);
@@ -1140,6 +1283,7 @@ const cancelBooking = async (req, res) => {
         "Booking not found, or you don't have permission to cancel this booking!"
       );
     }
+
     const property = await Property.findOne({ where: { id: booking.prop_id } });
     if (!property) {
       return sendResponse(res, 404, "false", "Property not found!");
@@ -1150,65 +1294,112 @@ const cancelBooking = async (req, res) => {
       return sendResponse(res, 404, "false", "Host not found!");
     }
 
+    // Update booking status
     await TblBook.update(
       { book_status: "Cancelled", cancle_reason },
       { where: { id: book_id, uid } }
     );
 
-    const traveler = await User.findByPk(uid);
+    let refundMessage = "";
 
+    // Refund Logic
+    if (booking.transaction_id && booking.platform_fee > 0) {
+      console.log("Transaction ID:", booking.transaction_id);
+      console.log("Platform fee Amount:", booking.platform_fee);
+      try {
+        
+        const refundAmount = Math.round(booking.platform_fee * 100);
+        console.log("Refund Amount in Paise:", refundAmount);
+        console.log("Initiating refund request to Razorpay...");
+        console.log({
+          transactionId: booking.transaction_id,
+          refundAmount: Math.round(booking.platform_fee * 100),
+        });
+        await axios.post(
+          `https://api.razorpay.com/v1/payments/${booking.transaction_id}/refund`,
+          {
+            amount: refundAmount,
+            notes: { refund_reason: cancle_reason || "User requested cancellation" },
+          },
+          {
+            auth: {
+              username: process.env.RAZORPAY_KEY_ID,
+              password: process.env.RAZORPAY_SECRET_KEY,
+            },
+          }
+        );
+
+        console.log("Razorpay Key:", process.env.RAZORPAY_KEY_ID);
+        console.log("Razorpay Secret:", process.env.RAZORPAY_SECRET_KEY ? "Exists" : "Missing");
+
+        await booking.update({ refund_status: "Processed" });
+
+        const updatedBooking = await TblBook.findByPk(book_id);
+        console.log("Updated Refund Status:", updatedBooking.refund_status);
+
+        refundMessage = "Refund initiated! Amount credited in 5-7 business days.";
+      } catch (refundError) {
+        console.error("Refund Error:", refundError.response?.data || refundError.message);
+        await booking.update({ refund_status: "Failed" });
+        refundMessage = " Refund initiation failed. Please contact support.";
+      }
+    }
+
+    // Send Emails to Traveler and Host
+    const traveler = await User.findByPk(uid);
     const travelerEmailContent = `
       <h3>Hello ${traveler.name},</h3>
-      <p>Your booking for <strong>${booking.prop_title}</strong> has been Cancelled as per your request.</p>
+      <p>Your booking for <strong>${property.title}</strong> has been cancelled as per your request.</p>
       <p><strong>Booking ID:</strong> ${booking.id}</p>
-    `
-    await sendEmailNotification(traveler.email, "Booking has been Cancelled!", travelerEmailContent)
+      <p>${refundMessage}</p>
+    `;
+    await sendEmailNotification(traveler.email, "Booking has been Cancelled!", travelerEmailContent);
 
     if (host) {
       const hostEmailContent = `
         <h3>Hello ${host.name},</h3>
-        <p>Traveler has been cancelled his booking for <strong>${booking.prop_title}</strong>.</p>
+        <p>The traveler has cancelled their booking for <strong>${property.title}</strong>.</p>
         <p><strong>Booking ID:</strong> ${booking.id}</p>
         <p>Please check your dashboard for more details.</p>
       `;
-
       await sendEmailNotification(host.email, "Booking has been cancelled!", hostEmailContent);
     }
 
-    try {
-      const notificationContent = {
-        app_id: process.env.ONESIGNAL_APP_ID,
-        include_player_ids: [user.one_subscription, host.one_subscription],
-        data: { user_id: user.id, type: "booking Cancelled" },
-        contents: {
-          en: `${user.name}, Your booking for ${booking.prop_title} has been cancelled!`,
-        },
-        headings: { en: "Booking Cancelled!" },
-      };
-
-      const response = await axios.post(
-        "https://onesignal.com/api/v1/notifications",
-        notificationContent,
-        {
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+    // Push Notification via OneSignal
+    if (user.one_subscription || host.one_subscription) {
+      try {
+        const notificationContent = {
+          app_id: process.env.ONESIGNAL_APP_ID,
+          include_player_ids: [user.one_subscription, host.one_subscription].filter(Boolean),
+          data: { user_id: user.id, type: "booking Cancelled" },
+          contents: {
+            en: `${user.name}, Your booking for ${property.title} has been cancelled!${refundMessage}`,
           },
-        }
-      );
+          headings: { en: "Booking Cancelled!" },
+        };
 
-      console.log(response, "notification sent");
-    } catch (error) {
-      console.log(error);
+        await axios.post(
+          "https://onesignal.com/api/v1/notifications",
+          notificationContent,
+          {
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+              Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+            },
+          }
+        );
+      } catch (error) {
+        console.log("Notification Error:", error.message);
+      }
     }
 
-    // Create notifications for both traveler and host
+    // Store Cancellation Notifications
     await TblNotification.bulkCreate([
       {
         uid: uid,
         datetime: new Date(),
         title: "Booking Cancelled",
-        description: `Your booking for ${property.title} has been cancelled!`,
+        description: `Your booking for ${property.title} has been cancelled!${refundMessage}`,
       },
       {
         uid: host.id,
@@ -1218,12 +1409,200 @@ const cancelBooking = async (req, res) => {
       },
     ]);
 
-    return sendResponse(res, 200, "true", "Booking Cancelled Successfully!");
+    return sendResponse(res, 200, "true", `Booking Cancelled Successfully!${refundMessage}`);
   } catch (error) {
     console.error("Error canceling booking:", error);
     return sendResponse(res, 500, "false", "Internal Server Error!");
   }
 };
+
+// const cancelTravelerBookingByHost = async (req, res) => {
+//   const hostId = req.user.id;
+//   if (!hostId) {
+//     return res.status(401).json({ message: "User Not Found!" });
+//   }
+
+//   const { book_id, cancle_reason } = req.body;
+
+//   if (!book_id || !hostId) {
+//     return sendResponse(res, 401, "false", "book_id and hostId are required!");
+//   }
+
+//   const host = await User.findByPk(hostId);
+//   if (!host || host.role !== "host") {
+//     return sendResponse(
+//       res,
+//       403,
+//       "false",
+//       "Unauthorized! Only hosts can cancel bookings."
+//     );
+//   }
+
+//   try {
+//     const booking = await TblBook.findOne({
+//       where: {
+//         id: book_id,
+//         add_user_id: hostId,
+//         book_status: { [Op.in]: ["Confirmed", "Booked"] },
+//       },
+//       include: {
+//         model: Property,
+//         as: "properties",
+//         where: { add_user_id: hostId },
+//       },
+//     });
+
+//     if (!booking) {
+//       return sendResponse(
+//         res,
+//         404,
+//         "false",
+//         "Booking not found, or you don't have permission to cancel this booking!"
+//       );
+//     }
+
+//     await TblBook.update(
+//       { book_status: "Cancelled", cancle_reason },
+//       { where: { id: book_id, add_user_id: hostId } }
+//     );
+
+//     let refundMessage = "";
+
+//     if (booking.transaction_id && booking.platform_fee > 0) {
+//       console.log("Transaction ID:", booking.transaction_id);
+//       console.log("Platform fee Amount:", booking.platform_fee);
+//       try {
+        
+//         const refundAmount = Math.round(booking.platform_fee * 100);
+//         console.log("Refund Amount in Paise:", refundAmount);
+//         console.log("Initiating refund request to Razorpay...");
+//         console.log({
+//           transactionId: booking.transaction_id,
+//           refundAmount: Math.round(booking.platform_fee * 100),
+//         });
+//         await axios.post(
+//           `https://api.razorpay.com/v1/payments/${booking.transaction_id}/refund`,
+//           {
+//             amount: refundAmount,
+//             notes: { refund_reason: cancle_reason || "User requested cancellation" },
+//           },
+//           {
+//             auth: {
+//               username: process.env.RAZORPAY_KEY_ID,
+//               password: process.env.RAZORPAY_SECRET_KEY,
+//             },
+//           }
+//         );
+//         console.log("Razorpay Key:", process.env.RAZORPAY_KEY_ID);
+//         console.log("Razorpay Secret:", process.env.RAZORPAY_SECRET_KEY ? "Exists" : "Missing");
+
+//         await booking.update({ refund_status: "Processed" });
+
+//         const updatedBooking = await TblBook.findByPk(book_id);
+//         console.log("Updated Refund Status:", updatedBooking.refund_status);
+
+//         refundMessage = "Refund initiated! Amount credited in 5-7 business days.";
+//       } catch (refundError) {
+//         console.error("Refund Error:", refundError.response?.data || refundError.message);
+//         await booking.update({ refund_status: "Failed" });
+//         refundMessage = " Refund initiation failed. Please contact support.";
+//       }
+//     }
+
+//     // Notify the traveler
+//     const traveler = await User.findByPk(booking.uid);
+//     const hostUser = await User.findByPk(hostId);
+
+//     const travelerEmailContent = `
+//       <h3>Hello ${traveler.name},</h3>
+//       <p>Your booking for <strong>${booking.prop_title}</strong> has been Cancelled by Owner.</p>
+//       <p><strong>Booking ID:</strong> ${booking.id}</p>
+//     `
+//     await sendEmailNotification(traveler.email, "Booking Updated!", travelerEmailContent)
+
+//     if (hostUser) {
+//       const hostEmailContent = `
+//         <h3>Hello ${host.name},</h3>
+//         <p>You have Cancelled Booking for <strong>${booking.prop_title}</strong>.</p>
+//         <p><strong>Booking ID:</strong> ${booking.id}</p>
+//         <p>Please check your dashboard for more details.</p>
+//       `;
+
+//       await sendEmailNotification(host.email, "Booking has Cancelled!", hostEmailContent);
+//     }
+
+//     if (traveler && traveler.one_subscription) {
+//       try {
+//         const notificationContent = {
+//           app_id: process.env.ONESIGNAL_APP_ID,
+//           include_player_ids: [traveler.one_subscription],
+//           data: { user_id: traveler.id, type: "booking Cancelled" },
+//           contents: {
+//             en: `Dear ${traveler.name}, your booking for ${booking.prop_title} has been cancelled by the host!`,
+//           },
+//           headings: { en: "Booking Cancelled By Host" },
+//         };
+
+//         const response = await axios.post(
+//           "https://onesignal.com/api/v1/notifications",
+//           notificationContent,
+//           {
+//             headers: {
+//               "Content-Type": "application/json; charset=utf-8",
+//               Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+//             },
+//           }
+//         );
+//         console.log(response.data, "notification sent");
+//       } catch (error) {
+//         console.log(error);
+//       }
+//     }
+
+//     if (hostUser && hostUser.one_subscription) {
+//       try {
+//         await axios.post(
+//           "https://onesignal.com/api/v1/notifications",
+//           {
+//             app_id: process.env.ONESIGNAL_APP_ID,
+//             include_player_ids: [hostUser.one_subscription],
+//             data: { user_id: hostUser.id, type: "booking_cancelled" },
+//             contents: {
+//               en: `You have successfully cancelled the booking for "${booking.prop_title}".`,
+//             },
+//             headings: { en: "Booking Cancellation Confirmed" },
+//           },
+//           {
+//             headers: {
+//               "Content-Type": "application/json; charset=utf-8",
+//               Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+//             },
+//           }
+//         );
+//       } catch (error) {
+//         console.log("Host notification error:", error);
+//       }
+//     }
+
+//     // Create a notification record in the database
+//     await TblNotification.create({
+//       uid: booking.uid,
+//       datetime: new Date(),
+//       title: `Booking Cancelled Due to ${cancle_reason}`,
+//       description: `Your booking for ${booking.prop_title} has been cancelled by the host. Booking ID: ${booking.id}`,
+//     });
+
+//     return sendResponse(
+//       res,
+//       200,
+//       "true",
+//       `Booking Cancelled Successfully by Host! ${refundMessage}`
+//     );    
+//   } catch (error) {
+//     console.error("Error canceling booking by host:", error);
+//     return sendResponse(res, 500, "false", "Internal Server Error!");
+//   }
+// };
 
 const cancelTravelerBookingByHost = async (req, res) => {
   const hostId = req.user.id;
@@ -1270,46 +1649,99 @@ const cancelTravelerBookingByHost = async (req, res) => {
       );
     }
 
+    const property = await Property.findOne({ where: { id: booking.prop_id } });
+    if (!property) {
+      return sendResponse(res, 404, "false", "Property not found!");
+    }
+
+    const traveler = await User.findByPk(booking.uid);
+    if (!traveler) {
+      return sendResponse(res, 404, "false", "Traveler not found!");
+    }
+
+    // Update booking status
     await TblBook.update(
       { book_status: "Cancelled", cancle_reason },
       { where: { id: book_id, add_user_id: hostId } }
     );
 
-    // Notify the traveler
-    const traveler = await User.findByPk(booking.uid);
-    const hostUser = await User.findByPk(hostId);
+    let refundMessage = "";
 
-    const travelerEmailContent = `
-      <h3>Hello ${traveler.name},</h3>
-      <p>Your booking for <strong>${booking.prop_title}</strong> has been Cancelled by Owner.</p>
-      <p><strong>Booking ID:</strong> ${booking.id}</p>
-    `
-    await sendEmailNotification(traveler.email, "Booking Updated!", travelerEmailContent)
+    // Refund Logic
+    if (booking.transaction_id && booking.platform_fee > 0) {
+      console.log("Transaction ID:", booking.transaction_id);
+      console.log("Platform fee Amount:", booking.platform_fee);
+      try {
+        const refundAmount = Math.round(booking.platform_fee * 100);
+        console.log("Refund Amount in Paise:", refundAmount);
+        console.log("Initiating refund request to Razorpay...");
+        console.log({
+          transactionId: booking.transaction_id,
+          refundAmount,
+        });
 
-    if (hostUser) {
-      const hostEmailContent = `
-        <h3>Hello ${host.name},</h3>
-        <p>You have Cancelled Booking for <strong>${booking.prop_title}</strong>.</p>
-        <p><strong>Booking ID:</strong> ${booking.id}</p>
-        <p>Please check your dashboard for more details.</p>
-      `;
+        await axios.post(
+          `https://api.razorpay.com/v1/payments/${booking.transaction_id}/refund`,
+          {
+            amount: refundAmount,
+            notes: { refund_reason: cancle_reason || "Host cancelled the booking" },
+          },
+          {
+            auth: {
+              username: process.env.RAZORPAY_KEY_ID,
+              password: process.env.RAZORPAY_SECRET_KEY,
+            },
+          }
+        );
 
-      await sendEmailNotification(host.email, "Booking has Cancelled!", hostEmailContent);
+        console.log("Razorpay Key:", process.env.RAZORPAY_KEY_ID);
+        console.log("Razorpay Secret:", process.env.RAZORPAY_SECRET_KEY ? "Exists" : "Missing");
+
+        await booking.update({ refund_status: "Processed" });
+
+        const updatedBooking = await TblBook.findByPk(book_id);
+        console.log("Updated Refund Status:", updatedBooking.refund_status);
+
+        refundMessage = "Refund initiated! Amount credited in 5-7 business days.";
+      } catch (refundError) {
+        console.error("Refund Error:", refundError.response?.data || refundError.message);
+        await booking.update({ refund_status: "Failed" });
+        refundMessage = " Refund initiation failed. Please contact support.";
+      }
     }
 
-    if (traveler && traveler.one_subscription) {
+    // Send Emails to Traveler and Host
+    const travelerEmailContent = `
+      <h3>Hello ${traveler.name},</h3>
+      <p>Your booking for <strong>${property.title}</strong> has been cancelled by the host.</p>
+      <p><strong>Booking ID:</strong> ${booking.id}</p>
+      <p>${refundMessage}</p>
+    `;
+    await sendEmailNotification(traveler.email, "Booking Cancelled by Host!", travelerEmailContent);
+
+    const hostEmailContent = `
+      <h3>Hello ${host.name},</h3>
+      <p>You have cancelled the booking for <strong>${property.title}</strong>.</p>
+      <p><strong>Booking ID:</strong> ${booking.id}</p>
+      <p>${refundMessage}</p>
+      <p>Please check your dashboard for more details.</p>
+    `;
+    await sendEmailNotification(host.email, "Booking Cancelled Successfully!", hostEmailContent);
+
+    // Push Notification via OneSignal
+    if (traveler.one_subscription || host.one_subscription) {
       try {
         const notificationContent = {
           app_id: process.env.ONESIGNAL_APP_ID,
-          include_player_ids: [traveler.one_subscription],
-          data: { user_id: traveler.id, type: "booking Cancelled" },
+          include_player_ids: [traveler.one_subscription, host.one_subscription].filter(Boolean),
+          data: { user_id: traveler.id, type: "booking Cancelled by Host" },
           contents: {
-            en: `Dear ${traveler.name}, your booking for ${booking.prop_title} has been cancelled by the host!`,
+            en: `${traveler.name}, Your booking for ${property.title} has been cancelled by the host! ${refundMessage}`,
           },
-          headings: { en: "Booking Cancelled By Host" },
+          headings: { en: "Booking Cancelled!" },
         };
 
-        const response = await axios.post(
+        await axios.post(
           "https://onesignal.com/api/v1/notifications",
           notificationContent,
           {
@@ -1319,56 +1751,34 @@ const cancelTravelerBookingByHost = async (req, res) => {
             },
           }
         );
-        console.log(response.data, "notification sent");
       } catch (error) {
-        console.log(error);
+        console.log("Notification Error:", error.message);
       }
     }
 
-    if (hostUser && hostUser.one_subscription) {
-      try {
-        await axios.post(
-          "https://onesignal.com/api/v1/notifications",
-          {
-            app_id: process.env.ONESIGNAL_APP_ID,
-            include_player_ids: [hostUser.one_subscription],
-            data: { user_id: hostUser.id, type: "booking_cancelled" },
-            contents: {
-              en: `You have successfully cancelled the booking for "${booking.prop_title}".`,
-            },
-            headings: { en: "Booking Cancellation Confirmed" },
-          },
-          {
-            headers: {
-              "Content-Type": "application/json; charset=utf-8",
-              Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
-            },
-          }
-        );
-      } catch (error) {
-        console.log("Host notification error:", error);
-      }
-    }
+    // Store Cancellation Notifications
+    await TblNotification.bulkCreate([
+      {
+        uid: traveler.id,
+        datetime: new Date(),
+        title: "Booking Cancelled by Host",
+        description: `Your booking for ${property.title} has been cancelled by the host. ${refundMessage}`,
+      },
+      {
+        uid: host.id,
+        datetime: new Date(),
+        title: "Booking Cancelled",
+        description: `You have cancelled a booking for your property ${property.title}.`,
+      },
+    ]);
 
-    // Create a notification record in the database
-    await TblNotification.create({
-      uid: booking.uid,
-      datetime: new Date(),
-      title: `Booking Cancelled Due to ${cancle_reason}`,
-      description: `Your booking for ${booking.prop_title} has been cancelled by the host. Booking ID: ${booking.id}`,
-    });
-
-    return sendResponse(
-      res,
-      200,
-      "true",
-      "Booking Cancelled Successfully by Host!"
-    );
+    return sendResponse(res, 200, "true", `Booking Cancelled Successfully! ${refundMessage}`);
   } catch (error) {
-    console.error("Error canceling booking by host:", error);
+    console.error("Error canceling booking:", error);
     return sendResponse(res, 500, "false", "Internal Server Error!");
   }
 };
+
 
 // Get Traveller Bookings Status
 // const getTravelerBookingsByStatus = async (req, res) => {
