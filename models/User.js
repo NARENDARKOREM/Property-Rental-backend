@@ -102,7 +102,12 @@ const User = sequelize.define(
     one_subscription:{
       type:DataTypes.TEXT,
       allowNull:true
-    }
+    },
+    languages:{
+      type:DataTypes.JSON,
+      allowNull:false,
+      defaultValue:["English"] 
+    },
   },
   {
     tableName: "tbl_user",

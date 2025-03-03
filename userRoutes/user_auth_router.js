@@ -26,7 +26,9 @@ const {
   loginWithMobile,
   removeOneSignalId,
   verifyEmail,
-verifyMobileNumber
+verifyMobileNumber,
+verifyMobile,
+setLanguage
 } = require("../userControllers/user_auth_controller");
 
 router.post("/user/signup", userRegister);
@@ -37,6 +39,7 @@ router.post("/user/verifyotp", verifyOtp);
 router.post("/user/mobile",loginWithMobile);
 router.post("/user/verifyemail",verifyEmail);
 router.post("/user/verifymobile",verifyMobileNumber);
+router.post("/user/verify-mobile",verifyMobile);
 router.post("/user/changerole",authMiddleware.isAuthenticated,upload.single("image"), requestRoleChange);
 router.put("/user/forgotpassword",authMiddleware.isAuthenticated, forgotPassword);
 router.get("/user/getalluser",adminMiddleware.isAdmin, getAllusers);
@@ -50,7 +53,8 @@ router.put("/user/delete", authMiddleware.isAuthenticated, deleteUserAccount);
 router.put("/user/one_subscribe", authMiddleware.isAuthenticated, updateOneSignalSubscription);
 
 router.get("/user/getData",authMiddleware.isAuthenticated,getUserData)
-router.put("/user/remove_onesignal_id",authMiddleware.isAuthenticated,removeOneSignalId)
+router.put("/user/remove_onesignal_id",authMiddleware.isAuthenticated,removeOneSignalId);
+router.put("/user/set-language",authMiddleware.isAuthenticated,setLanguage)
 
 
 module.exports = router;  

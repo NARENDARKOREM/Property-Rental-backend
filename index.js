@@ -93,11 +93,14 @@ app.use(
       "https://servostay-ten.vercel.app",
       "http://localhost:3000",
       "https://property-rental-backend-6.onrender.com",
-      "http://localhost:58160"
+      "http://localhost:58160",
+      "https://servostayweb1.vercel.app"
     ],
     credentials: true,
   })
 );
+
+// app.use(cors({ origin: "*" }));;
 
 app.use(cookieParser());
 app.use(
@@ -165,6 +168,7 @@ app.use("/price-calendar", priceCalendarRoutes);
 app.use("/traveler-review", traverlerReviewRoutes);
 app.use("/host-review", hostTravelerReviewRoutes);
 app.use("/u_cities",uCityRoutes)
+app.use("/app-settings",require("./userRoutes/setting_routes"))
 
 app.get("/", (req, res) => {
   // const query

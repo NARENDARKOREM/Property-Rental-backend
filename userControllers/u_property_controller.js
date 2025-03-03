@@ -237,7 +237,7 @@ const editProperty = async (req, res) => {
     if (!beds) missingFields.push("beds");
     if (!bathroom) missingFields.push("bathroom");
     if (!sqrft) missingFields.push("sqrft");
-    if (!rate) missingFields.push("rate");
+    // if (!rate) missingFields.push("rate");
     if (!rules) missingFields.push("rules");
     if (!latitude) missingFields.push("latitude");
     if (!longtitude) missingFields.push("longtitude");
@@ -386,10 +386,15 @@ const getPropertyList = async (req, res) => {
       properties.map(async (property) => {
         console.log("Processing property:", property);
 
+        // const facilityIds = property.facility
+        //   ? property.facility.split(",")
+        //   : [];
         const facilityIds = property.facility
-          ? property.facility.split(",")
-          : [];
+  ? property.facility.replace(/[\[\]']/g, "").split(",").filter(id => id.trim() !== "null")
+  : [];
+
         console.log("Facility IDs:", facilityIds);
+        console.log(typeof(facilityIds),"data typeeeeeeeeeeeeeeeeeeeee")
 
         const facilityTitles = await TblFacility.findAll({
           where: { id: { [Op.in]: facilityIds } },
@@ -720,8 +725,12 @@ const getPropertyDetails = async (req, res) => {
     if (property.add_user_id !== 0) {
       ownerDetails = await User.findOne({
         where: { id: property.add_user_id },
-        attributes: ["id", "pro_pic", "name", "email", "mobile","createdAt"],
+        attributes: ["id", "pro_pic", "name", "email","languages", "mobile","createdAt"],
       });
+    }
+
+    if (ownerDetails && ownerDetails.languages) {
+      ownerDetails.languages = JSON.parse(ownerDetails.languages);
     }
 
     const travelerReviews = await TravelerHostReview.findAll({
@@ -811,7 +820,7 @@ const getPropertyDetails = async (req, res) => {
       ? JSON.parse(property.extra_images)
       : [];
     // const video = property.video ? { url: property.video } : null;
-  const videoUrl = property.video ? JSON.parse(property.video)[0] : null;
+  const videoUrl = property.video ? JSON.parse(property.video) : null;
 console.log("Video URL:", videoUrl);
 
     const gallery = {
@@ -861,6 +870,7 @@ console.log("Video URL:", videoUrl);
               pro_pic: ownerDetails.pro_pic,
               email: ownerDetails.email,
               phone: ownerDetails.mobile,
+      languages: ownerDetails.languages ? JSON.parse(ownerDetails.languages) : [],
               // host_reviews: reviewsArray,
               total_reviews: totalRatings,
               average_ratings:avgRating,
