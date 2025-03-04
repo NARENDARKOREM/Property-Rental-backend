@@ -84,8 +84,6 @@ async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) 
       {
         headers: {
           accept: "application/json",
-          // Authorization:
-          //   "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",
           "api-key": BREVO_API_KEY,
           "content-type": "application/json",
         },
@@ -102,18 +100,18 @@ async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) 
 }
 
 // Test calls
-// sendWhatsAppMessage(
-//   "+918688468369",
-//   "John",
-//   "ABC123",
-//   process.env.BREVO_TEMPLATE_ID
-// );
-// sendWhatsAppMessage(
-//   "+919505171479",
-//   "Jane",
-//   "XYZ987",
-//   process.env.BREVO_TEMPLATE_ID
-// );
+sendWhatsAppMessage(
+  "+918688468369",
+  "John",
+  "ABC123",
+  process.env.BREVO_TEMPLATE_ID
+);
+sendWhatsAppMessage(
+  "+919505171479",
+  "Jane",
+  "XYZ987",
+  process.env.BREVO_TEMPLATE_ID
+);
 
 const sendEmailNotification = async (toEmail, subject, content) => {
   try {
