@@ -2954,10 +2954,10 @@ const hostBlockBookingProperty = async (req, res) => {
     }
 
     // Convert block_start and block_end to a proper format
-    const formattedBlockStart = moment(block_start, "DD-MM-YYYY").format(
+    const formattedBlockStart = moment(block_start, "YYYY-MM-DD").format(
       "YYYY-MM-DD"
     );
-    const formattedBlockEnd = moment(block_end, "DD-MM-YYYY").format(
+    const formattedBlockEnd = moment(block_end, "YYYY-MM-DD").format(
       "YYYY-MM-DD"
     );
 
