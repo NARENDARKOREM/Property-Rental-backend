@@ -1260,7 +1260,7 @@ const getAllHostAddedProperties = async (req, res) => {
 
       if (property.priceCalendars) {
         const futureEntries = property.priceCalendars.filter(
-          (calendar) => calendar.date > today
+          (calendar) => calendar.date >= new Date(today)
         );
         const todayEntry = property.priceCalendars.find(
           (calendar) => calendar.date === today
@@ -1277,7 +1277,7 @@ const getAllHostAddedProperties = async (req, res) => {
         upcomingPrices = [
           ...upcomingPrices,
           ...futureEntries.map((entry) => ({
-            date: entry.date,
+            date: new Date(entry.date).toISOString().split("T")[0],
             price: entry.price,
             note: entry.note,
           })),
@@ -1304,8 +1304,8 @@ const getAllHostAddedProperties = async (req, res) => {
       if (property.properties.length > 0) {
         bookingDetails = property.properties.map((booking) => ({
           book_status: booking.book_status,
-          check_in: booking.check_in,
-          check_out: booking.check_out,
+          check_in: new Date(booking.check_in).toISOString().split("T")[0],
+          check_out: new Date(booking.check_out).toISOString().split("T")[0],
           user: {
             name: booking.travler_details?.name,
             email: booking.travler_details?.email,
@@ -1320,8 +1320,8 @@ const getAllHostAddedProperties = async (req, res) => {
       if (property.blockedDates && property.blockedDates.length > 0) {
         blockedDates = property.blockedDates.map((block) => ({
           book_status: "Blocked",
-          check_in: block.block_start,
-          check_out: block.block_end,
+          check_in: new Date(block.block_start).toISOString().split("T")[0],
+          check_out: new Date(block.block_end).toISOString().split("T")[0],
           reason: block.reason,
         }));
       }
@@ -1339,7 +1339,7 @@ const getAllHostAddedProperties = async (req, res) => {
         bathroom: property.bathroom,
         sqrft: property.sqrft,
         description: property.description,
-        bookingDetails: [...bookingDetails, ...blockedDates], // Combine bookings and blocked dates
+        bookingDetails: [...bookingDetails, ...blockedDates],
         status: bookingDetails.length === 0 ? "Available" : "Not Available",
       };
     });

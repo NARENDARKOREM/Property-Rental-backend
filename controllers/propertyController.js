@@ -5,146 +5,172 @@ const { TblCategory, TblCountry, } = require("../models");
 const TblFacility = require("../models/TblFacility");
 const TblCity = require('../models/TblCity');
 const { error } = require("console");
+const sequelize = require("../db");
 
 // Create or Update Property
 const upsertProperty = async (req, res) => {
-  const {
-    id,
-    title,
-    is_panorama,
-    image,
-    price,
-    status,
-    address,
-    facility,
-    description,
-    beds,
-    bathroom,
-    sqrft,
-    rate,
-    ptype,
-    latitude,
-    longtitude,
-    mobile,
-    city,
-    listing_date,
-    rules,
-    country_id,
-    plimit,
-    is_sell,
-    adults,
-    children,
-    infants,
-    pets,
-    setting_id,
-    extra_guest_charges,
-    standard_rules
-  } = req.body;
-
-  console.log(req.body,"from bodyyyyyyyyy")
   try {
-    const validateCity = await TblCity.findOne({where:{title:city}})
-    if(validateCity){
-      res.status(400).json({error:"Selected CIty is Found!"})
+    const {
+      id,
+      title,
+      image,
+      price,
+      is_panorama,
+      status,
+      address,
+      facility,
+      description,
+      beds,
+      bathroom,
+      sqrft,
+      rate,
+      ptype,
+      latitude,
+      longtitude,
+      mobile,
+      city,
+      listing_date,
+      rules,
+      country_id,
+      plimit,
+      is_sell,
+      adults,
+      children,
+      infants,
+      pets,
+      setting_id,
+      extra_guest_charges,
+      standard_rules,
+    } = req.body;
+
+    console.log(req.body);
+
+    // **Step 1: Validate City**
+    if (!city || !city.label) {
+      return res.status(400).json({ error: "City is required" });
     }
+
+    const validateCity = await TblCity.findOne({
+      where: { title: city.label },
+    });
+
+    if (!validateCity) {
+      return res.status(400).json({ error: `City '${city.label}' not found in database` });
+    }
+
+    // **Step 2: Parse `standard_rules` Safely**
     let parsedStandardRules;
     try {
       parsedStandardRules =
-        typeof standard_rules === "string"
-          ? JSON.parse(standard_rules)
-          : standard_rules;
+        typeof standard_rules === "object"
+          ? standard_rules
+          : JSON.parse(standard_rules);
     } catch (error) {
-      return res.status(400).json({
-        error: "Invalid format for standard_rules. Must be a valid JSON object.",
-      });
+      return res.status(400).json({ error: "Invalid JSON format in standard_rules" });
     }
-    if (id) {
-      // Update existing property
-      const property = await Property.findByPk(id);
-      if (!property) {
-        return res.status(404).json({ error: "Property not found" });
-      }
-      Object.assign(property, {
-        title,
-        image,
-        price,
-        is_panorama,
-        status,
-        address,
-        facility,
-        description,
-        beds,
-        bathroom,
-        sqrft,
-        rate,
-        ptype,
-        latitude,
-        longtitude,
-        mobile,
-        city,
-        listing_date,
-        rules,
-        country_id,
-        plimit,
-        is_sell,
-        adults,
-        children,
-        infants,
-        pets,
-        setting_id,
-        extra_guest_charges,
-        standard_rules:parsedStandardRules
-      });
 
-      await property.save();
-      res
-        .status(200)
-        .json({ message: "Property updated successfully", property });
-    } else {
-      // Create new property without adding add_user_id
-      const property = await Property.create({
-        title,
-        image,
-        is_panorama,
-        price,
-        status,
-        address,
-        facility,
-        description,
-        beds,
-        bathroom,
-        sqrft,
-        rate,
-        ptype,
-        latitude,
-        longtitude,
-        mobile,
-        city,
-        listing_date,
-        rules,
-        country_id,
-        is_sell,
-        adults,
-        children,
-        infants,
-        pets,
-        setting_id,
-        extra_guest_charges,
-        standard_rules:parsedStandardRules
-      });
-      res
-        .status(201)
-        .json({ message: "Property created successfully", property });
+    console.log(typeof parsedStandardRules, "Standard Rules");
+
+    // **Step 3: Start Transaction**
+    const transaction = await sequelize.transaction();
+    try {
+      let property;
+
+      if (id) {
+        // **Step 4: Fetch Property for Update**
+        property = await Property.findByPk(id);
+        if (!property) {
+          return res.status(404).json({ error: "Property not found" });
+        }
+
+        // **Step 5: Update Property**
+        await property.update(
+          {
+            title,
+            image,
+            price,
+            is_panorama,
+            status,
+            address,
+            facility,
+            description,
+            beds,
+            bathroom,
+            sqrft,
+            rate,
+            ptype,
+            latitude,
+            longtitude,
+            mobile,
+            city: validateCity.id,
+            listing_date,
+            rules,
+            country_id,
+            plimit,
+            is_sell,
+            adults,
+            children,
+            infants,
+            pets,
+            setting_id,
+            extra_guest_charges,
+            standard_rules: JSON.stringify(parsedStandardRules),
+          },
+          { transaction }
+        );
+      } else {
+        // **Step 6: Create New Property**
+        property = await Property.create(
+          {
+            title,
+            image,
+            price,
+            is_panorama,
+            status,
+            address,
+            facility,
+            description,
+            beds,
+            bathroom,
+            sqrft,
+            rate,
+            ptype,
+            latitude,
+            longtitude,
+            mobile,
+            city: validateCity.id,
+            listing_date,
+            rules,
+            country_id,
+            plimit,
+            is_sell,
+            adults,
+            children,
+            infants,
+            pets,
+            setting_id,
+            extra_guest_charges,
+            standard_rules: JSON.stringify(parsedStandardRules),
+          },
+          { transaction }
+        );
+      }
+
+      // **Step 7: Commit Transaction**
+      await transaction.commit();
+      return res.status(200).json({ message: id ? "Property updated successfully" : "Property added successfully", property });
+    } catch (error) {
+      await transaction.rollback();
+      return res.status(500).json({ error: "Database operation failed", details: error.message });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
+    return res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
 
+
 // Get All Properties
-const getAllProperties = async (req, res) => {
+const getAllProperties = async (req, res) => { 
   try {
     const properties = await Property.findAll({
       include: [
@@ -240,14 +266,20 @@ const getPropertyById = async (req, res) => {
 const deleteProperty = async (req, res) => {
   const { id } = req.params;
   const { forceDelete } = req.query;
+  console.log("Delete request received for Property ID:", id);
+console.log("Force Delete:", forceDelete);
+
 
   try {
     const property = await Property.findOne({ where: { id }, paranoid: false });
+    console.log("Property Found:", property);
+
     if (!property) {
       return res.status(404).json({ error: "Property not found" });
     }
 
     if (property.deletedAt && forceDelete !== "true") {
+      console.log("Property is already soft-deleted. Cannot delete again.");
       return res
         .status(400)
         .json({ error: "Property is already soft-deleted" });
@@ -256,11 +288,13 @@ const deleteProperty = async (req, res) => {
     if (forceDelete === "true") {
       if (property.image && !property.image.startsWith("http")) {
         const imagePath = path.join(__dirname, "..", property.image);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath); // Remove image file if it exists and it's a local path
-        } else {
-          console.warn(`File not found: ${imagePath}`); // Log a warning if file not found
-        }
+if (fs.existsSync(imagePath)) {
+  console.log(`Deleting Image: ${imagePath}`);
+  fs.unlinkSync(imagePath);
+} else {
+  console.warn(`File not found: ${imagePath}`);
+}
+
       }
       await property.destroy({ force: true });
       res

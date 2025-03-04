@@ -172,7 +172,12 @@ const TblBook = sequelize.define(
       type: DataTypes.ENUM("Pending", "Processed", "Failed", "Not Initiated"),
       allowNull: false,
       defaultValue: "Not Initiated",
-    },    
+    },
+    optin: { 
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false, 
+    },  
   },
   {
     tableName: "tbl_book",

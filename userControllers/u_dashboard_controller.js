@@ -89,7 +89,7 @@ const dashboardData = async (req, res) => {
         where: {
           add_user_id: uid,
           // prop_id: { [Op.in]: userPropertyIds },
-          book_status: { [Op.in]: ["Completed", "Confirmed"] },
+          book_status: { [Op.in]: ["Completed"] },
           // p_method_id: { [Op.ne]: 2 },
         },
       }),
@@ -355,7 +355,7 @@ const listingProperties = async (req, res) => {
     const currentYear = new Date().getFullYear();
     const whereCondition = {
       prop_id: propertyId ? propertyId : { [Op.in]: hostPropertyIds },
-      book_status: "Completed" || "Booked" || "Confirmed",
+      book_status: "Completed",
       createdAt: {
         [Op.gte]: new Date(`${currentYear}-01-01`),
         [Op.lte]: new Date(`${currentYear}-12-31`),
