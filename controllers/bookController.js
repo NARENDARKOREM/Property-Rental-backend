@@ -370,7 +370,7 @@ const seAllDetails = async (req, res) => {
       include: [
         {
           model: User,
-          as: 'User', 
+          as: 'travler_details', 
           attributes: ['id', 'name', 'email', 'mobile'], 
         },
         {

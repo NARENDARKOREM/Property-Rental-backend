@@ -1,3 +1,4 @@
+const PropertyBlock = require("../models/PropertyBlock");
 const TblBook = require("../models/TblBook");
 const { Op } = require("sequelize");
 
@@ -41,6 +42,11 @@ const getBookedDates = async (req, res) => {
       attributes: ["check_in", "check_out"],
     });
 
+    const blockedDates = await PropertyBlock.findAll({
+      where:{prop_id:property_id},
+      attributes: ["block_start", "block_end"],
+    })
+
     if (bookings.length === 0) {
       return res.status(200).json({
         datelist: [],
@@ -57,13 +63,19 @@ const getBookedDates = async (req, res) => {
       );
     });
 
+    blockedDates.forEach((block)=>{
+      dateList=dateList.concat(
+        getDatesFromRange(block.block_start,block.block_end)
+      )
+    })
+
     const uniqueDates = [...new Set(dateList)].sort();
 
     return res.status(200).json({
       datelist: uniqueDates,
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: "Book Date List Found!",
+      ResponseMsg: "Booked and Blocked Date List Found!",
     });
   } catch (error) {
     console.error("Error fetching booked dates:", error.message);
