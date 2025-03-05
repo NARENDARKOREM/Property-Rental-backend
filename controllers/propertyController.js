@@ -216,10 +216,30 @@ const getAllProperties = async (req, res) => {
             ? `${property.city.title} (${property.city.country.title})`
             : property.city?.title || "";
 
+        // Check if standard_rules exists and is a valid JSON string
+        let standardRules = {};
+
+        if (property.standard_rules) {
+          try {
+            standardRules = JSON.parse(property.standard_rules);
+          } catch (error) {
+            console.error("Error parsing standard_rules:", error);
+            standardRules = {}; // If invalid JSON, default to an empty object
+          }
+        }
+
+        // Format the standard_rules fields, making sure to handle null/undefined cases
+        const formattedStandardRules = {
+          checkIn: standardRules.checkIn || "N/A",  // Default to "N/A" if missing
+          checkOut: standardRules.checkOut || "N/A", // Default to "N/A" if missing
+          smokingAllowed: standardRules.smokingAllowed !== undefined ? standardRules.smokingAllowed : "N/A",  // Default to "N/A" if missing
+        };
+
         return {
           ...property.toJSON(),
           facilities,
           city: cityWithCountry, // Add the formatted city with country name
+          formatted_standard_rules: formattedStandardRules, // Add formatted standard rules
         };
       })
     );
@@ -227,11 +247,11 @@ const getAllProperties = async (req, res) => {
     res.status(200).json(formattedProperties);
   } catch (error) {
     console.error("Error fetching properties:", error);
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
+
+
 
 
 // Get Property Count
