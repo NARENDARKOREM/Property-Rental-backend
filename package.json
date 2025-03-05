@@ -35,8 +35,10 @@
     "sequelize": "^6.37.5",
     "session": "^0.1.0",
     "set-cookie-parser": "^2.7.1",
+    "sib-api-v3-sdk": "^8.5.0",
     "socket.io": "^4.8.1",
     "swagger-autogen": "^2.23.7",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "twilio": "^5.4.4"
   }
 }

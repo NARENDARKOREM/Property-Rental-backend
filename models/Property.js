@@ -24,7 +24,7 @@ const Property = sequelize.define(
       allowNull: true,
     },
     extra_images: {
-      type: DataTypes.TEXT,
+      type: DataTypes.JSON,
       allowNull: true,
     },
     price: {

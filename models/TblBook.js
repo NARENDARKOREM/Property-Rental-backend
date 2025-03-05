@@ -164,7 +164,15 @@ const TblBook = sequelize.define(
     is_import:{
       type:DataTypes.BOOLEAN,
       allowNull:true
-    }
+    },
+    platform_fee:{
+      type:DataTypes.TEXT,
+    },
+    refund_status: {
+      type: DataTypes.ENUM("Pending", "Processed", "Failed", "Not Initiated"),
+      allowNull: false,
+      defaultValue: "Not Initiated",
+    },    
   },
   {
     tableName: "tbl_book",

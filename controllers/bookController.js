@@ -370,7 +370,7 @@ const seAllDetails = async (req, res) => {
       include: [
         {
           model: User,
-          as: 'User', 
+          as: 'travler_details', 
           attributes: ['id', 'name', 'email', 'mobile'], 
         },
         {
@@ -428,7 +428,7 @@ const seAllDetails = async (req, res) => {
           where: { prop_id: propertyId },
           attributes:['check_in','check_out'],
           include: [
-              { model: User, as: 'User', attributes: ['name'] } 
+              { model: User, as: 'hostDetails', attributes: ['name'] } 
           ]
       });
 

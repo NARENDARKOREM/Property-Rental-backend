@@ -38,7 +38,12 @@ const upsertProperty = async (req, res) => {
     infants,
     pets,
     setting_id,
+<<<<<<< HEAD
     extra_guest_charges
+=======
+    extra_guest_charges,
+    standard_rules
+>>>>>>> b0f27dc6c397bbeb011311fcb4ed8bf76e626b7b
   } = req.body;
 
   console.log(req.body, "from bodyyyyyyyyy");
@@ -56,7 +61,21 @@ const upsertProperty = async (req, res) => {
     if(validateCity){
       res.status(400).json({error:"Selected CIty is Found!"})
     }
+<<<<<<< HEAD
 
+=======
+    let parsedStandardRules;
+    try {
+      parsedStandardRules =
+        typeof standard_rules === "string"
+          ? JSON.parse(standard_rules)
+          : standard_rules;
+    } catch (error) {
+      return res.status(400).json({
+        error: "Invalid format for standard_rules. Must be a valid JSON object.",
+      });
+    }
+>>>>>>> b0f27dc6c397bbeb011311fcb4ed8bf76e626b7b
     if (id) {
       // Update an existing property
       const property = await Property.findByPk(id);
@@ -127,10 +146,53 @@ const upsertProperty = async (req, res) => {
         infants,
         pets,
         setting_id,
-        extra_guest_charges
+        extra_guest_charges,
+        standard_rules:parsedStandardRules
       });
 
+<<<<<<< HEAD
       return res.status(201).json({ message: "Property created successfully", property });
+=======
+      await property.save();
+      res
+        .status(200)
+        .json({ message: "Property updated successfully", property });
+    } else {
+      // Create new property without adding add_user_id
+      const property = await Property.create({
+        title,
+        image,
+        is_panorama,
+        price,
+        status,
+        address,
+        facility,
+        description,
+        beds,
+        bathroom,
+        sqrft,
+        rate,
+        ptype,
+        latitude,
+        longtitude,
+        mobile,
+        city,
+        listing_date,
+        rules,
+        country_id,
+        is_sell,
+        adults,
+        children,
+        infants,
+        pets,
+        setting_id,
+        extra_guest_charges,
+        standard_rules:parsedStandardRules
+      });
+      res
+        .status(201)
+        .json({ message: "Property created successfully", property });
+>>>>>>> b0f27dc6c397bbeb011311fcb4ed8bf76e626b7b
     }
   } catch (error) {
     console.error(error);

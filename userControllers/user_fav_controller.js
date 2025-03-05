@@ -40,10 +40,10 @@ const toggleFavorite = async (req, res) => {
       });
     } else {
       await TblFav.create({ uid, property_id: pid, property_type });
-      return res.status(200).json({
+      return res.status(200).json({ 
         ResponseCode: "200",
         Result: "true",
-        ResponseMsg: "Property successfully saved in favorite list!",
+        ResponseMsg: "Property successfully added in favorite list!",
       });
     }
   } catch (error) {

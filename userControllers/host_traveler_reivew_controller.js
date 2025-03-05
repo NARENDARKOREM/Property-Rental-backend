@@ -27,14 +27,14 @@ const hostTravelerReview = async (req, res) => {
         },
         {
           model: User,
-          as: "User",
+          as: "travler_details",
           attributes: ["id", "name"],
         },
       ],
     });
 
     if (!booking) {
-      return res(400).json({
+      return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
         message: "Booking not found! or not Completed.",
@@ -62,7 +62,7 @@ const hostTravelerReview = async (req, res) => {
 
     await HostTravelerReview.create({
       host_id: uid,
-      traveler_id: booking.User.id,
+      traveler_id: booking.travler_details.id,
       booking_id: bookingId,
       rating,
       review,

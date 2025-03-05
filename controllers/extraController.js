@@ -16,6 +16,7 @@ const upsertExtra = async (req, res) => {
 
   try {
     const files = req.files;
+<<<<<<< HEAD
     const img = files?.img ? (Array.isArray(files.img) ? files.img : [files.img]) : [];  
 
     let ext_imgUrls = [];
@@ -23,6 +24,16 @@ const upsertExtra = async (req, res) => {
       ext_imgUrls = await uploadToS3(img, "Extra-Images");
       if (!Array.isArray(ext_imgUrls)) {
         ext_imgUrls = [ext_imgUrls];  
+=======
+    const img = files?.img ? (Array.isArray(files.img) ? files.img : [files.img]) : [];
+
+    let ext_imgUrls = [];
+
+    if (files && files.img) {
+      ext_imgUrls = await uploadToS3(img, "Extra-Images");
+      if (!Array.isArray(ext_imgUrls)) {
+        ext_imgUrls = [ext_imgUrls];
+>>>>>>> b0f27dc6c397bbeb011311fcb4ed8bf76e626b7b
       }
     }
 
@@ -35,24 +46,37 @@ const upsertExtra = async (req, res) => {
       extra.pid = pid;
       extra.status = status;
       extra.add_user_id = add_user_id;
+<<<<<<< HEAD
       
       if (ext_imgUrls.length > 0) {
         extra.url = ext_imgUrls.length === 1 ? ext_imgUrls[0] : JSON.stringify(ext_imgUrls);
         // Delete existing images before inserting new ones
         await TblExtraImage.destroy({ where: { extra_id: id } });
         
+=======
+      await extra.save();
+
+      if (ext_imgUrls.length > 0) {
+        
+        await TblExtraImage.destroy({ where: { extra_id: id } });
+
+>>>>>>> b0f27dc6c397bbeb011311fcb4ed8bf76e626b7b
         const newImages = ext_imgUrls.map(url => ({ extra_id: id, url }));
         await TblExtraImage.bulkCreate(newImages);
       }
 
       await extra.save();
       return res.status(200).json({ message: "Extra updated successfully", extra });
+<<<<<<< HEAD
     } else { // Create new Extra
+=======
+    } else {
+      
+>>>>>>> b0f27dc6c397bbeb011311fcb4ed8bf76e626b7b
       const extra = await TblExtra.create({
         pid,
         status,
         add_user_id,
-        url: ext_imgUrls.length === 1 ? ext_imgUrls[0] : JSON.stringify(ext_imgUrls),
       });
 
       if (ext_imgUrls.length > 0) {

@@ -48,6 +48,7 @@ const PriceCalendar = require("./models/PriceCalendar");
 const TravelerHostReview = require("./models/TravelerHostReview");
 const HostTravelerReview = require("./models/HostTravelerReview");
 const TblCity = require("./models/TblCity");
+const PropertyBlock = require('./models/PropertyBlock');
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 // Routes
@@ -94,7 +95,8 @@ app.use(
       "http://localhost:3000",
       "https://property-rental-backend-6.onrender.com",
       "http://localhost:58160",
-      "https://servostayweb1.vercel.app"
+      "https://servostayweb1.vercel.app",
+      "https://servostay-three.vercel.app"
     ],
     credentials: true,
   })
@@ -169,6 +171,8 @@ app.use("/traveler-review", traverlerReviewRoutes);
 app.use("/host-review", hostTravelerReviewRoutes);
 app.use("/u_cities",uCityRoutes)
 app.use("/app-settings",require("./userRoutes/setting_routes"))
+app.use("/notifications",require('./userRoutes/u_nofifications_routes'))
+app.use("/booking-refund",require('./userRoutes/u_refund_routes'))
 
 app.get("/", (req, res) => {
   // const query

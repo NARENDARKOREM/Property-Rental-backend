@@ -11,6 +11,8 @@ const Setting = require("../models/Setting");
 const TblExtraImage = require("../models/TableExtraImages");
 const uploadToS3 = require("../config/fileUpload.aws");
 const TravelerHostReview = require("../models/TravelerHostReview");
+const PropertyBlock = require("../models/PropertyBlock");
+const PersonRecord = require("../models/PersonRecord");
 
 const addProperty = async (req, res) => {
   const {
@@ -96,41 +98,71 @@ const addProperty = async (req, res) => {
 
     const standardRules = JSON.parse(standard_rules);
     const facilityIds = Array.isArray(facility)
-      ? facility  
-      : facility.split(",").map((id) => parseInt(id));   
+      ? facility
+      : facility.split(",").map((id) => parseInt(id));
 
-    // Separate main image
-    const mainImage = files.main_image[0]; // Single main image file
-
-    // Separate extra images and videos based on MIME type
-    const extraImages = [];
-    const videos = [];
-
-    if (files.extra_files) {
-      files.extra_files.forEach((file) => {
-        if (file.mimetype.startsWith("image/")) {
-          extraImages.push(file);
-        } else if (file.mimetype.startsWith("video/")) {
-          videos.push(file);
-        }
-      });
-    }
+      const allowedImageTypes = ["jpeg", "png", "jpg"];
+      const allowedVideoTypes = ["mp4"];
+      const mainImage = files.main_image[0];
+      
+      // Function to extract file extension
+      const getFileExtension = (filename) => filename.split('.').pop().toLowerCase();
+      
+      // Validate main image
+      const mainImageExt = getFileExtension(mainImage.originalname);
+      if (!allowedImageTypes.includes(mainImageExt)) {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg: "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+        });
+      }
+      
+      // Separate extra images and videos
+      const extraImages = [];
+      const videos = [];
+      
+      if (files.extra_files) {
+        console.log("Extra files:", files.extra_files);
+        
+        files.extra_files.forEach((file) => {
+          const ext = getFileExtension(file.originalname);
+          
+          console.log("filename:: ", file.originalname, " | extension:: ", ext);
+          
+          if (allowedImageTypes.includes(ext)) {
+            extraImages.push(file);
+          } else if (allowedVideoTypes.includes(ext)) {
+            videos.push(file);
+          } else {
+            return res.status(400).json({
+              ResponseCode: "400",
+              Result: "false",
+              ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+            });
+          }
+        });
+      }
+      
 
     // Upload files to S3
     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
     const extraImageUrls = extraImages.length
-      ? await uploadToS3(extraImages, "property-extra-images")
+      ? (await uploadToS3(extraImages, "property-extra-images"))
       : [];
-    const videoUrls = videos.length
+      const finalExtraImages = Array.isArray(extraImageUrls) ? extraImageUrls : [extraImageUrls];
+      const videoUrls = videos.length
       ? await uploadToS3(videos, "property-videos")
       : [];
+
+    console.log("Extra Images", extraImageUrls);
 
     // Create new property
     const newProperty = await Property.create({
       title,
-      image: mainImageUrl, // Store main image URL
-      extra_images: JSON.stringify(extraImageUrls), // Store extra images as JSON array
-      video: JSON.stringify(videoUrls), // Store video URLs as JSON array
+      image: mainImageUrl,
+      extra_images:finalExtraImages,
+      video:JSON.stringify(videoUrls),
       price,
       status,
       address,
@@ -156,7 +188,7 @@ const addProperty = async (req, res) => {
       infants,
       pets,
       setting_id,
-      extra_guest_charges
+      extra_guest_charges,
     });
 
     res.status(201).json({
@@ -205,7 +237,7 @@ const editProperty = async (req, res) => {
       infants,
       pets,
       setting_id,
-      extra_guest_charges
+      extra_guest_charges,
     } = req.body;
 
     console.log("Request Body:", req.body);
@@ -246,8 +278,9 @@ const editProperty = async (req, res) => {
     if (!price) missingFields.push("price");
     if (!country_id) missingFields.push("country_id");
     if (is_sell === undefined) missingFields.push("is_sell");
-    if (!files || (!files.main_image && !files.extra_files)) missingFields.push("files");
-    
+    if (!files || (!files.main_image && !files.extra_files))
+      missingFields.push("files");
+
     if (missingFields.length > 0) {
       return res.status(400).json({
         ResponseCode: "400",
@@ -255,7 +288,6 @@ const editProperty = async (req, res) => {
         ResponseMsg: `Missing or invalid fields: ${missingFields.join(", ")}`,
       });
     }
-    
 
     // Check if the country exists
     const country = await TblCountry.findByPk(country_id);
@@ -280,31 +312,58 @@ const editProperty = async (req, res) => {
     }
 
     // Separate main image
-    const mainImage = files.main_image ? files.main_image[0] : null;
+    const allowedImageTypes = ["jpeg", "png", "jpg"];
+    const allowedVideoTypes = ["mp4"];
+    const mainImage = files.main_image[0];
+
+    const getFileExtension = (filename) => filename.split('.').pop().toLowerCase();
+    const mainImageExt = getFileExtension(mainImage.originalname);
+    
+    if (!allowedImageTypes.includes(mainImageExt)) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+      });
+    }
 
     // Separate extra images and videos based on MIME type
     const extraImages = [];
     const videos = [];
     if (files.extra_files) {
+      console.log("Extra files:", files.extra_files);
+      
       files.extra_files.forEach((file) => {
-        if (file.mimetype.startsWith("image/")) {
+        const ext = getFileExtension(file.originalname);
+        
+        console.log("filename:: ", file.originalname, " | extension:: ", ext);
+        
+        if (allowedImageTypes.includes(ext)) {
           extraImages.push(file);
-        } else if (file.mimetype.startsWith("video/")) {
+        } else if (allowedVideoTypes.includes(ext)) {
           videos.push(file);
+        } else {
+          return res.status(400).json({
+            ResponseCode: "400",
+            Result: "false",
+            ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+          });
         }
       });
     }
 
     // Upload files to S3
-    const mainImageUrl = mainImage
-      ? await uploadToS3([mainImage], "property-main-image")
-      : property.image; // Keep the existing main image if no new one is provided
+    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
     const extraImageUrls = extraImages.length
-      ? await uploadToS3(extraImages, "property-extra-images")
-      : JSON.parse(property.extra_images || "[]");
+      ? (await uploadToS3(extraImages, "property-extra-images"))
+      : [];
+    const finalExtraImages = Array.isArray(extraImageUrls) ? extraImageUrls : [extraImageUrls];
+    
     const videoUrls = videos.length
       ? await uploadToS3(videos, "property-videos")
-      : JSON.parse(property.video || "[]");
+      : [];
+
+    console.log("Extra Images:", extraImageUrls);
 
     // Update the property
     await property.update({
@@ -312,8 +371,8 @@ const editProperty = async (req, res) => {
       country_id,
       status,
       title,
-      image: mainImageUrl[0] || property.image, // Update main image URL
-      extra_images: JSON.stringify(extraImageUrls), // Update extra images
+      image:mainImageUrl, // Update main image URL
+      extra_images: finalExtraImages, // Update extra images
       video: JSON.stringify(videoUrls), // Update videos
       price,
       address,
@@ -336,7 +395,7 @@ const editProperty = async (req, res) => {
       infants,
       pets,
       setting_id,
-      extra_guest_charges
+      extra_guest_charges,
     });
 
     // Return success response
@@ -364,7 +423,7 @@ const getPropertyList = async (req, res) => {
       return res.status(400).json({
         ResponseCode: "401",
         Result: "false",
-        ResponseMsg: "User  ID not provided",
+        ResponseMsg: "User ID not provided",
       });
     }
 
@@ -386,16 +445,17 @@ const getPropertyList = async (req, res) => {
       properties.map(async (property) => {
         console.log("Processing property:", property);
 
-        // const facilityIds = property.facility
-        //   ? property.facility.split(",")
-        //   : [];
+        // Extract facility IDs
         const facilityIds = property.facility
-  ? property.facility.replace(/[\[\]']/g, "").split(",").filter(id => id.trim() !== "null")
-  : [];
+          ? property.facility
+              .replace(/[\[\]']/g, "")
+              .split(",")
+              .filter((id) => id.trim() !== "null")
+          : [];
 
         console.log("Facility IDs:", facilityIds);
-        console.log(typeof(facilityIds),"data typeeeeeeeeeeeeeeeeeeeee")
 
+        // Fetch facility titles
         const facilityTitles = await TblFacility.findAll({
           where: { id: { [Op.in]: facilityIds } },
           attributes: ["title"],
@@ -403,14 +463,19 @@ const getPropertyList = async (req, res) => {
 
         console.log("Facility titles:", facilityTitles);
 
-        // Parse standard_rules from JSON string to object
-        const standardRules = property.standard_rules
-          ? JSON.parse(property.standard_rules)
-          : null;
-        console.log(
-          "standard rulessssssssssssssssssssss: ",
-          JSON.stringify(standardRules)
-        );
+        // Parse `standard_rules` safely
+        let standardRules = null;
+        try {
+          standardRules = property.standard_rules
+            ? JSON.parse(property.standard_rules)
+            : null;
+        } catch (err) {
+          console.error("Error parsing standard_rules:", err.message);
+        }
+
+        console.log("Standard Rules:", standardRules);
+
+        // Fetch completed bookings for rating calculation
         const completedBookings = await TblBook.findAll({
           where: {
             prop_id: property.id,
@@ -431,12 +496,26 @@ const getPropertyList = async (req, res) => {
               ).toFixed(0)
             : property.rate;
 
-            const extraImages = property.extra_images
+        // Parse `extra_images` safely
+        let extraImages = [];
+        try {
+          extraImages = property.extra_images
             ? JSON.parse(property.extra_images)
             : [];
-          console.log("Extra Images:", extraImages);
+        } catch (err) {
+          console.error("Error parsing extra_images:", err.message);
+        }
 
-          const videoUrl = property.video ? JSON.parse(property.video)[0] : null;
+        console.log("Extra Images:", extraImages);
+
+        // Parse `video` safely
+        let videoUrl = null;
+        try {
+          videoUrl = property.video ? JSON.parse(property.video) : null;
+        } catch (err) {
+          console.error("Error parsing video:", err.message);
+        }
+
         console.log("Video URL:", videoUrl);
 
         return {
@@ -447,7 +526,6 @@ const getPropertyList = async (req, res) => {
           image: property.image,
           price: property.price,
           beds: property.beds,
-          // plimit: property.plimit,
           adults: property.adults,
           children: property.children,
           infants: property.infants,
@@ -455,13 +533,12 @@ const getPropertyList = async (req, res) => {
           bathroom: property.bathroom,
           sqrft: property.sqrft,
           is_sell: property.is_sell,
-          // facility_select: facilityTitles.map((f) => f.title),
           facility: facilityIds,
-          standard_rules: standardRules, // This will now be a JSON object
+          standard_rules: standardRules,
           rules: property.rules,
           status: property.status,
           latitude: property.latitude,
-          longtitude: property.longtitude,
+          longtitude: property.longtitude, 
           mobile: property.mobile,
           city: property.city,
           rate: rate,
@@ -469,14 +546,14 @@ const getPropertyList = async (req, res) => {
           address: property.address,
           country_name: property.country?.title || "Unknown",
           setting_id: property.setting_id,
-          extra_images:extraImages,
-          video:videoUrl,
-          extra_guest_charges:property.extra_guest_charges
+          extra_images: extraImages,
+          video: videoUrl,
+          extra_guest_charges: property.extra_guest_charges,
         };
       })
     );
 
-    console.log(propertyList, "propertiesssssssssssssssssssssssssssss");
+    console.log("Final property list:", propertyList);
 
     if (propertyList.length === 0) {
       return res.status(200).json({
@@ -498,7 +575,7 @@ const getPropertyList = async (req, res) => {
     res.status(500).json({
       ResponseCode: "500",
       Result: "false",
-      ResponseMsg: "Internal Server Error", 
+      ResponseMsg: "Internal Server Error",
       error: error.message || "Unknown error",
     });
   }
@@ -609,6 +686,13 @@ const getPropertyDetails = async (req, res) => {
   try {
     const property = await Property.findOne({
       where: { id: pro_id },
+      include:[
+        {
+          model:PriceCalendar,
+          as:'priceCalendars',
+          attributes: ["date", "note", "prop_id", "price"],
+        }
+      ]
     });
 
     if (!property) {
@@ -619,47 +703,27 @@ const getPropertyDetails = async (req, res) => {
       });
     }
 
-    const standardRules = property.standard_rules
-      ? JSON.parse(property.standard_rules)
-      : null;
+    // const standardRules = property.standard_rules
+    //   ? JSON.parse(property.standard_rules)
+    //   : null;
 
-    // const today = new Date().toISOString().split("T")[0];
-    // const originalPrice = property.price;
-
-    // // Fetch the price entry for today or the most recent calendar price
-    // const priceEntry = await PriceCalendar.findOne({
-    //   where: {
-    //     prop_id: pro_id,
-    //   },
-    // });
-
-    // const currentPrice = priceEntry ? priceEntry.price : originalPrice;
-
-    // // Fetch upcoming prices from the calendar
-    // const upcomingPrices = await PriceCalendar.findAll({
-    //   where: {
-    //     prop_id: pro_id,
-    //     date: { [Op.gt]: today }, // Only fetch future dates
-    //   },
-    //   attributes: ["date", "price"], // Include only necessary fields
-    //   order: [["date", "ASC"]], // Sort by date
-    // });
-
-    // const upcomingPricesArray = upcomingPrices.map((entry) => ({
-    //   date: entry.date,
-    //   price: entry.price,
-    // }));
-
-    // const price = upcomingPricesArray.length > 0 
-    // ? {
-    //     originalPrice,
-    //     currentPrice,
-    //     upcomingPrices: upcomingPricesArray,
-    //   } 
-    // : originalPrice;
+    const standardRules = (() => {
+      try {
+        return property.standard_rules
+          ? JSON.parse(property.standard_rules)
+          : null;
+      } catch (err) {
+        console.error(
+          "Invalid JSON in standard_rules:",
+          property.standard_rules
+        );
+        return property.standard_rules; // Return raw value if it's not JSON
+      }
+    })();
 
     const today = new Date().toISOString().split("T")[0];
     const originalPrice = property.price;
+    console.log("Original Price", originalPrice)
 
     // Fetch the price entry for today or the most recent calendar price
     const upcomingPrices = await PriceCalendar.findAll({
@@ -684,13 +748,23 @@ const getPropertyDetails = async (req, res) => {
 
     // Construct the price object based on the current date
     let price;
-    if (upcomingPrices.length > 0 && new Date(upcomingPrices[0].date) >= new Date(today)) {
+    if (
+      upcomingPrices.length > 0 &&
+      new Date(upcomingPrices[0].date) >= new Date(today)
+    ) {
       price = currentPrice;
     } else {
       price = originalPrice;
     }
+    console.log("originalPrice",originalPrice)
+    console.log("upcomingPrice",upcomingPrices)
 
-    const rulesArray = JSON.parse(property.rules || "[]");
+    let rulesArray;
+    try {
+      rulesArray = JSON.parse(property.rules);
+    } catch (error) {
+      rulesArray = property.rules.split(",").map((rule) => rule.trim());
+    }
 
     const completedBookings = await TblBook.findAll({
       where: {
@@ -725,12 +799,25 @@ const getPropertyDetails = async (req, res) => {
     if (property.add_user_id !== 0) {
       ownerDetails = await User.findOne({
         where: { id: property.add_user_id },
-        attributes: ["id", "pro_pic", "name", "email","languages", "mobile","createdAt"],
+        attributes: [
+          "id",
+          "pro_pic",
+          "name",
+          "email",
+          "languages",
+          "mobile",
+          "createdAt",
+        ],
       });
     }
 
     if (ownerDetails && ownerDetails.languages) {
-      ownerDetails.languages = JSON.parse(ownerDetails.languages);
+      try {
+        ownerDetails.languages = JSON.parse(ownerDetails.languages);
+      } catch (error) {
+        // If it's a plain comma-separated string, convert it to an array
+        ownerDetails.languages = ownerDetails.languages.split(",");
+      }
     }
 
     const travelerReviews = await TravelerHostReview.findAll({
@@ -754,9 +841,13 @@ const getPropertyDetails = async (req, res) => {
     });
 
     const totalRatings = travelerReview.length;
-    const avgRating = totalRatings > 0
-      ? (travelerReviews.reduce((sum, review) => sum + review.rating, 0) / totalRatings).toFixed(2)
-      : 0;
+    const avgRating =
+      totalRatings > 0
+        ? (
+            travelerReviews.reduce((sum, review) => sum + review.rating, 0) /
+            totalRatings
+          ).toFixed(2)
+        : 0;
 
     const reviewsArray = travelerReviews.map((review) => ({
       traveler_name: review.traveler.name,
@@ -766,12 +857,14 @@ const getPropertyDetails = async (req, res) => {
     }));
 
     const hostCreationMonths = ownerDetails
-    ? Math.floor(
-        (new Date().getFullYear() - new Date(ownerDetails.createdAt).getFullYear()) * 12 +
-        (new Date().getMonth() - new Date(ownerDetails.createdAt).getMonth())
-      )
-    : null;
-  
+      ? Math.floor(
+          (new Date().getFullYear() -
+            new Date(ownerDetails.createdAt).getFullYear()) *
+            12 +
+            (new Date().getMonth() -
+              new Date(ownerDetails.createdAt).getMonth())
+        )
+      : null;
 
     const facilities = await TblFacility.findAll({
       where: {
@@ -820,14 +913,13 @@ const getPropertyDetails = async (req, res) => {
       ? JSON.parse(property.extra_images)
       : [];
     // const video = property.video ? { url: property.video } : null;
-  const videoUrl = property.video ? JSON.parse(property.video) : null;
-console.log("Video URL:", videoUrl);
+    const videoUrl = property.video ? JSON.parse(property.video) : null;
+    console.log("Video URL:", videoUrl);
 
     const gallery = {
       extra_images: extraImages,
       video: videoUrl,
     };
-    
 
     const response = {
       propetydetails: {
@@ -838,13 +930,14 @@ console.log("Video URL:", videoUrl);
         image: [{ image: propertyImage, is_panorama: panoramaStatus }],
         property_type: property.ptype,
         property_title: category?.title,
-        // price: {
-        //   originalPrice,
-        //   currentPrice,
-        //   upcomingPrices: upcomingPricesArray,
-        // },
-        price:price,
-        extra_guest_charges:property.extra_guest_charges,
+        price: {
+          originalPrice,
+          currentPrice,
+          upcomingPrices: upcomingPrices,
+        },
+        price: originalPrice,
+        upcomingPrices,
+        extra_guest_charges: property.extra_guest_charges,
         buyorrent: property.pbuysell,
         address: property.address,
         beds: property.beds,
@@ -870,11 +963,11 @@ console.log("Video URL:", videoUrl);
               pro_pic: ownerDetails.pro_pic,
               email: ownerDetails.email,
               phone: ownerDetails.mobile,
-      languages: ownerDetails.languages ? JSON.parse(ownerDetails.languages) : [],
+              languages: ownerDetails.languages,
               // host_reviews: reviewsArray,
               total_reviews: totalRatings,
-              average_ratings:avgRating,
-              since_months:hostCreationMonths
+              average_ratings: avgRating,
+              since_months: hostCreationMonths,
             }
           : null,
       },
@@ -900,13 +993,210 @@ console.log("Video URL:", videoUrl);
   }
 };
 
+// const getAllHostAddedProperties = async (req, res) => {
+//   const uid = req.user?.id || null;
+
+//   try {
+//     const today = new Date().toISOString().split("T")[0];
+
+//     // Fetch properties along with associated PriceCalendar and Booking entries
+//     const properties = await Property.findAll({
+//       where: { status: 1, ...(uid ? { add_user_id: uid } : {}) },
+//       include: [
+//         {
+//           model: PriceCalendar,
+//           as: "priceCalendars",
+//           attributes: ["date", "note", "prop_id", "price"],
+//         },
+//         {
+//           model: TblBook,
+//           as: "properties", // Use the correct alias
+//           attributes: ["check_in", "check_out", "uid", "book_status"],
+//           where: {
+//             check_in: { [Op.gte]: today }, // Only include bookings starting from today
+//           },
+//           required: false, // Allow properties without bookings to be included
+//           include: [
+//             {
+//               model: User,
+//               as: "travler_details",
+//               attributes: ["name", "email", "mobile", "ccode"], // Fetch user details
+//             },
+//           ],
+//         },
+//       ],
+//     });
+
+//     if (!properties || properties.length === 0) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "false",
+//         ResponseMsg: "Properties not found!",
+//       });
+//     }
+
+//     let ownerDetails = null;
+//     if (uid) {
+//       ownerDetails = await User.findOne({
+//         where: { id: uid },
+//         attributes: ["id", "pro_pic", "name", "email", "mobile"],
+//       });
+
+//       if (!ownerDetails) {
+//         return res.status(404).json({
+//           ResponseCode: "404",
+//           Result: "false",
+//           ResponseMsg: "Owner not found!",
+//         });
+//       }
+//     }
+
+//     const propertiesWithUpdatedPrices = properties.map((property) => {
+//       const originalPrice = property.price;
+//       let upcomingPrices = [];
+
+//       if (property.priceCalendars) {
+//         const futureEntries = property.priceCalendars.filter(
+//           (calendar) => calendar.date > today
+//         );
+//         const todayEntry = property.priceCalendars.find(
+//           (calendar) => calendar.date === today
+//         );
+
+//         if (todayEntry) {
+//           upcomingPrices.push({
+//             date: todayEntry.date,
+//             price: todayEntry.price,
+//             note: todayEntry.note,
+//           });
+//         }
+
+//         upcomingPrices = [
+//           ...upcomingPrices,
+//           ...futureEntries.map((entry) => ({
+//             date: entry.date,
+//             price: entry.price,
+//             note: entry.note,
+//           })),
+//         ];
+//       }
+
+//       if (typeof property.rules === "string") {
+//         try {
+//           const parsedRules = JSON.parse(property.rules);
+//           property.rules = Array.isArray(parsedRules)
+//             ? parsedRules.join(", ")
+//             : property.rules
+//                 .split(",")
+//                 .map((rule) => rule.trim())
+//                 .join(", ");
+//         } catch (error) {
+//           console.error("Error parsing rules:", error);
+//         }
+//       } else if (Array.isArray(property.rules)) {
+//         property.rules = property.rules.join(", ");
+//       }
+
+//       // Fetch booking details, but only if the booking status is Booked or Confirmed
+//       // const bookingDetails = property.properties
+//       //   .filter((booking) =>
+//       //     ["Booked", "Confirmed"].includes(booking.book_status)
+//       //   )
+//       //   .map((booking) => ({
+//       //     book_status: booking.book_status,
+//       //     check_in: booking.check_in,
+//       //     check_out: booking.check_out,
+//       //     user: {
+//       //       name: booking.User.name,
+//       //       email: booking.User.email,
+//       //       mobile: booking.User.mobile,
+//       //       ccode: booking.User.ccode,
+//       //     },
+//       //   }));
+
+//       let bookingDetails = [];
+//       if (property.properties.length > 0) {
+//         bookingDetails = property.properties.map((booking) => ({
+//           book_status: booking.book_status,
+//           check_in: booking.check_in,
+//           check_out: booking.check_out,
+//           user: {
+//             name: booking.User?.name,
+//             email: booking.User?.email,
+//             mobile: booking.User?.mobile,
+//             ccode: booking.User?.ccode,
+//           },
+//         }));
+//       }
+
+//       // Include block_start and block_end separately
+//       if (property.block_start && property.block_end) {
+//         bookingDetails.push({
+//           book_status: "Blocked",
+//           check_in: property.block_start,
+//           check_out: property.block_end,
+//           user: null,
+//         });
+//       }
+
+//       // Determine if property is available for booking
+//       const isAvailableForBooking =
+//         property.properties.some((booking) =>
+//           ["Completed", "Cancelled"].includes(booking.book_status)
+//         ) || bookingDetails.length === 0;
+
+//       return {
+//         id: property.id,
+//         title: property.title,
+//         image: property.image,
+//         city: property.city,
+//         price: originalPrice,
+//         upcomingPrices,
+//         address: property.address,
+//         rules: property.rules,
+//         beds: property.beds,
+//         bathroom: property.bathroom,
+//         sqrft: property.sqrft,
+//         description: property.description,
+//         bookingDetails,
+//         status: isAvailableForBooking ? "Available" : "Not Available",
+//       };
+//     });
+
+//     res.status(200).json({
+//       properties: propertiesWithUpdatedPrices,
+//       ...(ownerDetails
+//         ? {
+//             owner: {
+//               id: ownerDetails.id,
+//               name: ownerDetails.name,
+//               email: ownerDetails.email,
+//               phone: ownerDetails.mobile,
+//             },
+//           }
+//         : {}),
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Properties fetched successfully!",
+//     });
+//   } catch (error) {
+//     console.error("Error in getAllHostAddedProperties:", error);
+//     res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const getAllHostAddedProperties = async (req, res) => {
   const uid = req.user?.id || null;
 
   try {
     const today = new Date().toISOString().split("T")[0];
 
-    // Fetch properties along with associated PriceCalendar and Booking entries
+    // Fetch properties along with associated PriceCalendar, Booking, and PropertyBlock entries
     const properties = await Property.findAll({
       where: { status: 1, ...(uid ? { add_user_id: uid } : {}) },
       include: [
@@ -917,19 +1207,25 @@ const getAllHostAddedProperties = async (req, res) => {
         },
         {
           model: TblBook,
-          as: "properties", // Use the correct alias
+          as: "properties",
           attributes: ["check_in", "check_out", "uid", "book_status"],
           where: {
-            check_in: { [Op.gte]: today }, // Only include bookings starting from today
+            check_in: { [Op.gte]: today },
           },
-          required: false, // Allow properties without bookings to be included
+          required: false,
           include: [
             {
               model: User,
-              as: "User",
-              attributes: ["name", "email", "mobile", "ccode"], // Fetch user details
+              as: "travler_details",
+              attributes: ["name", "email", "mobile", "ccode"],
             },
           ],
+        },
+        {
+          model: PropertyBlock,
+          as: "blockedDates",
+          attributes: ["block_start", "block_end", "reason"],
+          required: false, // Allow properties without blocked dates
         },
       ],
     });
@@ -1004,28 +1300,31 @@ const getAllHostAddedProperties = async (req, res) => {
         property.rules = property.rules.join(", ");
       }
 
-      // Fetch booking details, but only if the booking status is Booked or Confirmed
-      const bookingDetails = property.properties
-        .filter((booking) =>
-          ["Booked", "Confirmed"].includes(booking.book_status)
-        )
-        .map((booking) => ({
+      let bookingDetails = [];
+      if (property.properties.length > 0) {
+        bookingDetails = property.properties.map((booking) => ({
           book_status: booking.book_status,
           check_in: booking.check_in,
           check_out: booking.check_out,
           user: {
-            name: booking.User.name,
-            email: booking.User.email,
-            mobile: booking.User.mobile,
-            ccode: booking.User.ccode,
+            name: booking.travler_details?.name,
+            email: booking.travler_details?.email,
+            mobile: booking.travler_details?.mobile,
+            ccode: booking.travler_details?.ccode,
           },
         }));
+      }
 
-      // Determine if property is available for booking
-      const isAvailableForBooking =
-        property.properties.some((booking) =>
-          ["Completed", "Cancelled"].includes(booking.book_status)
-        ) || bookingDetails.length === 0;
+      // Include blocked dates
+      let blockedDates = [];
+      if (property.blockedDates && property.blockedDates.length > 0) {
+        blockedDates = property.blockedDates.map((block) => ({
+          book_status: "Blocked",
+          check_in: block.block_start,
+          check_out: block.block_end,
+          reason: block.reason,
+        }));
+      }
 
       return {
         id: property.id,
@@ -1040,8 +1339,8 @@ const getAllHostAddedProperties = async (req, res) => {
         bathroom: property.bathroom,
         sqrft: property.sqrft,
         description: property.description,
-        bookingDetails,
-        status: isAvailableForBooking ? "Available" : "Not Available",
+        bookingDetails: [...bookingDetails, ...blockedDates], // Combine bookings and blocked dates
+        status: bookingDetails.length === 0 ? "Available" : "Not Available",
       };
     });
 
@@ -1071,6 +1370,7 @@ const getAllHostAddedProperties = async (req, res) => {
     });
   }
 };
+
 
 const getSortedProperties = async (req, res) => {
   try {
@@ -1535,33 +1835,86 @@ const searchProperties = async (req, res) => {
   }
 };
 
+
 const deleteUserProperty = async (req, res) => {
   const uid = req.user.id;
   if (!uid) {
-    return res.status(401).message({ message: "User not found!" });
+    return res.status(401).json({ message: "User not found!" });
   }
+  console.log("User ID from token:", uid);
+
   try {
     const propertyId = req.params.propertyId;
+    const forceDelete = req.query.forceDelete === "true"; 
+
     if (!propertyId) {
       return res.status(400).json({ message: "Property Id is required!" });
     }
+    console.log("Deleting property with ID:", propertyId, "Force delete:", forceDelete);
+
     const property = await Property.findOne({
       where: { id: propertyId, add_user_id: uid },
+      paranoid: false,
     });
+
     if (!property) {
       return res.status(404).json({
         message: "Property not found or you don't have permission to delete!",
       });
     }
-    await Property.destroy({ where: { id: propertyId } });
-    return res.status(200).json({ message: "Property deleted successfully!" });
+
+    const activeBookings = await TblBook.findOne({
+      where: {
+        prop_id: propertyId,
+        book_status: { [Op.in]: ["Confirmed", "Booked", "Check_in"] },
+      },
+    });
+
+    if (activeBookings) {
+      return res.status(400).json({
+        message: "Property cannot be deleted as it has active or pending bookings!",
+      });
+    }
+
+    const bookings = await TblBook.findAll({
+      where: { prop_id: propertyId },
+      attributes: ["id"],
+    });
+
+    if (bookings.length > 0) {
+      const bookIds = bookings.map((booking) => booking.id);
+      await PersonRecord.destroy({ where: { book_id: bookIds } });
+    }
+
+    await TblBook.destroy({ where: { prop_id: propertyId } });
+    await PropertyBlock.destroy({ where: { prop_id: propertyId } });
+    await PriceCalendar.destroy({ where: { prop_id: propertyId } });
+    await TblExtra.destroy({ where: { pid: propertyId } });
+    await TblFav.destroy({ where: { property_id: propertyId } });
+    await TblGallery.destroy({ where: { pid: propertyId } });
+
+    const extraRecords = await TblExtra.findAll({ where: { pid: propertyId } });
+    if (extraRecords.length > 0) {
+      const extraIds = extraRecords.map((extra) => extra.id);
+      await TblExtraImage.destroy({ where: { id: extraIds } });
+    }
+
+    await TravelerHostReview.destroy({ where: { property_id: propertyId } });
+
+    // **Soft delete (default) or Force delete if requested**
+    await Property.destroy({ where: { id: propertyId }, force: forceDelete });
+
+    return res.status(200).json({
+      message: forceDelete
+        ? "Property deleted successfully!"
+        : "Property deleted successfully!",
+    });
   } catch (error) {
-    console.error(object);
-    return res
-      .status(500)
-      .json({ message: "An error occurred while deleting the property!" });
+    console.error("Error Occurred While Deleting Property:", error);
+    return res.status(500).json({ message: "An error occurred while deleting the property!" });
   }
 };
+
 
 const nearByProperties = async (req, res) => {
   const { latitude, longitude, maxDistance, id } = req.body;
@@ -1829,11 +2182,13 @@ const getAllProperties = async (req, res) => {
 
 const getPropertyCategories = async (req, res) => {
   try {
-    const categories = await TblCategory.findAll({ where: {status:1} });
-    if(!categories){
-      res.status(400).json({message:"Categories not found"})
+    const categories = await TblCategory.findAll({ where: { status: 1 } });
+    if (!categories) {
+      res.status(400).json({ message: "Categories not found" });
     }
-    res.status(201).json({message:"Categories fetched Successfully", categories})
+    res
+      .status(201)
+      .json({ message: "Categories fetched Successfully", categories });
   } catch (error) {
     console.error("Error in getPropertyCategories:", error);
     res.status(500).json({
@@ -1859,5 +2214,5 @@ module.exports = {
   deleteUserProperty,
   nearByProperties,
   getAllProperties,
-  getPropertyCategories
+  getPropertyCategories,
 };
