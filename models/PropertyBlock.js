@@ -1,7 +1,9 @@
-const sequelize = require('../db');
-const { DataTypes } = require('sequelize');
+const sequelize = require("../db");
+const { DataTypes } = require("sequelize");
 
-const PropertyBlock = sequelize.define("PropertyBlock", {
+const PropertyBlock = sequelize.define(
+  "PropertyBlock",
+  {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -12,21 +14,23 @@ const PropertyBlock = sequelize.define("PropertyBlock", {
       allowNull: false,
     },
     block_start: {
-      type: DataTypes.DATEONLY, 
+      type: DataTypes.DATEONLY,
       allowNull: false,
     },
     block_end: {
-      type: DataTypes.DATEONLY, 
+      type: DataTypes.DATEONLY,
       allowNull: false,
     },
     reason: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-  }, { 
-    tableName: 'tbl_property_block', 
-    timestamps: true, 
-    paranoid: true 
-  });
+  },
+  {
+    tableName: "tbl_property_block",
+    timestamps: true,
+    paranoid: true,
+  }
+);
 
 module.exports = PropertyBlock;
