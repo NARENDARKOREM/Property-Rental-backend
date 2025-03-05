@@ -111,7 +111,11 @@ TblCity.hasMany(Property, { foreignKey: "city", as: "cities" });
 User.hasMany(TblFav, { foreignKey: "uid", onDelete: "CASCADE" });
 TblFav.belongsTo(User, { foreignKey: "uid" });
 
-Property.hasMany(PropertyBlock,{foreignKey:'prop_id',as:'blockedDates'})
+// Property.hasMany(PropertyBlock,{foreignKey:'prop_id',as:'blockedDates'})
+
+Property.hasMany(PropertyBlock, { foreignKey: "prop_id", as: "blockedDates" });
+PropertyBlock.belongsTo(Property, { foreignKey: "prop_id", as: "property" });
+
 
 module.exports = {
   User,

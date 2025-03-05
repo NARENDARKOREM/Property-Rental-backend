@@ -100,18 +100,18 @@ async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) 
 }
 
 // Test calls
-sendWhatsAppMessage(
-  "+918688468369",
-  "John",
-  "ABC123",
-  process.env.BREVO_TEMPLATE_ID
-);
-sendWhatsAppMessage(
-  "+919505171479",
-  "Jane",
-  "XYZ987",
-  process.env.BREVO_TEMPLATE_ID
-);
+// sendWhatsAppMessage(
+//   "+918688468369",
+//   "John",
+//   "ABC123",
+//   process.env.BREVO_TEMPLATE_ID
+// );
+// sendWhatsAppMessage(
+//   "+919505171479",
+//   "Jane",
+//   "XYZ987",
+//   process.env.BREVO_TEMPLATE_ID
+// );
 
 const sendEmailNotification = async (toEmail, subject, content) => {
   try {
@@ -488,6 +488,45 @@ const createBooking = async (req, res) => {
 };
 
 const editBooking = async (req, res) => {
+  function formatPhoneNumber(number) {
+    if (!number.startsWith("+")) {
+      return `+91${number}`;
+    }
+    return number;
+  }
+  async function sendWhatsAppMessage(recipient,firstName,bookingId,templateId){
+    try{
+      const formattedNumber = formatPhoneNumber(recipient)
+      console.log("Message sending from:", )
+      const payload = {
+        senderNumber:process.env.BREVO_WHATSAPP_SENDER,
+        contactNumbers:[formatPhoneNumber],
+        templateId:parseInt(templateId,10),
+        params:{
+          FIRSTNAME:firstName,
+          BOOKING_ID:bookingId
+        }
+      }
+      const response = await axios.post(
+        "https://api.brevo.com/v3/whatsapp/sendMessage",
+        payload,
+        {
+          headers: {
+            accept: "application/json",
+            "api-key": BREVO_API_KEY,
+            "content-type": "application/json",
+          },
+        }
+      );
+      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+
+    }catch(error){
+      console.error(
+        `Error sending WhatsApp message to: ${recipient}`,
+        error.response?.data || error.message
+      );
+    }
+  }
   const uid = req.user.id;
   const { book_id } = req.params;
   const {
@@ -620,6 +659,22 @@ const editBooking = async (req, res) => {
     }
     const traveler = await User.findByPk(uid);
     const host = await User.findByPk(property.add_user_id);
+
+    await sendWhatsAppMessage(
+      traveler.mobile,
+      traveler.name,
+      booking.id,
+      process.env.BREVO_TEMPLATE_ID
+    )
+
+    if(host){
+      await sendWhatsAppMessage(
+        host.mobile,
+        host.name,
+        booking.id,
+        process.env.BREVO_TEMPLATE_ID
+      )
+    }
 
     const travelerEmailContent = `
       <h3>Hello ${traveler.name},</h3>
@@ -835,7 +890,7 @@ const getBookingDetails = async (req, res) => {
         {
           model: Property,
           as: "properties",
-          attributes: ["add_user_id"],
+          attributes: ["add_user_id","standard_rules"],
         },
       ],
     });
@@ -849,6 +904,17 @@ const getBookingDetails = async (req, res) => {
       );
     }
 
+    let checkInTime = "";
+    let checkOutTime = "";
+    if (booking.properties && booking.properties.standard_rules) {
+      try {
+        const rules = JSON.parse(booking.properties.standard_rules);
+        checkInTime = rules.checkIn || "";
+        checkOutTime = rules.checkOut || "";
+      } catch (error) {
+        console.error("Error parsing standard_rules:", error);
+      }
+    }
     const formatDate = (date) => {
       return date ? new Date(date).toISOString().split("T")[0] : null;
     };
@@ -872,14 +938,14 @@ const getBookingDetails = async (req, res) => {
       p_method_id: booking.p_method_id,
       add_note: booking.add_note,
       book_status: booking.book_status,
-      // check_intime: booking.check_intime,
+      check_intime: checkInTime,
+      check_outtime: checkOutTime,
       extra_guest: booking.extra_guest,
       adults: booking.adults,
       children: booking.children,
       infants: booking.infants,
       pets: booking.pets,
       extra_guest_charges: booking.extra_guest_charges,
-      // check_outtime: booking.check_outtime,
       book_for: booking.book_for,
       is_rate: booking.is_rate,
       total_rate: booking.total_rate || "",
@@ -1367,6 +1433,47 @@ const userCheckOut = async (req, res) => {
 // };
 
 const cancelBooking = async (req, res) => {
+  function formatPhoneNumber(number) {
+    if (!number.startsWith("+")) {
+      return `+91${number}`;
+    }
+    return number;
+  }
+  async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) {
+    try {
+      const formattedNumber = formatPhoneNumber(recipient);
+      console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
+  
+      const payload = {
+        senderNumber: BREVO_WHATSAPP_SENDER,
+        contactNumbers: [formattedNumber],
+        templateId: parseInt(templateId, 10),
+        params: {
+          FIRSTNAME: firstName,
+          BOOKING_ID: bookingId,
+        },
+      };
+  
+      const response = await axios.post(
+        "https://api.brevo.com/v3/whatsapp/sendMessage",
+        payload,
+        {
+          headers: {
+            accept: "application/json",
+            "api-key": BREVO_API_KEY,
+            "content-type": "application/json",
+          },
+        }
+      );
+  
+      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+    } catch (error) {
+      console.error(
+        `Error sending WhatsApp message to: ${recipient}`,
+        error.response?.data || error.message
+      );
+    }
+  }
   const uid = req.user.id;
   if (!uid) {
     return res.status(401).json({ message: "User Not Found!" });
@@ -1415,6 +1522,22 @@ const cancelBooking = async (req, res) => {
       { book_status: "Cancelled", cancle_reason },
       { where: { id: book_id, uid } }
     );
+
+    await sendWhatsAppMessage(
+      user.mobile,
+      user.email,
+      booking.id,
+      process.env.BREVO_TEMPLATE_ID
+    )
+
+    if(host){
+      await sendWhatsAppMessage(
+        host.mobile,
+        host.email,
+        booking.id,
+        process.env.BREVO_TEMPLATE_ID
+      )
+    }
 
     let refundMessage = "";
 
@@ -1745,6 +1868,47 @@ const cancelBooking = async (req, res) => {
 // };
 
 const cancelTravelerBookingByHost = async (req, res) => {
+  function formatPhoneNumber(number) {
+    if (!number.startsWith("+")) {
+      return `+91${number}`;
+    }
+    return number;
+  }
+  async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) {
+    try {
+      const formattedNumber = formatPhoneNumber(recipient);
+      console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
+  
+      const payload = {
+        senderNumber: BREVO_WHATSAPP_SENDER,
+        contactNumbers: [formattedNumber],
+        templateId: parseInt(templateId, 10),
+        params: {
+          FIRSTNAME: firstName,
+          BOOKING_ID: bookingId,
+        },
+      };
+  
+      const response = await axios.post(
+        "https://api.brevo.com/v3/whatsapp/sendMessage",
+        payload,
+        {
+          headers: {
+            accept: "application/json",
+            "api-key": BREVO_API_KEY,
+            "content-type": "application/json",
+          },
+        }
+      );
+  
+      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+    } catch (error) {
+      console.error(
+        `Error sending WhatsApp message to: ${recipient}`,
+        error.response?.data || error.message
+      );
+    }
+  }
   const hostId = req.user.id;
   if (!hostId) {
     return res.status(401).json({ message: "User Not Found!" });
@@ -1806,6 +1970,21 @@ const cancelTravelerBookingByHost = async (req, res) => {
     );
 
     let refundMessage = "";
+
+    await sendWhatsAppMessage(
+      traveler.mobile,
+      traveler.email,
+      booking.id,
+      process.env.BREVO_WHATSAPP_SENDER
+    )
+    if(host){
+      await sendWhatsAppMessage(
+        host.mobile,
+        host.name,
+        booking.id,
+        process.env.BREVO_TEMPLATE_ID
+      )
+    }
 
     // Refund Logic
     // if (booking.transaction_id && booking.platform_fee > 0) {
@@ -2934,9 +3113,7 @@ const hostBlockBookingProperty = async (req, res) => {
   }
 
   if (!prop_id || !block_start || !block_end || !reason) {
-    return res
-      .status(400)
-      .json({ success: false, message: "All fields required!" });
+    return res.status(400).json({ success: false, message: "All fields required!" });
   }
 
   try {
@@ -2953,24 +3130,20 @@ const hostBlockBookingProperty = async (req, res) => {
       });
     }
 
-    // Convert block_start and block_end to a proper format
-    const formattedBlockStart = moment(block_start, "YYYY-MM-DD").format(
-      "YYYY-MM-DD"
-    );
-    const formattedBlockEnd = moment(block_end, "YYYY-MM-DD").format(
-      "YYYY-MM-DD"
-    );
+    // Use moment.utc without a fixed input format to prevent unwanted timezone shifts
+    // const formattedBlockStart = moment.utc(block_start).format("YYYY-MM-DD");
+    // const formattedBlockEnd = moment.utc(block_end).format("YYYY-MM-DD");
 
     const newBlock = await PropertyBlock.create({
       prop_id,
-      block_start: formattedBlockStart,
-      block_end: formattedBlockEnd,
+      block_start,
+      block_end,
       reason,
     });
 
-    console.log(
-      `Property ${prop_id} blocked from ${formattedBlockStart} to ${formattedBlockEnd}`
-    );
+    // console.log(
+    //   `Property ${prop_id} blocked from ${formattedBlockStart} to ${formattedBlockEnd}`
+    // );
 
     return res.status(200).json({
       success: true,
@@ -2979,11 +3152,10 @@ const hostBlockBookingProperty = async (req, res) => {
     });
   } catch (error) {
     console.error("Error blocking property booking:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal Server Error!" });
+    return res.status(500).json({ success: false, message: "Internal Server Error!" });
   }
 };
+
 
 module.exports = {
   createBooking,

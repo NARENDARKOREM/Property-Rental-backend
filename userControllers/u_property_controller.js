@@ -1,5 +1,6 @@
 const { Op, where, literal } = require("sequelize");
 const { TblCategory, TblExtra, User, PriceCalendar } = require("../models");
+const moment = require("moment");
 const Property = require("../models/Property");
 const TblBook = require("../models/TblBook");
 const TblCountry = require("../models/TblCountry");
@@ -1196,7 +1197,7 @@ const getAllHostAddedProperties = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
 
-    // Fetch properties along with associated PriceCalendar, Booking, and PropertyBlock entries
+    // Fetch properties along with PriceCalendar, Booking, and PropertyBlock entries
     const properties = await Property.findAll({
       where: { status: 1, ...(uid ? { add_user_id: uid } : {}) },
       include: [
@@ -1225,7 +1226,6 @@ const getAllHostAddedProperties = async (req, res) => {
           model: PropertyBlock,
           as: "blockedDates",
           attributes: ["block_start", "block_end", "reason"],
-          required: false, // Allow properties without blocked dates
         },
       ],
     });
@@ -1284,15 +1284,13 @@ const getAllHostAddedProperties = async (req, res) => {
         ];
       }
 
+      // Process rules if needed
       if (typeof property.rules === "string") {
         try {
           const parsedRules = JSON.parse(property.rules);
           property.rules = Array.isArray(parsedRules)
             ? parsedRules.join(", ")
-            : property.rules
-                .split(",")
-                .map((rule) => rule.trim())
-                .join(", ");
+            : property.rules.split(",").map((rule) => rule.trim()).join(", ");
         } catch (error) {
           console.error("Error parsing rules:", error);
         }
@@ -1315,17 +1313,16 @@ const getAllHostAddedProperties = async (req, res) => {
         }));
       }
 
-      // Include blocked dates
       let blockedDates = [];
       if (property.blockedDates && property.blockedDates.length > 0) {
         blockedDates = property.blockedDates.map((block) => ({
           book_status: "Blocked",
-          check_in: new Date(block.block_start).toISOString().split("T")[0],
-          check_out: new Date(block.block_end).toISOString().split("T")[0],
+          check_in: block.block_start,
+          check_out: block.block_end,
           reason: block.reason,
         }));
       }
-
+                
       return {
         id: property.id,
         title: property.title,
@@ -1370,6 +1367,7 @@ const getAllHostAddedProperties = async (req, res) => {
     });
   }
 };
+
 
 
 const getSortedProperties = async (req, res) => {
