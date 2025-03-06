@@ -6,6 +6,9 @@ const TblFacility = require("../models/TblFacility");
 const TblCity = require('../models/TblCity');
 const { error } = require("console");
 const sequelize = require("../db");
+const formatDate = (date) => {
+  return date ? new Date(date).toISOString().split("T")[0] : null;
+};
 
 // Create or Update Property
 const upsertProperty = async (req, res) => {
@@ -49,7 +52,6 @@ const upsertProperty = async (req, res) => {
     if (!city || !city.label) {
       return res.status(400).json({ error: "City is required" });
     }
-
     const validateCity = await TblCity.findOne({
       where: { title: city.label },
     });
@@ -58,7 +60,7 @@ const upsertProperty = async (req, res) => {
       return res.status(400).json({ error: `City '${city.label}' not found in database` });
     }
 
-    // **Step 2: Parse `standard_rules` Safely**
+    // **Step 2: Ensure `standard_rules` is a Proper JSON Object**
     let parsedStandardRules;
     try {
       parsedStandardRules =
@@ -69,21 +71,24 @@ const upsertProperty = async (req, res) => {
       return res.status(400).json({ error: "Invalid JSON format in standard_rules" });
     }
 
-    console.log(typeof parsedStandardRules, "Standard Rules");
+    // **Step 3: Make Sure Sequelize Receives a Valid JSON Object**
+    if (typeof parsedStandardRules !== "object") {
+      return res.status(400).json({ error: "standard_rules must be a valid JSON object" });
+    }
 
-    // **Step 3: Start Transaction**
+    // **Step 4: Start Transaction**
     const transaction = await sequelize.transaction();
     try {
       let property;
 
       if (id) {
-        // **Step 4: Fetch Property for Update**
+        // **Step 5: Fetch Property for Update**
         property = await Property.findByPk(id);
         if (!property) {
           return res.status(404).json({ error: "Property not found" });
         }
 
-        // **Step 5: Update Property**
+        // **Step 6: Update Property**
         await property.update(
           {
             title,
@@ -114,12 +119,12 @@ const upsertProperty = async (req, res) => {
             pets,
             setting_id,
             extra_guest_charges,
-            standard_rules: JSON.stringify(parsedStandardRules),
+            standard_rules: parsedStandardRules,
           },
           { transaction }
         );
       } else {
-        // **Step 6: Create New Property**
+        // **Step 7: Create New Property**
         property = await Property.create(
           {
             title,
@@ -150,13 +155,13 @@ const upsertProperty = async (req, res) => {
             pets,
             setting_id,
             extra_guest_charges,
-            standard_rules: JSON.stringify(parsedStandardRules),
+            standard_rules: parsedStandardRules, // ✅ Ensure JSON Object, Not String
           },
           { transaction }
         );
       }
 
-      // **Step 7: Commit Transaction**
+      // **Step 8: Commit Transaction**
       await transaction.commit();
       return res.status(200).json({ message: id ? "Property updated successfully" : "Property added successfully", property });
     } catch (error) {
@@ -164,13 +169,12 @@ const upsertProperty = async (req, res) => {
       return res.status(500).json({ error: "Database operation failed", details: error.message });
     }
   } catch (error) {
-    return res.status(500).json({ error: "Internal Server Error", details: error.message });
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
-
-
 // Get All Properties
-const getAllProperties = async (req, res) => { 
+const getAllProperties = async (req, res) => {
   try {
     const properties = await Property.findAll({
       include: [
@@ -187,62 +191,54 @@ const getAllProperties = async (req, res) => {
             {
               model: TblCountry,
               as: "country",
-              attributes: ["title"], // Fetch the country name
+              attributes: ["title"],
             },
           ],
         },
       ],
     });
 
-    const formattedProperties = await Promise.all(
-      properties.map(async (property) => {
-        const facilityIds = property.facility
-          ? property.facility
-              .split(",")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => Number.isInteger(id))
-          : [];
+    const formattedProperties = properties.map((property) => {
+      const facilityIds = property.facility
+        ? property.facility
+            .split(",")
+            .map((id) => parseInt(id, 10))
+            .filter((id) => Number.isInteger(id))
+        : [];
 
-        const facilities = facilityIds.length
-          ? await TblFacility.findAll({
-              where: { id: facilityIds },
-              attributes: ["id", "title"],
-            })
-          : [];
+      // Fetch facilities if applicable
+      const facilities = facilityIds.length ? 
+        TblFacility.findAll({
+          where: { id: facilityIds },
+          attributes: ["id", "title"],
+        }) 
+        : [];
 
-        // Format city name with country name
-        const cityWithCountry =
-          property.city && property.city.country
-            ? `${property.city.title} (${property.city.country.title})`
-            : property.city?.title || "";
+      // Format city name with country
+      const cityWithCountry =
+        property.city && property.city.country
+          ? `${property.city.title} (${property.city.country.title})`
+          : property.city?.title || "";
 
-        // Check if standard_rules exists and is a valid JSON string
-        let standardRules = {};
+      // Format the listing date
+      const formattedListingDate = property.listing_date
+        ? formatDate(property.listing_date)
+        : null;
 
-        if (property.standard_rules) {
-          try {
-            standardRules = JSON.parse(property.standard_rules);
-          } catch (error) {
-            console.error("Error parsing standard_rules:", error);
-            standardRules = {}; // If invalid JSON, default to an empty object
-          }
-        }
+      // **Ensure `standard_rules` is in correct format**
+      let formattedStandardRules = "N/A";
+      if (property.standard_rules && typeof property.standard_rules === "object") {
+        formattedStandardRules = `checkIn:${property.standard_rules.checkIn || "N/A"}, checkOut:${property.standard_rules.checkOut || "N/A"}, smokingAllowed:${property.standard_rules.smokingAllowed !== undefined ? property.standard_rules.smokingAllowed : "N/A"}`;
+      }
 
-        // Format the standard_rules fields, making sure to handle null/undefined cases
-        const formattedStandardRules = {
-          checkIn: standardRules.checkIn || "N/A",  // Default to "N/A" if missing
-          checkOut: standardRules.checkOut || "N/A", // Default to "N/A" if missing
-          smokingAllowed: standardRules.smokingAllowed !== undefined ? standardRules.smokingAllowed : "N/A",  // Default to "N/A" if missing
-        };
-
-        return {
-          ...property.toJSON(),
-          facilities,
-          city: cityWithCountry, // Add the formatted city with country name
-          formatted_standard_rules: formattedStandardRules, // Add formatted standard rules
-        };
-      })
-    );
+      return {
+        ...property.toJSON(),
+        facilities,
+        city: cityWithCountry,
+        listing_date: formattedListingDate,
+        formatted_standard_rules: formattedStandardRules, // ✅ Send correctly formatted standard_rules
+      };
+    });
 
     res.status(200).json(formattedProperties);
   } catch (error) {
@@ -250,8 +246,6 @@ const getAllProperties = async (req, res) => {
     res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
-
-
 
 
 // Get Property Count
