@@ -75,6 +75,14 @@ const upsertProperty = async (req, res) => {
     if (typeof parsedStandardRules !== "object") {
       return res.status(400).json({ error: "standard_rules must be a valid JSON object" });
     }
+    // Ensure `rules` is stored as a valid JSON array
+    let parsedRules;
+    try {
+      parsedRules = typeof rules === "object" ? rules : JSON.parse(rules);
+    } catch (error) {
+      return res.status(400).json({ error: "Invalid JSON format in rules" });
+    }
+
 
     // **Step 4: Start Transaction**
     const transaction = await sequelize.transaction();
@@ -109,7 +117,7 @@ const upsertProperty = async (req, res) => {
             mobile,
             city: validateCity.id,
             listing_date,
-            rules,
+            rules:parsedRules,
             country_id,
             plimit,
             is_sell,
@@ -145,7 +153,7 @@ const upsertProperty = async (req, res) => {
             mobile,
             city: validateCity.id,
             listing_date,
-            rules,
+            rules:parsedRules,
             country_id,
             plimit,
             is_sell,
@@ -174,6 +182,79 @@ const upsertProperty = async (req, res) => {
   }
 };
 // Get All Properties
+// const getAllProperties = async (req, res) => {
+//   try {
+//     const properties = await Property.findAll({
+//       include: [
+//         {
+//           model: TblCategory,
+//           as: "category",
+//           attributes: ["title"],
+//         },
+//         {
+//           model: TblCity,
+//           as: "cities",
+//           attributes: ["title"],
+//           include: [
+//             {
+//               model: TblCountry,
+//               as: "country",
+//               attributes: ["title"],
+//             },
+//           ],
+//         },
+//       ],
+//     });
+
+//     const formattedProperties = properties.map((property) => {
+//       const facilityIds = property.facility
+//         ? property.facility
+//             .split(",")
+//             .map((id) => parseInt(id, 10))
+//             .filter((id) => Number.isInteger(id))
+//         : [];
+
+//       // Fetch facilities if applicable
+//       const facilities = facilityIds.length ? 
+//         TblFacility.findAll({
+//           where: { id: facilityIds },
+//           attributes: ["id", "title"],
+//         }) 
+//         : [];
+
+//       // Format city name with country
+//       const cityWithCountry =
+//         property.city && property.city.country
+//           ? `${property.city.title} (${property.city.country.title})`
+//           : property.city?.title || "";
+
+//       // Format the listing date
+//       const formattedListingDate = property.listing_date
+//         ? formatDate(property.listing_date)
+//         : null;
+
+//       // **Ensure `standard_rules` is in correct format**
+//       let formattedStandardRules = "N/A";
+//       if (property.standard_rules && typeof property.standard_rules === "object") {
+//         formattedStandardRules = `checkIn:${property.standard_rules.checkIn || "N/A"}, checkOut:${property.standard_rules.checkOut || "N/A"}, smokingAllowed:${property.standard_rules.smokingAllowed !== undefined ? property.standard_rules.smokingAllowed : "N/A"}`;
+//       }
+
+//       return {
+//         ...property.toJSON(),
+//         facilities,
+//         city: cityWithCountry,
+//         listing_date: formattedListingDate,
+//         formatted_standard_rules: formattedStandardRules, // ✅ Send correctly formatted standard_rules
+//       };
+//     });
+
+//     res.status(200).json(formattedProperties);
+//   } catch (error) {
+//     console.error("Error fetching properties:", error);
+//     res.status(500).json({ error: "Internal server error", details: error.message });
+//   }
+// };
+
 const getAllProperties = async (req, res) => {
   try {
     const properties = await Property.findAll({
@@ -198,52 +279,74 @@ const getAllProperties = async (req, res) => {
       ],
     });
 
-    const formattedProperties = properties.map((property) => {
-      const facilityIds = property.facility
-        ? property.facility
-            .split(",")
-            .map((id) => parseInt(id, 10))
-            .filter((id) => Number.isInteger(id))
-        : [];
+    const formattedProperties = await Promise.all(
+      properties.map(async (property) => {
+        let facilityIds = [];
+        if (property.facility) {
+          if (typeof property.facility === "string") {
+            // If it's a string, split by commas
+            facilityIds = property.facility
+              .split(",")
+              .map((id) => parseInt(id, 10))
+              .filter((id) => Number.isInteger(id));
+          } else if (Array.isArray(property.facility)) {
+            // If it's already an array, use it directly
+            facilityIds = property.facility;
+          } else if (typeof property.facility === "number") {
+            // If it's a single number, wrap it in an array
+            facilityIds = [property.facility];
+          }
+        }
 
-      // Fetch facilities if applicable
-      const facilities = facilityIds.length ? 
-        TblFacility.findAll({
-          where: { id: facilityIds },
-          attributes: ["id", "title"],
-        }) 
-        : [];
+        // Fetch facilities if applicable (resolve the promise)
+        let facilities = [];
+        if (facilityIds.length) {
+          facilities = await TblFacility.findAll({
+            where: { id: facilityIds },
+            attributes: ["id", "title"],
+          });
+        }
 
-      // Format city name with country
-      const cityWithCountry =
-        property.city && property.city.country
-          ? `${property.city.title} (${property.city.country.title})`
-          : property.city?.title || "";
+        // Format city name with country
+        const cityWithCountry =
+          property.city && property.city.country
+            ? `${property.city.title} (${property.city.country.title})`
+            : property.city?.title || "";
 
-      // Format the listing date
-      const formattedListingDate = property.listing_date
-        ? formatDate(property.listing_date)
-        : null;
+        // Format the listing date
+        const formattedListingDate = property.listing_date
+          ? formatDate(property.listing_date)
+          : null;
 
-      // **Ensure `standard_rules` is in correct format**
-      let formattedStandardRules = "N/A";
-      if (property.standard_rules && typeof property.standard_rules === "object") {
-        formattedStandardRules = `checkIn:${property.standard_rules.checkIn || "N/A"}, checkOut:${property.standard_rules.checkOut || "N/A"}, smokingAllowed:${property.standard_rules.smokingAllowed !== undefined ? property.standard_rules.smokingAllowed : "N/A"}`;
-      }
+        // Ensure standard_rules is formatted correctly
+        let formattedStandardRules = "N/A";
+        if (
+          property.standard_rules &&
+          typeof property.standard_rules === "object"
+        ) {
+          formattedStandardRules = `checkIn: ${property.standard_rules.checkIn || "N/A"}, checkOut: ${property.standard_rules.checkOut || "N/A"}, smokingAllowed: ${
+            property.standard_rules.smokingAllowed !== undefined
+              ? property.standard_rules.smokingAllowed
+              : "N/A"
+          }`;
+        }
 
-      return {
-        ...property.toJSON(),
-        facilities,
-        city: cityWithCountry,
-        listing_date: formattedListingDate,
-        formatted_standard_rules: formattedStandardRules, // ✅ Send correctly formatted standard_rules
-      };
-    });
+        return {
+          ...property.toJSON(),
+          facilities,
+          city: cityWithCountry,
+          listing_date: formattedListingDate,
+          formatted_standard_rules: formattedStandardRules,
+        };
+      })
+    );
 
     res.status(200).json(formattedProperties);
   } catch (error) {
     console.error("Error fetching properties:", error);
-    res.status(500).json({ error: "Internal server error", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
   }
 };
 

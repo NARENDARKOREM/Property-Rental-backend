@@ -40,9 +40,9 @@ const Property = sequelize.define(
       allowNull: false,
     },
     facility: {
-      type: DataTypes.TEXT,
+      type: DataTypes.INTEGER,
       allowNull: false,
-    },
+    },    
     description: {
       type: DataTypes.TEXT,
       allowNull: false,
@@ -80,7 +80,7 @@ const Property = sequelize.define(
       allowNull: false,
     },
     city: {
-      type: DataTypes.TEXT,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     listing_date: {
@@ -92,8 +92,8 @@ const Property = sequelize.define(
       allowNull: true,
     },
     rules: {
-      type: DataTypes.TEXT,
-      // allowNull: false,
+      type: DataTypes.JSON,
+      allowNull: true,
     },
     country_id: {
       type: DataTypes.INTEGER,
