@@ -894,8 +894,8 @@ const getPropertyTypes = async (req, res) => {
   const { ptype } = req.body;
 
   try {
-    // Validate input
-    if (!ptype) {
+    // Validate input - ensure ptype is provided (even if 0)
+    if (ptype === undefined || ptype === null) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
@@ -903,12 +903,16 @@ const getPropertyTypes = async (req, res) => {
       });
     }
 
+    // Build the where condition.
+    // If ptype is 0, don't filter by ptype; otherwise, add the ptype filter.
+    const whereCondition = { status: 1 };
+    if (Number(ptype) !== 0) {
+      whereCondition.ptype = ptype;
+    }
+
     // Fetch property types
     const typeList = await Property.findAll({
-      where: {
-        ptype: ptype,
-        status: 1,
-      },
+      where: whereCondition,
       include: [
         {
           model: TblCategory,
@@ -974,7 +978,6 @@ const getPropertyTypes = async (req, res) => {
               const parsed = JSON.parse(property.rules);
               rulesArray = Array.isArray(parsed) ? flattenArray(parsed) : [parsed];
             } catch (error) {
-              // If JSON.parse fails, fallback to splitting by comma.
               try {
                 rulesArray = property.rules.split(",").map((rule) => rule.trim());
               } catch (e) {
@@ -994,7 +997,6 @@ const getPropertyTypes = async (req, res) => {
       })
     );
 
-    // Success response
     res.status(200).json({
       typelist: formattedProperties,
       ResponseCode: "200",
@@ -1011,9 +1013,6 @@ const getPropertyTypes = async (req, res) => {
     });
   }
 };
-
-module.exports = { getPropertyTypes };
-
 
 const getPropertyDetails = async (req, res) => {
   const uid = req.user?.id || null;
