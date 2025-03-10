@@ -938,8 +938,17 @@ const getPropertyTypes = async (req, res) => {
       });
     }
 
+    // Helper function to recursively flatten an array.
+    const flattenArray = (arr) =>
+      arr.reduce(
+        (acc, val) =>
+          Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val),
+        []
+      );
+
     const formattedProperties = await Promise.all(
       typeList.map(async (property) => {
+        // Process facility field.
         let facilityIds = [];
         if (typeof property.facility === "string") {
           facilityIds = property.facility
@@ -949,20 +958,41 @@ const getPropertyTypes = async (req, res) => {
         } else if (Array.isArray(property.facility)) {
           facilityIds = property.facility;
         }
-    
+
         const facilities = facilityIds.length
           ? await TblFacility.findAll({
               where: { id: facilityIds },
               attributes: ["id", "title"],
             })
           : [];
-    
+
+        // Process and flatten the rules field.
+        let rulesArray = [];
+        if (property.rules) {
+          if (typeof property.rules === "string") {
+            try {
+              const parsed = JSON.parse(property.rules);
+              rulesArray = Array.isArray(parsed) ? flattenArray(parsed) : [parsed];
+            } catch (error) {
+              // If JSON.parse fails, fallback to splitting by comma.
+              try {
+                rulesArray = property.rules.split(",").map((rule) => rule.trim());
+              } catch (e) {
+                rulesArray = [];
+              }
+            }
+          } else if (Array.isArray(property.rules)) {
+            rulesArray = flattenArray(property.rules);
+          }
+        }
+
         return {
           ...property.toJSON(),
           facilities,
+          rules: rulesArray,
         };
       })
-    );    
+    );
 
     // Success response
     res.status(200).json({
@@ -981,6 +1011,9 @@ const getPropertyTypes = async (req, res) => {
     });
   }
 };
+
+module.exports = { getPropertyTypes };
+
 
 const getPropertyDetails = async (req, res) => {
   const uid = req.user?.id || null;
