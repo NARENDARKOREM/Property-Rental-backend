@@ -940,26 +940,29 @@ const getPropertyTypes = async (req, res) => {
 
     const formattedProperties = await Promise.all(
       typeList.map(async (property) => {
-        const facilityIds = property.facility
-          ? property.facility
-              .split(",")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => Number.isInteger(id))
-          : [];
-
+        let facilityIds = [];
+        if (typeof property.facility === "string") {
+          facilityIds = property.facility
+            .split(",")
+            .map((id) => parseInt(id, 10))
+            .filter((id) => Number.isInteger(id));
+        } else if (Array.isArray(property.facility)) {
+          facilityIds = property.facility;
+        }
+    
         const facilities = facilityIds.length
           ? await TblFacility.findAll({
               where: { id: facilityIds },
               attributes: ["id", "title"],
             })
           : [];
-
+    
         return {
           ...property.toJSON(),
           facilities,
         };
       })
-    );
+    );    
 
     // Success response
     res.status(200).json({
@@ -1245,13 +1248,36 @@ const getPropertyDetails = async (req, res) => {
     const propertyImage = property.image;
     const panoramaStatus = property.is_panorama;
 
-    // Fetch extra images and video from property table
-    const extraImages = property.extra_images
-      ? JSON.parse(property.extra_images)
-      : [];
-    // const video = property.video ? { url: property.video } : null;
-    const videoUrl = property.video ? JSON.parse(property.video) : null;
-    console.log("Video URL:", videoUrl);
+// Fetch extra images and video from property table
+const extraImages = (() => {
+  if (!property.extra_images) {
+    return [];
+  } else if (typeof property.extra_images === "string") {
+    const trimmed = property.extra_images.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try {
+        let parsed = JSON.parse(trimmed);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch (err) {
+        console.error("Error parsing extra_images JSON:", err.message);
+        return [property.extra_images];
+      }
+    } else {
+      return [property.extra_images];
+    }
+  } else if (Array.isArray(property.extra_images)) {
+    return property.extra_images;
+  }
+  return [];
+})();
+
+const videoUrl = property.video
+  ? (typeof property.video === "string"
+      ? (property.video.trim().startsWith("[") || property.video.trim().startsWith("{")
+          ? JSON.parse(property.video)
+          : property.video)
+      : property.video)
+  : null;
 
     const gallery = {
       extra_images: extraImages,
