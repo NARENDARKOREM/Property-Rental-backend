@@ -1,5 +1,11 @@
 const { Op, where, literal } = require("sequelize");
-const { TblCategory, TblExtra, User, PriceCalendar, TblCountry } = require("../models");
+const {
+  TblCategory,
+  TblExtra,
+  User,
+  PriceCalendar,
+  TblCountry,
+} = require("../models");
 const moment = require("moment");
 const Property = require("../models/Property");
 const TblBook = require("../models/TblBook");
@@ -13,7 +19,7 @@ const uploadToS3 = require("../config/fileUpload.aws");
 const TravelerHostReview = require("../models/TravelerHostReview");
 const PropertyBlock = require("../models/PropertyBlock");
 const PersonRecord = require("../models/PersonRecord");
-const TblCity = require('../models/TblCity');
+const TblCity = require("../models/TblCity");
 
 // const addProperty = async (req, res) => {
 //   const {
@@ -107,10 +113,10 @@ const TblCity = require('../models/TblCity');
 //       const mainImage = files.main_image[0];
 
 //       const maxSize = 102400;
-      
+
 //       // Function to extract file extension
 //       const getFileExtension = (filename) => filename.split('.').pop().toLowerCase();
-      
+
 //       // Validate main image
 //       const mainImageExt = getFileExtension(mainImage.originalname);
 //       if (!allowedImageTypes.includes(mainImageExt)) {
@@ -120,19 +126,19 @@ const TblCity = require('../models/TblCity');
 //           ResponseMsg: "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
 //         });
 //       }
-      
+
 //       // Separate extra images and videos
 //       const extraImages = [];
 //       const videos = [];
-      
+
 //       if (files.extra_files) {
 //         console.log("Extra files:", files.extra_files);
-        
+
 //         files.extra_files.forEach((file) => {
 //           const ext = getFileExtension(file.originalname);
-          
+
 //           console.log("filename:: ", file.originalname, " | extension:: ", ext);
-          
+
 //           if (allowedImageTypes.includes(ext)) {
 //             extraImages.push(file);
 //           } else if (allowedVideoTypes.includes(ext)) {
@@ -146,7 +152,6 @@ const TblCity = require('../models/TblCity');
 //           }
 //         });
 //       }
-      
 
 //     // Upload files to S3
 //     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
@@ -209,7 +214,6 @@ const TblCity = require('../models/TblCity');
 //     });
 //   }
 // };
-
 
 const addProperty = async (req, res) => {
   const {
@@ -295,9 +299,10 @@ const addProperty = async (req, res) => {
     // Parse standard_rules (ensure it's a JSON object)
     let parsedStandardRules;
     try {
-      parsedStandardRules = typeof standard_rules === "object"
-        ? standard_rules
-        : JSON.parse(standard_rules);
+      parsedStandardRules =
+        typeof standard_rules === "object"
+          ? standard_rules
+          : JSON.parse(standard_rules);
     } catch (err) {
       return res.status(400).json({
         ResponseCode: "400",
@@ -314,26 +319,25 @@ const addProperty = async (req, res) => {
     }
 
     // Parse rules as a JSON array
-// Parse rules as a JSON array
-let parsedRules;
-try {
-  if (typeof rules === "object") {
-    parsedRules = rules;
-  } else if (typeof rules === "string") {
-    const trimmed = rules.trim();
-    if (trimmed.startsWith("[")) {
-      parsedRules = JSON.parse(trimmed);
-    } else {
-      // If it doesn't start with "[", assume it's a comma-separated list.
-      parsedRules = trimmed.split(",").map(item => item.trim());
+    // Parse rules as a JSON array
+    let parsedRules;
+    try {
+      if (typeof rules === "object") {
+        parsedRules = rules;
+      } else if (typeof rules === "string") {
+        const trimmed = rules.trim();
+        if (trimmed.startsWith("[")) {
+          parsedRules = JSON.parse(trimmed);
+        } else {
+          // If it doesn't start with "[", assume it's a comma-separated list.
+          parsedRules = trimmed.split(",").map((item) => item.trim());
+        }
+      }
+    } catch (err) {
+      return res.status(400).json({
+        error: "Invalid JSON format in rules",
+      });
     }
-  }
-} catch (err) {
-  return res.status(400).json({ 
-    error: "Invalid JSON format in rules" 
-  });
-}
-
 
     // Convert facility to an array of numeric IDs.
     const facilityIds = Array.isArray(facility)
@@ -345,7 +349,7 @@ try {
     const allowedVideoTypes = ["mp4"];
     const maxSize = 102400; // 100KB in bytes
     const getFileExtension = (filename) =>
-      filename.split('.').pop().toLowerCase();
+      filename.split(".").pop().toLowerCase();
 
     // Validate main image
     const mainImage = files.main_image[0];
@@ -354,14 +358,16 @@ try {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
-        ResponseMsg: "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+        ResponseMsg:
+          "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
       });
     }
     if (mainImage.size > maxSize) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
-        ResponseMsg: "Main image file is too large! Please upload a file of 100KB or below.",
+        ResponseMsg:
+          "Main image file is too large! Please upload a file of 100KB or below.",
       });
     }
 
@@ -598,14 +604,16 @@ const editProperty = async (req, res) => {
     const allowedVideoTypes = ["mp4"];
     const mainImage = files.main_image[0];
 
-    const getFileExtension = (filename) => filename.split('.').pop().toLowerCase();
+    const getFileExtension = (filename) =>
+      filename.split(".").pop().toLowerCase();
     const mainImageExt = getFileExtension(mainImage.originalname);
-    
+
     if (!allowedImageTypes.includes(mainImageExt)) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
-        ResponseMsg: "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+        ResponseMsg:
+          "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
       });
     }
 
@@ -614,12 +622,12 @@ const editProperty = async (req, res) => {
     const videos = [];
     if (files.extra_files) {
       console.log("Extra files:", files.extra_files);
-      
+
       files.extra_files.forEach((file) => {
         const ext = getFileExtension(file.originalname);
-        
+
         console.log("filename:: ", file.originalname, " | extension:: ", ext);
-        
+
         if (allowedImageTypes.includes(ext)) {
           extraImages.push(file);
         } else if (allowedVideoTypes.includes(ext)) {
@@ -637,10 +645,12 @@ const editProperty = async (req, res) => {
     // Upload files to S3
     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
     const extraImageUrls = extraImages.length
-      ? (await uploadToS3(extraImages, "property-extra-images"))
+      ? await uploadToS3(extraImages, "property-extra-images")
       : [];
-    const finalExtraImages = Array.isArray(extraImageUrls) ? extraImageUrls : [extraImageUrls];
-    
+    const finalExtraImages = Array.isArray(extraImageUrls)
+      ? extraImageUrls
+      : [extraImageUrls];
+
     const videoUrls = videos.length
       ? await uploadToS3(videos, "property-videos")
       : [];
@@ -653,7 +663,7 @@ const editProperty = async (req, res) => {
       country_id,
       status,
       title,
-      image:mainImageUrl, // Update main image URL
+      image: mainImageUrl, // Update main image URL
       extra_images: finalExtraImages, // Update extra images
       video: JSON.stringify(videoUrls), // Update videos
       price,
@@ -726,7 +736,7 @@ const getPropertyList = async (req, res) => {
     const propertyList = await Promise.all(
       properties.map(async (property) => {
         console.log("Processing property:", property);
-    
+
         // Ensure facility is a string
         let facilityStr = "";
         if (property.facility) {
@@ -738,7 +748,7 @@ const getPropertyList = async (req, res) => {
             facilityStr = property.facility.toString();
           }
         }
-    
+
         // Extract facility IDs from the facility string
         const facilityIds = facilityStr
           ? facilityStr
@@ -746,17 +756,17 @@ const getPropertyList = async (req, res) => {
               .split(",")
               .filter((id) => id.trim() !== "null" && id.trim() !== "")
           : [];
-    
+
         console.log("Facility IDs:", facilityIds);
-    
+
         // Fetch facility titles
         const facilityTitles = await TblFacility.findAll({
           where: { id: { [Op.in]: facilityIds } },
           attributes: ["title"],
         });
-    
+
         console.log("Facility titles:", facilityTitles);
-    
+
         // Parse `standard_rules` safely
         let standardRules = null;
         if (property.standard_rules) {
@@ -773,7 +783,7 @@ const getPropertyList = async (req, res) => {
         }
 
         console.log("Standard Rules:", standardRules);
-    
+
         // Fetch completed bookings for rating calculation
         const completedBookings = await TblBook.findAll({
           where: {
@@ -782,9 +792,9 @@ const getPropertyList = async (req, res) => {
             total_rate: { [Op.ne]: 0 },
           },
         });
-    
+
         console.log("Completed bookings:", completedBookings);
-    
+
         const rate =
           completedBookings.length > 0
             ? (
@@ -794,7 +804,7 @@ const getPropertyList = async (req, res) => {
                 ) / completedBookings.length
               ).toFixed(0)
             : property.rate;
-    
+
         // Parse `extra_images` safely
         let extraImages = [];
         try {
@@ -804,9 +814,9 @@ const getPropertyList = async (req, res) => {
         } catch (err) {
           console.error("Error parsing extra_images:", err.message);
         }
-    
+
         console.log("Extra Images:", extraImages);
-    
+
         // Parse `video` safely
         let videoUrl = null;
         try {
@@ -814,9 +824,9 @@ const getPropertyList = async (req, res) => {
         } catch (err) {
           console.error("Error parsing video:", err.message);
         }
-    
+
         console.log("Video URL:", videoUrl);
-    
+
         return {
           id: property.id,
           title: property.title,
@@ -837,7 +847,7 @@ const getPropertyList = async (req, res) => {
           rules: property.rules,
           status: property.status,
           latitude: property.latitude,
-          longtitude: property.longtitude, 
+          longtitude: property.longtitude,
           mobile: property.mobile,
           city: property.city,
           rate: rate,
@@ -850,7 +860,7 @@ const getPropertyList = async (req, res) => {
           extra_guest_charges: property.extra_guest_charges,
         };
       })
-    );    
+    );
 
     console.log("Final property list:", propertyList);
 
@@ -879,7 +889,6 @@ const getPropertyList = async (req, res) => {
     });
   }
 };
-
 
 const getPropertyTypes = async (req, res) => {
   const { ptype } = req.body;
@@ -985,13 +994,13 @@ const getPropertyDetails = async (req, res) => {
   try {
     const property = await Property.findOne({
       where: { id: pro_id },
-      include:[
+      include: [
         {
-          model:PriceCalendar,
-          as:'priceCalendars',
+          model: PriceCalendar,
+          as: "priceCalendars",
           attributes: ["date", "note", "prop_id", "price"],
-        }
-      ]
+        },
+      ],
     });
 
     if (!property) {
@@ -1001,10 +1010,6 @@ const getPropertyDetails = async (req, res) => {
         ResponseMsg: "Property not found!",
       });
     }
-
-    // const standardRules = property.standard_rules
-    //   ? JSON.parse(property.standard_rules)
-    //   : null;
 
     const standardRules = (() => {
       try {
@@ -1016,13 +1021,13 @@ const getPropertyDetails = async (req, res) => {
           "Invalid JSON in standard_rules:",
           property.standard_rules
         );
-        return property.standard_rules; // Return raw value if it's not JSON
+        return property.standard_rules; 
       }
     })();
 
     const today = new Date().toISOString().split("T")[0];
     const originalPrice = property.price;
-    console.log("Original Price", originalPrice)
+    console.log("Original Price", originalPrice);
 
     // Fetch the price entry for today or the most recent calendar price
     const upcomingPrices = await PriceCalendar.findAll({
@@ -1055,15 +1060,35 @@ const getPropertyDetails = async (req, res) => {
     } else {
       price = originalPrice;
     }
-    console.log("originalPrice",originalPrice)
-    console.log("upcomingPrice",upcomingPrices)
+    console.log("originalPrice", originalPrice);
+    console.log("upcomingPrice", upcomingPrices);
 
+    const flattenArray = (arr) =>
+      arr.reduce(
+        (acc, val) =>
+          Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val),
+        []
+      );
+    
     let rulesArray;
-    try {
-      rulesArray = JSON.parse(property.rules);
-    } catch (error) {
-      rulesArray = property.rules.split(",").map((rule) => rule.trim());
+    if (Array.isArray(property.rules)) {
+      rulesArray = property.rules;
+    } else if (typeof property.rules === "string") {
+      try {
+        const parsed = JSON.parse(property.rules);
+        rulesArray = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (error) {
+        try {
+          rulesArray = property.rules.split(",").map((rule) => rule.trim());
+        } catch (e) {
+          rulesArray = [];
+        }
+      }
+    } else {
+      rulesArray = [];
     }
+    rulesArray = flattenArray(rulesArray);
+    
 
     const completedBookings = await TblBook.findAll({
       where: {
@@ -1111,11 +1136,17 @@ const getPropertyDetails = async (req, res) => {
     }
 
     if (ownerDetails && ownerDetails.languages) {
-      try {
-        ownerDetails.languages = JSON.parse(ownerDetails.languages);
-      } catch (error) {
-        // If it's a plain comma-separated string, convert it to an array
-        ownerDetails.languages = ownerDetails.languages.split(",");
+      if (typeof ownerDetails.languages === "string") {
+        try {
+          ownerDetails.languages = JSON.parse(ownerDetails.languages);
+          if (!Array.isArray(ownerDetails.languages)) {
+            ownerDetails.languages = [ownerDetails.languages];
+          }
+        } catch (error) {
+          ownerDetails.languages = ownerDetails.languages
+            .split(",")
+            .map((lang) => lang.trim());
+        }
       }
     }
 
@@ -1165,9 +1196,16 @@ const getPropertyDetails = async (req, res) => {
         )
       : null;
 
+    let facilityIds = [];
+    if (typeof property.facility === "string") {
+      facilityIds = property.facility.split(",").map((id) => id.trim());
+    } else if (Array.isArray(property.facility)) {
+      facilityIds = property.facility;
+    }
+
     const facilities = await TblFacility.findAll({
       where: {
-        id: { [Op.in]: property.facility.split(",") },
+        id: { [Op.in]: facilityIds },
       },
       attributes: ["img", "title"],
     });
@@ -1588,7 +1626,10 @@ const getAllHostAddedProperties = async (req, res) => {
           const parsedRules = JSON.parse(property.rules);
           property.rules = Array.isArray(parsedRules)
             ? parsedRules.join(", ")
-            : property.rules.split(",").map((rule) => rule.trim()).join(", ");
+            : property.rules
+                .split(",")
+                .map((rule) => rule.trim())
+                .join(", ");
         } catch (error) {
           console.error("Error parsing rules:", error);
         }
@@ -1620,7 +1661,7 @@ const getAllHostAddedProperties = async (req, res) => {
           reason: block.reason,
         }));
       }
-                
+
       return {
         id: property.id,
         title: property.title,
@@ -1665,8 +1706,6 @@ const getAllHostAddedProperties = async (req, res) => {
     });
   }
 };
-
-
 
 const getSortedProperties = async (req, res) => {
   try {
@@ -2131,7 +2170,6 @@ const searchProperties = async (req, res) => {
   }
 };
 
-
 const deleteUserProperty = async (req, res) => {
   const uid = req.user.id;
   if (!uid) {
@@ -2141,12 +2179,17 @@ const deleteUserProperty = async (req, res) => {
 
   try {
     const propertyId = req.params.propertyId;
-    const forceDelete = req.query.forceDelete === "true"; 
+    const forceDelete = req.query.forceDelete === "true";
 
     if (!propertyId) {
       return res.status(400).json({ message: "Property Id is required!" });
     }
-    console.log("Deleting property with ID:", propertyId, "Force delete:", forceDelete);
+    console.log(
+      "Deleting property with ID:",
+      propertyId,
+      "Force delete:",
+      forceDelete
+    );
 
     const property = await Property.findOne({
       where: { id: propertyId, add_user_id: uid },
@@ -2168,7 +2211,8 @@ const deleteUserProperty = async (req, res) => {
 
     if (activeBookings) {
       return res.status(400).json({
-        message: "Property cannot be deleted as it has active or pending bookings!",
+        message:
+          "Property cannot be deleted as it has active or pending bookings!",
       });
     }
 
@@ -2207,10 +2251,11 @@ const deleteUserProperty = async (req, res) => {
     });
   } catch (error) {
     console.error("Error Occurred While Deleting Property:", error);
-    return res.status(500).json({ message: "An error occurred while deleting the property!" });
+    return res
+      .status(500)
+      .json({ message: "An error occurred while deleting the property!" });
   }
 };
-
 
 const nearByProperties = async (req, res) => {
   const { latitude, longitude, maxDistance, id } = req.body;
