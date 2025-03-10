@@ -60,6 +60,11 @@ const upsertProperty = async (req, res) => {
       return res.status(400).json({ error: `City '${city.label}' not found in database` });
     }
 
+    // Convert facility to an array of numeric IDs.
+    const facilityIds = Array.isArray(facility)
+      ? facility.map(Number)
+      : facility.split(",").map((id) => Number(id.trim()));
+
     // **Step 2: Ensure `standard_rules` is a Proper JSON Object**
     let parsedStandardRules;
     try {
@@ -83,7 +88,6 @@ const upsertProperty = async (req, res) => {
       return res.status(400).json({ error: "Invalid JSON format in rules" });
     }
 
-
     // **Step 4: Start Transaction**
     const transaction = await sequelize.transaction();
     try {
@@ -105,7 +109,7 @@ const upsertProperty = async (req, res) => {
             is_panorama,
             status,
             address,
-            facility,
+            facility: facilityIds, // Use facilityIds array here
             description,
             beds,
             bathroom,
@@ -117,7 +121,7 @@ const upsertProperty = async (req, res) => {
             mobile,
             city: validateCity.id,
             listing_date,
-            rules:parsedRules,
+            rules: parsedRules,
             country_id,
             plimit,
             is_sell,
@@ -141,7 +145,7 @@ const upsertProperty = async (req, res) => {
             is_panorama,
             status,
             address,
-            facility,
+            facility: facilityIds, // Use facilityIds array here, not the original facility value
             description,
             beds,
             bathroom,
@@ -153,7 +157,7 @@ const upsertProperty = async (req, res) => {
             mobile,
             city: validateCity.id,
             listing_date,
-            rules:parsedRules,
+            rules: parsedRules,
             country_id,
             plimit,
             is_sell,
@@ -163,7 +167,7 @@ const upsertProperty = async (req, res) => {
             pets,
             setting_id,
             extra_guest_charges,
-            standard_rules: parsedStandardRules, // ✅ Ensure JSON Object, Not String
+            standard_rules: parsedStandardRules, // Ensure JSON Object, Not String
           },
           { transaction }
         );
@@ -181,6 +185,7 @@ const upsertProperty = async (req, res) => {
     return res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
+
 // Get All Properties
 // const getAllProperties = async (req, res) => {
 //   try {

@@ -173,11 +173,6 @@ const TblBook = sequelize.define(
       allowNull: false,
       defaultValue: "Not Initiated",
     },
-    optin: { 
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false, 
-    },  
   },
   {
     tableName: "tbl_book",

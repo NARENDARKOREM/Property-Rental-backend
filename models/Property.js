@@ -40,9 +40,9 @@ const Property = sequelize.define(
       allowNull: false,
     },
     facility: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.JSON,
       allowNull: false,
-    },    
+    },
     description: {
       type: DataTypes.TEXT,
       allowNull: false,
