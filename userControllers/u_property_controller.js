@@ -1,9 +1,8 @@
 const { Op, where, literal } = require("sequelize");
-const { TblCategory, TblExtra, User, PriceCalendar } = require("../models");
+const { TblCategory, TblExtra, User, PriceCalendar, TblCountry } = require("../models");
 const moment = require("moment");
 const Property = require("../models/Property");
 const TblBook = require("../models/TblBook");
-const TblCountry = require("../models/TblCountry");
 const TblFacility = require("../models/TblFacility");
 const TblFav = require("../models/TblFav");
 const TblGallery = require("../models/TblGallery");
@@ -14,6 +13,203 @@ const uploadToS3 = require("../config/fileUpload.aws");
 const TravelerHostReview = require("../models/TravelerHostReview");
 const PropertyBlock = require("../models/PropertyBlock");
 const PersonRecord = require("../models/PersonRecord");
+const TblCity = require('../models/TblCity');
+
+// const addProperty = async (req, res) => {
+//   const {
+//     title,
+//     price,
+//     status,
+//     address,
+//     facility,
+//     description,
+//     beds,
+//     bathroom,
+//     sqrft,
+//     rate,
+//     ptype,
+//     latitude,
+//     longtitude,
+//     mobile,
+//     city,
+//     listing_date,
+//     rules,
+//     country_id,
+//     is_sell,
+//     adults,
+//     children,
+//     infants,
+//     pets,
+//     setting_id,
+//     standard_rules,
+//     extra_guest_charges,
+//   } = req.body;
+
+//   const files = req.files; // Extract uploaded files
+//   const add_user_id = req.user.id;
+
+//   if (!add_user_id) {
+//     return res.status(401).json({
+//       ResponseCode: "401",
+//       Result: "false",
+//       ResponseMsg: "User ID not provided",
+//     });
+//   }
+
+//   if (
+//     !is_sell ||
+//     !country_id ||
+//     !status ||
+//     !title ||
+//     !listing_date ||
+//     !rules ||
+//     !standard_rules ||
+//     !address ||
+//     !description ||
+//     !city ||
+//     !facility ||
+//     !ptype ||
+//     !beds ||
+//     !bathroom ||
+//     !sqrft ||
+//     // !rate ||
+//     !latitude ||
+//     !mobile ||
+//     !price ||
+//     !files ||
+//     !files.main_image
+//   ) {
+//     return res.status(401).json({
+//       ResponseCode: "401",
+//       Result: "false",
+//       ResponseMsg: "All fields and at least the main image are required!",
+//     });
+//   }
+
+//   try {
+//     // Validate country
+//     const country = await TblCountry.findByPk(country_id);
+//     if (!country) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "false",
+//         ResponseMsg: "Country not found!",
+//       });
+//     }
+
+//     const standardRules = JSON.parse(standard_rules);
+//     const facilityIds = Array.isArray(facility)
+//       ? facility
+//       : facility.split(",").map((id) => parseInt(id));
+
+//       const allowedImageTypes = ["jpeg", "png", "jpg"];
+//       const allowedVideoTypes = ["mp4"];
+//       const mainImage = files.main_image[0];
+
+//       const maxSize = 102400;
+      
+//       // Function to extract file extension
+//       const getFileExtension = (filename) => filename.split('.').pop().toLowerCase();
+      
+//       // Validate main image
+//       const mainImageExt = getFileExtension(mainImage.originalname);
+//       if (!allowedImageTypes.includes(mainImageExt)) {
+//         return res.status(400).json({
+//           ResponseCode: "400",
+//           Result: "false",
+//           ResponseMsg: "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+//         });
+//       }
+      
+//       // Separate extra images and videos
+//       const extraImages = [];
+//       const videos = [];
+      
+//       if (files.extra_files) {
+//         console.log("Extra files:", files.extra_files);
+        
+//         files.extra_files.forEach((file) => {
+//           const ext = getFileExtension(file.originalname);
+          
+//           console.log("filename:: ", file.originalname, " | extension:: ", ext);
+          
+//           if (allowedImageTypes.includes(ext)) {
+//             extraImages.push(file);
+//           } else if (allowedVideoTypes.includes(ext)) {
+//             videos.push(file);
+//           } else {
+//             return res.status(400).json({
+//               ResponseCode: "400",
+//               Result: "false",
+//               ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+//             });
+//           }
+//         });
+//       }
+      
+
+//     // Upload files to S3
+//     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
+//     const extraImageUrls = extraImages.length
+//       ? (await uploadToS3(extraImages, "property-extra-images"))
+//       : [];
+//       const finalExtraImages = Array.isArray(extraImageUrls) ? extraImageUrls : [extraImageUrls];
+//       const videoUrls = videos.length
+//       ? await uploadToS3(videos, "property-videos")
+//       : [];
+
+//     console.log("Extra Images", extraImageUrls);
+
+//     // Create new property
+//     const newProperty = await Property.create({
+//       title,
+//       image: mainImageUrl,
+//       extra_images:finalExtraImages,
+//       video:JSON.stringify(videoUrls),
+//       price,
+//       status,
+//       address,
+//       facility: JSON.stringify(facilityIds),
+//       description,
+//       beds,
+//       bathroom,
+//       sqrft,
+//       rate,
+//       rules,
+//       standard_rules: standardRules,
+//       ptype,
+//       latitude,
+//       longtitude,
+//       mobile,
+//       city,
+//       listing_date: new Date(),
+//       add_user_id,
+//       country_id,
+//       is_sell,
+//       adults,
+//       children,
+//       infants,
+//       pets,
+//       setting_id,
+//       extra_guest_charges,
+//     });
+
+//     res.status(201).json({
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Property added successfully!",
+//       newProperty,
+//     });
+//   } catch (error) {
+//     console.error("Error adding property:", error);
+//     res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error",
+//     });
+//   }
+// };
+
 
 const addProperty = async (req, res) => {
   const {
@@ -45,9 +241,10 @@ const addProperty = async (req, res) => {
     extra_guest_charges,
   } = req.body;
 
-  const files = req.files; // Extract uploaded files
+  const files = req.files; // Uploaded files from multipart/form-data
   const add_user_id = req.user.id;
 
+  // Required field check
   if (!add_user_id) {
     return res.status(401).json({
       ResponseCode: "401",
@@ -55,7 +252,6 @@ const addProperty = async (req, res) => {
       ResponseMsg: "User ID not provided",
     });
   }
-
   if (
     !is_sell ||
     !country_id ||
@@ -72,7 +268,6 @@ const addProperty = async (req, res) => {
     !beds ||
     !bathroom ||
     !sqrft ||
-    // !rate ||
     !latitude ||
     !mobile ||
     !price ||
@@ -87,9 +282,9 @@ const addProperty = async (req, res) => {
   }
 
   try {
-    // Validate country
-    const country = await TblCountry.findByPk(country_id);
-    if (!country) {
+    // Validate country exists
+    const countryRecord = await TblCountry.findByPk(country_id);
+    if (!countryRecord) {
       return res.status(404).json({
         ResponseCode: "404",
         Result: "false",
@@ -97,90 +292,176 @@ const addProperty = async (req, res) => {
       });
     }
 
-    const standardRules = JSON.parse(standard_rules);
-    const facilityIds = Array.isArray(facility)
-      ? facility
-      : facility.split(",").map((id) => parseInt(id));
+    // Parse standard_rules (ensure it's a JSON object)
+    let parsedStandardRules;
+    try {
+      parsedStandardRules = typeof standard_rules === "object"
+        ? standard_rules
+        : JSON.parse(standard_rules);
+    } catch (err) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid JSON format in standard_rules",
+      });
+    }
+    if (typeof parsedStandardRules !== "object") {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "standard_rules must be a valid JSON object",
+      });
+    }
 
-      const allowedImageTypes = ["jpeg", "png", "jpg"];
-      const allowedVideoTypes = ["mp4"];
-      const mainImage = files.main_image[0];
-      
-      // Function to extract file extension
-      const getFileExtension = (filename) => filename.split('.').pop().toLowerCase();
-      
-      // Validate main image
-      const mainImageExt = getFileExtension(mainImage.originalname);
-      if (!allowedImageTypes.includes(mainImageExt)) {
-        return res.status(400).json({
-          ResponseCode: "400",
-          Result: "false",
-          ResponseMsg: "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
-        });
-      }
-      
-      // Separate extra images and videos
-      const extraImages = [];
-      const videos = [];
-      
-      if (files.extra_files) {
-        console.log("Extra files:", files.extra_files);
-        
-        files.extra_files.forEach((file) => {
-          const ext = getFileExtension(file.originalname);
-          
-          console.log("filename:: ", file.originalname, " | extension:: ", ext);
-          
-          if (allowedImageTypes.includes(ext)) {
-            extraImages.push(file);
-          } else if (allowedVideoTypes.includes(ext)) {
-            videos.push(file);
-          } else {
+    // Parse rules as a JSON array
+// Parse rules as a JSON array
+let parsedRules;
+try {
+  if (typeof rules === "object") {
+    parsedRules = rules;
+  } else if (typeof rules === "string") {
+    const trimmed = rules.trim();
+    if (trimmed.startsWith("[")) {
+      parsedRules = JSON.parse(trimmed);
+    } else {
+      // If it doesn't start with "[", assume it's a comma-separated list.
+      parsedRules = trimmed.split(",").map(item => item.trim());
+    }
+  }
+} catch (err) {
+  return res.status(400).json({ 
+    error: "Invalid JSON format in rules" 
+  });
+}
+
+
+    // Convert facility to an array of numeric IDs.
+    const facilityIds = Array.isArray(facility)
+      ? facility.map(Number)
+      : facility.split(",").map((id) => Number(id.trim()));
+
+    // File validations
+    const allowedImageTypes = ["jpeg", "png", "jpg"];
+    const allowedVideoTypes = ["mp4"];
+    const maxSize = 102400; // 100KB in bytes
+    const getFileExtension = (filename) =>
+      filename.split('.').pop().toLowerCase();
+
+    // Validate main image
+    const mainImage = files.main_image[0];
+    const mainImageExt = getFileExtension(mainImage.originalname);
+    if (!allowedImageTypes.includes(mainImageExt)) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+      });
+    }
+    if (mainImage.size > maxSize) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Main image file is too large! Please upload a file of 100KB or below.",
+      });
+    }
+
+    // Process extra images and videos
+    const extraImages = [];
+    const videos = [];
+    if (files.extra_files) {
+      for (const file of files.extra_files) {
+        const ext = getFileExtension(file.originalname);
+        if (allowedImageTypes.includes(ext)) {
+          if (file.size > maxSize) {
             return res.status(400).json({
               ResponseCode: "400",
               Result: "false",
-              ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+              ResponseMsg: `Extra image ${file.originalname} is too large! Each image must be 100KB or below.`,
             });
           }
-        });
+          extraImages.push(file);
+        } else if (allowedVideoTypes.includes(ext)) {
+          videos.push(file);
+        } else {
+          return res.status(400).json({
+            ResponseCode: "400",
+            Result: "false",
+            ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+          });
+        }
       }
-      
+    }
 
     // Upload files to S3
     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
     const extraImageUrls = extraImages.length
-      ? (await uploadToS3(extraImages, "property-extra-images"))
+      ? await uploadToS3(extraImages, "property-extra-images")
       : [];
-      const finalExtraImages = Array.isArray(extraImageUrls) ? extraImageUrls : [extraImageUrls];
-      const videoUrls = videos.length
+    const finalExtraImages = Array.isArray(extraImageUrls)
+      ? extraImageUrls
+      : [extraImageUrls];
+    const videoUrls = videos.length
       ? await uploadToS3(videos, "property-videos")
       : [];
 
     console.log("Extra Images", extraImageUrls);
 
-    // Create new property
+    // --- Determine City ID ---
+    let cityId;
+    if (typeof city === "object" && city !== null && city.value) {
+      cityId = city.value;
+    } else if (typeof city === "string") {
+      if (city.trim().startsWith("{")) {
+        try {
+          const parsedCity = JSON.parse(city);
+          if (parsedCity && parsedCity.value) {
+            cityId = parsedCity.value;
+          }
+        } catch (err) {
+          console.error("Error parsing city JSON:", err.message);
+        }
+      } else if (!isNaN(Number(city))) {
+        cityId = Number(city);
+      } else {
+        // Try to look up the city by title
+        const cityRecord = await TblCity.findOne({ where: { title: city } });
+        if (cityRecord) {
+          cityId = cityRecord.id;
+        }
+      }
+    }
+    if (!cityId) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Valid city ID is required!",
+      });
+    }
+    // --- End Determine City ID ---
+
+    // Create new property. Listing_date is stored as provided (assumed YYYY-MM-DD).
     const newProperty = await Property.create({
       title,
       image: mainImageUrl,
-      extra_images:finalExtraImages,
-      video:JSON.stringify(videoUrls),
+      extra_images: finalExtraImages,
+      video: videoUrls, // store as an array (if your model supports JSON)
       price,
       status,
       address,
-      facility: JSON.stringify(facilityIds),
+      facility: facilityIds, // store as an array (if your model supports JSON)
       description,
       beds,
       bathroom,
       sqrft,
       rate,
-      rules,
-      standard_rules: standardRules,
+      rules: parsedRules, // store as JSON array
+      standard_rules: parsedStandardRules, // store as JSON object
       ptype,
       latitude,
       longtitude,
       mobile,
-      city,
-      listing_date: new Date(),
+      city: cityId,
+      listing_date, // store as date (e.g., "2025-03-08")
       add_user_id,
       country_id,
       is_sell,
@@ -445,37 +726,54 @@ const getPropertyList = async (req, res) => {
     const propertyList = await Promise.all(
       properties.map(async (property) => {
         console.log("Processing property:", property);
-
-        // Extract facility IDs
-        const facilityIds = property.facility
-          ? property.facility
+    
+        // Ensure facility is a string
+        let facilityStr = "";
+        if (property.facility) {
+          if (typeof property.facility === "string") {
+            facilityStr = property.facility;
+          } else if (Array.isArray(property.facility)) {
+            facilityStr = property.facility.join(",");
+          } else {
+            facilityStr = property.facility.toString();
+          }
+        }
+    
+        // Extract facility IDs from the facility string
+        const facilityIds = facilityStr
+          ? facilityStr
               .replace(/[\[\]']/g, "")
               .split(",")
-              .filter((id) => id.trim() !== "null")
+              .filter((id) => id.trim() !== "null" && id.trim() !== "")
           : [];
-
+    
         console.log("Facility IDs:", facilityIds);
-
+    
         // Fetch facility titles
         const facilityTitles = await TblFacility.findAll({
           where: { id: { [Op.in]: facilityIds } },
           attributes: ["title"],
         });
-
+    
         console.log("Facility titles:", facilityTitles);
-
+    
         // Parse `standard_rules` safely
         let standardRules = null;
-        try {
-          standardRules = property.standard_rules
-            ? JSON.parse(property.standard_rules)
-            : null;
-        } catch (err) {
-          console.error("Error parsing standard_rules:", err.message);
+        if (property.standard_rules) {
+          if (typeof property.standard_rules === "string") {
+            try {
+              standardRules = JSON.parse(property.standard_rules);
+            } catch (err) {
+              console.error("Error parsing standard_rules:", err.message);
+              standardRules = null;
+            }
+          } else if (typeof property.standard_rules === "object") {
+            standardRules = property.standard_rules;
+          }
         }
 
         console.log("Standard Rules:", standardRules);
-
+    
         // Fetch completed bookings for rating calculation
         const completedBookings = await TblBook.findAll({
           where: {
@@ -484,9 +782,9 @@ const getPropertyList = async (req, res) => {
             total_rate: { [Op.ne]: 0 },
           },
         });
-
+    
         console.log("Completed bookings:", completedBookings);
-
+    
         const rate =
           completedBookings.length > 0
             ? (
@@ -496,7 +794,7 @@ const getPropertyList = async (req, res) => {
                 ) / completedBookings.length
               ).toFixed(0)
             : property.rate;
-
+    
         // Parse `extra_images` safely
         let extraImages = [];
         try {
@@ -506,9 +804,9 @@ const getPropertyList = async (req, res) => {
         } catch (err) {
           console.error("Error parsing extra_images:", err.message);
         }
-
+    
         console.log("Extra Images:", extraImages);
-
+    
         // Parse `video` safely
         let videoUrl = null;
         try {
@@ -516,9 +814,9 @@ const getPropertyList = async (req, res) => {
         } catch (err) {
           console.error("Error parsing video:", err.message);
         }
-
+    
         console.log("Video URL:", videoUrl);
-
+    
         return {
           id: property.id,
           title: property.title,
@@ -534,7 +832,7 @@ const getPropertyList = async (req, res) => {
           bathroom: property.bathroom,
           sqrft: property.sqrft,
           is_sell: property.is_sell,
-          facility: facilityIds,
+          facility: facilityIds, // facility IDs extracted
           standard_rules: standardRules,
           rules: property.rules,
           status: property.status,
@@ -552,7 +850,7 @@ const getPropertyList = async (req, res) => {
           extra_guest_charges: property.extra_guest_charges,
         };
       })
-    );
+    );    
 
     console.log("Final property list:", propertyList);
 
@@ -582,7 +880,7 @@ const getPropertyList = async (req, res) => {
   }
 };
 
-// Property Type List
+
 const getPropertyTypes = async (req, res) => {
   const { ptype } = req.body;
 
