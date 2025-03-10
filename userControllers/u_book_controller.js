@@ -192,8 +192,6 @@ const createBooking = async (req, res) => {
     !p_method_id ||
     !book_for ||
     !prop_price ||
-    // !id_proof ||
-    // !id_proof_img ||
     !transaction_id
   ) {
     return res
@@ -277,18 +275,34 @@ const createBooking = async (req, res) => {
         .json({ success: false, message: "That Date Range Already Booked!" });
     }
 
-    let idProofUrl;
-    try {
-      // Wrap the single file into an array to work with uploadToS3
-      const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
-      idProofUrl = uploadedFiles; // Extract the first URL (only one file uploaded)
-    } catch (error) {
-      console.error("Error uploading ID proof to S3:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Failed to upload ID proof. Please try again later.",
-      });
-    }
+    // let idProofUrl;
+    // try {
+    //   // Wrap the single file into an array to work with uploadToS3
+    //   const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
+    //   idProofUrl = uploadedFiles; // Extract the first URL (only one file uploaded)
+    // } catch (error) {
+    //   console.error("Error uploading ID proof to S3:", error);
+    //   return res.status(500).json({
+    //     success: false,
+    //     message: "Failed to upload ID proof. Please try again later.",
+    //   });
+    // }
+
+    let idProofUrl = null;
+if (id_proof_img) {
+  try {
+    // Wrap the single file into an array to work with uploadToS3
+    const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
+    idProofUrl = uploadedFiles; // Extract the first URL (only one file uploaded)
+  } catch (error) {
+    console.error("Error uploading ID proof to S3:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to upload ID proof. Please try again later.",
+    });
+  }
+}
+
 
     const bookingData = {
       prop_id,
@@ -317,7 +331,7 @@ const createBooking = async (req, res) => {
       pets,
 
       id_proof,
-      id_proof_img: idProofUrl,
+      id_proof_img: idProofUrl || null,
 
       book_status: "Confirmed",
       platform_fee,
@@ -475,13 +489,43 @@ const createBooking = async (req, res) => {
       });
     }
 
+    let propertyObj = property.toJSON();
+
+    // Process rules field:
+    let rulesArray;
+    if (Array.isArray(propertyObj.rules)) {
+      rulesArray = propertyObj.rules;
+    } else if (typeof propertyObj.rules === "string") {
+      try {
+        const parsed = JSON.parse(propertyObj.rules);
+        rulesArray = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (error) {
+        try {
+          rulesArray = propertyObj.rules.split(",").map((rule) => rule.trim());
+        } catch (e) {
+          rulesArray = [];
+        }
+      }
+    } else {
+      rulesArray = [];
+    }
+    // Helper function to recursively flatten an array.
+    const flattenArray = (arr) =>
+      arr.reduce(
+        (acc, val) =>
+          Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val),
+        []
+      );
+    rulesArray = flattenArray(rulesArray);
+    propertyObj.rules = rulesArray;
+
     return res.status(200).json({
       success: true,
       message: "Booking Confirmed Successfully!!!",
       data: {
         book_id: booking.id,
         booking_details: booking,
-        property_details: property,
+        property_details: propertyObj,
       },
     });
   } catch (error) {
