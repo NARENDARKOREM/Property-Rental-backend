@@ -154,6 +154,10 @@ const Property = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    video_url:{
+      type:DataTypes.TEXT,
+      allowNull:true
+    }
   },
   {
     tableName: "tbl_property",
