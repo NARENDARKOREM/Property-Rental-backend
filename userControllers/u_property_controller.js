@@ -2295,13 +2295,21 @@ const getAllHostAddedProperties = async (req, res) => {
         const originalPrice = property.price;
         let upcomingPrices = [];
 
+        // if (property.priceCalendars) {
+        //   const futureEntries = property.priceCalendars.filter(
+        //     (calendar) => calendar.date >= new Date(today)
+        //   );
+        //   const todayEntry = property.priceCalendars.find(
+        //     (calendar) => calendar.date === today
+        //   );
         if (property.priceCalendars) {
           const futureEntries = property.priceCalendars.filter(
-            (calendar) => calendar.date >= new Date(today)
-          );
+            (calendar) => new Date(calendar.date).toISOString().split("T")[0] >= today
+          );          
           const todayEntry = property.priceCalendars.find(
             (calendar) => calendar.date === today
           );
+        
           if (todayEntry) {
             upcomingPrices.push({
               date: todayEntry.date,
@@ -2318,6 +2326,7 @@ const getAllHostAddedProperties = async (req, res) => {
             })),
           ];
         }
+        console.log("Fetched Price Calendars: ", property.priceCalendars);
 
         // Process and flatten the rules field.
         let rulesArray;
