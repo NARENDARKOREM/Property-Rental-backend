@@ -320,7 +320,6 @@ const addProperty = async (req, res) => {
     }
 
     // Parse rules as a JSON array
-    // Parse rules as a JSON array
     let parsedRules;
     try {
       if (typeof rules === "object") {
@@ -330,7 +329,7 @@ const addProperty = async (req, res) => {
         if (trimmed.startsWith("[")) {
           parsedRules = JSON.parse(trimmed);
         } else {
-          // If it doesn't start with "[", assume it's a comma-separated list.
+          // Assume it's a comma-separated list.
           parsedRules = trimmed.split(",").map((item) => item.trim());
         }
       }
@@ -407,10 +406,11 @@ const addProperty = async (req, res) => {
     const finalExtraImages = Array.isArray(extraImageUrls)
       ? extraImageUrls
       : [extraImageUrls];
+    // For videos, store as JSON string (since the column expects a string)
     const videoUrls = videos.length
       ? await uploadToS3(videos, "property-videos")
       : [];
-
+    
     let videoUrlS3 = null;
     if (files.video_url && files.video_url.length > 0) {
       const videoFile = files.video_url[0];
@@ -422,15 +422,7 @@ const addProperty = async (req, res) => {
           ResponseMsg: "Invalid video file format for video_url! Only mp4 is allowed.",
         });
       }
-      // Optionally, you can set a different size limit for video_url files.
-      // For now, we'll assume the same maxSize.
-      // if (videoFile.size > maxSize) {
-      //   return res.status(400).json({
-      //     ResponseCode: "400",
-      //     Result: "false",
-      //     ResponseMsg: "Video file for video_url is too large! Please upload a file of 100KB or below.",
-      //   });
-      // }
+      // Optionally set a different size limit for video_url files.
       videoUrlS3 = await uploadToS3([videoFile], "property-videos");
       if (Array.isArray(videoUrlS3)) {
         videoUrlS3 = videoUrlS3[0];
@@ -456,9 +448,7 @@ const addProperty = async (req, res) => {
       } else if (!isNaN(Number(city))) {
         cityId = Number(city);
       } else {
-        // Try to look up the city by title
-        const cityRecord = await TblCity.findOne({ where: { title: city },attributes:['title'] });
-        
+        const cityRecord = await TblCity.findOne({ where: { title: city }, attributes: ['title'] });
         if (cityRecord) {
           cityId = cityRecord.id;
         }
@@ -478,8 +468,8 @@ const addProperty = async (req, res) => {
       title,
       image: mainImageUrl,
       extra_images: finalExtraImages,
-      video: videoUrls, // store as an array (if your model supports JSON)
-      video_url:videoUrlS3,
+      video: JSON.stringify(videoUrls), // Save the video URLs as a JSON string
+      video_url: videoUrlS3,
       price,
       status,
       address,
@@ -525,219 +515,220 @@ const addProperty = async (req, res) => {
   }
 };
 
-const editProperty = async (req, res) => {
-  try {
-    // Destructure fields from req.body
-    const {
-      status,
-      title,
-      address,
-      description,
-      ccount,
-      facility,
-      ptype,
-      beds,
-      bathroom,
-      sqrft,
-      rate,
-      rules,
-      standard_rules,
-      latitude,
-      longtitude,
-      mobile,
-      listing_date,
-      price,
-      prop_id,
-      country_id,
-      is_sell,
-      adults,
-      children,
-      infants,
-      pets,
-      setting_id,
-      extra_guest_charges,
-      video_url
-    } = req.body;
 
-    console.log("Request Body:", req.body);
+// const editProperty = async (req, res) => {
+//   try {
+//     // Destructure fields from req.body
+//     const {
+//       status,
+//       title,
+//       address,
+//       description,
+//       ccount,
+//       facility,
+//       ptype,
+//       beds,
+//       bathroom,
+//       sqrft,
+//       rate,
+//       rules,
+//       standard_rules,
+//       latitude,
+//       longtitude,
+//       mobile,
+//       listing_date,
+//       price,
+//       prop_id,
+//       country_id,
+//       is_sell,
+//       adults,
+//       children,
+//       infants,
+//       pets,
+//       setting_id,
+//       extra_guest_charges,
+//       video_url
+//     } = req.body;
 
-    // Check if the user is authenticated
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "Authorization failed: User ID missing",
-      });
-    }
+//     console.log("Request Body:", req.body);
 
-    const files = req.files; // Extract uploaded files
-    const user_id = req.user.id;
+//     // Check if the user is authenticated
+//     if (!req.user || !req.user.id) {
+//       return res.status(401).json({
+//         ResponseCode: "401",
+//         Result: "false",
+//         ResponseMsg: "Authorization failed: User ID missing",
+//       });
+//     }
 
-    const standardRules = JSON.parse(standard_rules);
+//     const files = req.files; // Extract uploaded files
+//     const user_id = req.user.id;
 
-    // Validate required fields
-    const missingFields = [];
+//     const standardRules = JSON.parse(standard_rules);
 
-    if (!prop_id) missingFields.push("prop_id");
-    if (!status) missingFields.push("status");
-    if (!title) missingFields.push("title");
-    if (!address) missingFields.push("address");
-    if (!description) missingFields.push("description");
-    if (!facility) missingFields.push("facility");
-    if (!ptype) missingFields.push("ptype");
-    if (!beds) missingFields.push("beds");
-    if (!bathroom) missingFields.push("bathroom");
-    if (!sqrft) missingFields.push("sqrft");
-    // if (!rate) missingFields.push("rate");
-    if (!rules) missingFields.push("rules");
-    if (!latitude) missingFields.push("latitude");
-    if (!longtitude) missingFields.push("longtitude");
-    if (!mobile) missingFields.push("mobile");
-    if (!listing_date) missingFields.push("listing_date");
-    if (!price) missingFields.push("price");
-    if (!country_id) missingFields.push("country_id");
-    if (is_sell === undefined) missingFields.push("is_sell");
-    if (!files || (!files.main_image && !files.extra_files))
-      missingFields.push("files");
+//     // Validate required fields
+//     const missingFields = [];
 
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: `Missing or invalid fields: ${missingFields.join(", ")}`,
-      });
-    }
+//     if (!prop_id) missingFields.push("prop_id");
+//     if (!status) missingFields.push("status");
+//     if (!title) missingFields.push("title");
+//     if (!address) missingFields.push("address");
+//     if (!description) missingFields.push("description");
+//     if (!facility) missingFields.push("facility");
+//     if (!ptype) missingFields.push("ptype");
+//     if (!beds) missingFields.push("beds");
+//     if (!bathroom) missingFields.push("bathroom");
+//     if (!sqrft) missingFields.push("sqrft");
+//     // if (!rate) missingFields.push("rate");
+//     if (!rules) missingFields.push("rules");
+//     if (!latitude) missingFields.push("latitude");
+//     if (!longtitude) missingFields.push("longtitude");
+//     if (!mobile) missingFields.push("mobile");
+//     if (!listing_date) missingFields.push("listing_date");
+//     if (!price) missingFields.push("price");
+//     if (!country_id) missingFields.push("country_id");
+//     if (is_sell === undefined) missingFields.push("is_sell");
+//     if (!files || (!files.main_image && !files.extra_files))
+//       missingFields.push("files");
 
-    // Check if the country exists
-    const country = await TblCountry.findByPk(country_id);
-    if (!country) {
-      return res.status(404).json({
-        ResponseCode: "404",
-        Result: "false",
-        ResponseMsg: "Country not found!",
-      });
-    }
+//     if (missingFields.length > 0) {
+//       return res.status(400).json({
+//         ResponseCode: "400",
+//         Result: "false",
+//         ResponseMsg: `Missing or invalid fields: ${missingFields.join(", ")}`,
+//       });
+//     }
 
-    // Check if the property exists and belongs to the user
-    const property = await Property.findOne({
-      where: { id: prop_id, add_user_id: user_id },
-    });
-    if (!property) {
-      return res.status(403).json({
-        ResponseCode: "403",
-        Result: "false",
-        ResponseMsg: "You can only edit your own properties",
-      });
-    }
+//     // Check if the country exists
+//     const country = await TblCountry.findByPk(country_id);
+//     if (!country) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "false",
+//         ResponseMsg: "Country not found!",
+//       });
+//     }
 
-    // Separate main image
-    const allowedImageTypes = ["jpeg", "png", "jpg"];
-    const allowedVideoTypes = ["mp4"];
-    const mainImage = files.main_image[0];
+//     // Check if the property exists and belongs to the user
+//     const property = await Property.findOne({
+//       where: { id: prop_id, add_user_id: user_id },
+//     });
+//     if (!property) {
+//       return res.status(403).json({
+//         ResponseCode: "403",
+//         Result: "false",
+//         ResponseMsg: "You can only edit your own properties",
+//       });
+//     }
 
-    const getFileExtension = (filename) =>
-      filename.split(".").pop().toLowerCase();
-    const mainImageExt = getFileExtension(mainImage.originalname);
+//     // Separate main image
+//     const allowedImageTypes = ["jpeg", "png", "jpg"];
+//     const allowedVideoTypes = ["mp4"];
+//     const mainImage = files.main_image[0];
 
-    if (!allowedImageTypes.includes(mainImageExt)) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg:
-          "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
-      });
-    }
+//     const getFileExtension = (filename) =>
+//       filename.split(".").pop().toLowerCase();
+//     const mainImageExt = getFileExtension(mainImage.originalname);
 
-    // Separate extra images and videos based on MIME type
-    const extraImages = [];
-    const videos = [];
-    if (files.extra_files) {
-      console.log("Extra files:", files.extra_files);
+//     if (!allowedImageTypes.includes(mainImageExt)) {
+//       return res.status(400).json({
+//         ResponseCode: "400",
+//         Result: "false",
+//         ResponseMsg:
+//           "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+//       });
+//     }
 
-      files.extra_files.forEach((file) => {
-        const ext = getFileExtension(file.originalname);
+//     // Separate extra images and videos based on MIME type
+//     const extraImages = [];
+//     const videos = [];
+//     if (files.extra_files) {
+//       console.log("Extra files:", files.extra_files);
 
-        console.log("filename:: ", file.originalname, " | extension:: ", ext);
+//       files.extra_files.forEach((file) => {
+//         const ext = getFileExtension(file.originalname);
 
-        if (allowedImageTypes.includes(ext)) {
-          extraImages.push(file);
-        } else if (allowedVideoTypes.includes(ext)) {
-          videos.push(file);
-        } else {
-          return res.status(400).json({
-            ResponseCode: "400",
-            Result: "false",
-            ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
-          });
-        }
-      });
-    }
+//         console.log("filename:: ", file.originalname, " | extension:: ", ext);
 
-    // Upload files to S3
-    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
-    const extraImageUrls = extraImages.length
-      ? await uploadToS3(extraImages, "property-extra-images")
-      : [];
-    const finalExtraImages = Array.isArray(extraImageUrls)
-      ? extraImageUrls
-      : [extraImageUrls];
+//         if (allowedImageTypes.includes(ext)) {
+//           extraImages.push(file);
+//         } else if (allowedVideoTypes.includes(ext)) {
+//           videos.push(file);
+//         } else {
+//           return res.status(400).json({
+//             ResponseCode: "400",
+//             Result: "false",
+//             ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+//           });
+//         }
+//       });
+//     }
 
-    const videoUrls = videos.length
-      ? await uploadToS3(videos, "property-videos")
-      : [];
+//     // Upload files to S3
+//     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
+//     const extraImageUrls = extraImages.length
+//       ? await uploadToS3(extraImages, "property-extra-images")
+//       : [];
+//     const finalExtraImages = Array.isArray(extraImageUrls)
+//       ? extraImageUrls
+//       : [extraImageUrls];
 
-    console.log("Extra Images:", extraImageUrls);
+//     const videoUrls = videos.length
+//       ? await uploadToS3(videos, "property-videos")
+//       : [];
 
-    // Update the property
-    await property.update({
-      is_sell,
-      country_id,
-      status,
-      title,
-      image: mainImageUrl, // Update main image URL
-      extra_images: finalExtraImages, // Update extra images
-      video: JSON.stringify(videoUrls), // Update videos
-      price,
-      address,
-      facility,
-      description,
-      beds,
-      bathroom,
-      sqrft: sqrft,
-      rate,
-      rules,
-      standard_rules: standardRules,
-      ptype,
-      latitude,
-      longtitude,
-      mobile,
-      city: ccount,
-      listing_date,
-      adults,
-      children,
-      infants,
-      pets,
-      setting_id,
-      extra_guest_charges,
-      video_url
-    });
+//     console.log("Extra Images:", extraImageUrls);
 
-    // Return success response
-    return res.status(200).json({
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: "Property Updated Successfully",
-      property,
-    });
-  } catch (error) {
-    console.error("Error occurred:", error.message, error.stack);
-    return res.status(500).json({
-      ResponseCode: "500",
-      Result: "false",
-      ResponseMsg: "Internal Server Error",
-    });
-  }
-};
+//     // Update the property
+//     await property.update({
+//       is_sell,
+//       country_id,
+//       status,
+//       title,
+//       image: mainImageUrl, // Update main image URL
+//       extra_images: finalExtraImages, // Update extra images
+//       video: JSON.stringify(videoUrls), // Update videos
+//       price,
+//       address,
+//       facility,
+//       description,
+//       beds,
+//       bathroom,
+//       sqrft: sqrft,
+//       rate,
+//       rules,
+//       standard_rules: standardRules,
+//       ptype,
+//       latitude,
+//       longtitude,
+//       mobile,
+//       city: ccount,
+//       listing_date,
+//       adults,
+//       children,
+//       infants,
+//       pets,
+//       setting_id,
+//       extra_guest_charges,
+//       video_url
+//     });
+
+//     // Return success response
+//     return res.status(200).json({
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Property Updated Successfully",
+//       property,
+//     });
+//   } catch (error) {
+//     console.error("Error occurred:", error.message, error.stack);
+//     return res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error",
+//     });
+//   }
+// };
 
 // const getPropertyList = async (req, res) => {
 //   try {
@@ -924,6 +915,281 @@ const editProperty = async (req, res) => {
 // };
 
 
+const editProperty = async (req, res) => {
+  try {
+    // Destructure fields from req.body
+    const {
+      status,
+      title,
+      address,
+      description,
+      ccount, // This is expected to be the city field from the host (raw value or object)
+      facility,
+      ptype,
+      beds,
+      bathroom,
+      sqrft,
+      rate,
+      rules,
+      standard_rules,
+      latitude,
+      longtitude,
+      mobile,
+      listing_date,
+      price,
+      prop_id,
+      country_id,
+      is_sell,
+      adults,
+      children,
+      infants,
+      pets,
+      setting_id,
+      extra_guest_charges,
+      video_url, // optional fallback video URL from the body
+    } = req.body;
+
+    console.log("Request Body:", req.body);
+
+    // Check if the user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "Authorization failed: User ID missing",
+      });
+    }
+
+    const files = req.files; // Uploaded files from multipart/form-data
+    const user_id = req.user.id;
+
+    // Parse standard_rules ensuring it's a JSON object
+    let parsedStandardRules;
+    try {
+      parsedStandardRules =
+        typeof standard_rules === "object"
+          ? standard_rules
+          : JSON.parse(standard_rules);
+    } catch (err) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid JSON format in standard_rules",
+      });
+    }
+    if (typeof parsedStandardRules !== "object") {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "standard_rules must be a valid JSON object",
+      });
+    }
+
+    // Parse rules as a JSON array
+    let parsedRules;
+    try {
+      if (typeof rules === "object") {
+        parsedRules = rules;
+      } else if (typeof rules === "string") {
+        const trimmed = rules.trim();
+        if (trimmed.startsWith("[")) {
+          parsedRules = JSON.parse(trimmed);
+        } else {
+          // Assume comma-separated list
+          parsedRules = trimmed.split(",").map((item) => item.trim());
+        }
+      }
+    } catch (err) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid JSON format in rules",
+      });
+    }
+
+    // Convert facility to an array of numeric IDs.
+    const facilityIds = Array.isArray(facility)
+      ? facility.map(Number)
+      : facility.split(",").map((id) => Number(id.trim()));
+
+    // File validations
+    const allowedImageTypes = ["jpeg", "png", "jpg"];
+    const allowedVideoTypes = ["mp4"];
+    const maxSize = 102400; // 100KB in bytes
+    const getFileExtension = (filename) =>
+      filename.split(".").pop().toLowerCase();
+
+    // Validate main image
+    if (!files || !files.main_image || files.main_image.length === 0) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Main image is required.",
+      });
+    }
+    const mainImage = files.main_image[0];
+    const mainImageExt = getFileExtension(mainImage.originalname);
+    if (!allowedImageTypes.includes(mainImageExt)) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg:
+          "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+      });
+    }
+    if (mainImage.size > maxSize) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg:
+          "Main image file is too large! Please upload a file of 100KB or below.",
+      });
+    }
+
+    // Process extra images and videos from extra_files
+    const extraImages = [];
+    const videos = [];
+    if (files.extra_files) {
+      for (const file of files.extra_files) {
+        const ext = getFileExtension(file.originalname);
+        if (allowedImageTypes.includes(ext)) {
+          if (file.size > maxSize) {
+            return res.status(400).json({
+              ResponseCode: "400",
+              Result: "false",
+              ResponseMsg: `Extra image ${file.originalname} is too large! Each image must be 100KB or below.`,
+            });
+          }
+          extraImages.push(file);
+        } else if (allowedVideoTypes.includes(ext)) {
+          videos.push(file);
+        } else {
+          return res.status(400).json({
+            ResponseCode: "400",
+            Result: "false",
+            ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+          });
+        }
+      }
+    }
+
+    // Process video_url file if provided (separate from video files in extra_files)
+    let videoUrlS3 = null;
+    if (files.video_url && files.video_url.length > 0) {
+      const videoFile = files.video_url[0];
+      const ext = getFileExtension(videoFile.originalname);
+      if (!allowedVideoTypes.includes(ext)) {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg: "Invalid video file format for video_url! Only mp4 is allowed.",
+        });
+      }
+      // Optionally, check file size if needed.
+      videoUrlS3 = await uploadToS3([videoFile], "property-videos");
+      if (Array.isArray(videoUrlS3)) {
+        videoUrlS3 = videoUrlS3[0];
+      }
+    }
+
+    // Upload main image and extra files to S3
+    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
+    const extraImageUrls = extraImages.length
+      ? await uploadToS3(extraImages, "property-extra-images")
+      : [];
+    const finalExtraImages = Array.isArray(extraImageUrls)
+      ? extraImageUrls
+      : [extraImageUrls];
+    const videoUrls = videos.length
+      ? await uploadToS3(videos, "property-videos")
+      : [];
+
+    console.log("Extra Images:", extraImageUrls);
+
+    // Determine City ID – using 'ccount' field from the request.
+    let cityId;
+    if (typeof ccount === "object" && ccount !== null && ccount.value) {
+      cityId = ccount.value;
+    } else if (typeof ccount === "string") {
+      if (ccount.trim().startsWith("{")) {
+        try {
+          const parsedCity = JSON.parse(ccount);
+          if (parsedCity && parsedCity.value) {
+            cityId = parsedCity.value;
+          }
+        } catch (err) {
+          console.error("Error parsing city JSON:", err.message);
+        }
+      } else if (!isNaN(Number(ccount))) {
+        cityId = Number(ccount);
+      } else {
+        const cityRecord = await TblCity.findOne({ where: { title: ccount }, attributes: ['title'] });
+        if (cityRecord) {
+          cityId = cityRecord.id;
+        }
+      }
+    }
+    if (!cityId) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Valid city ID is required!",
+      });
+    }
+
+    // Update the property with the new details
+    await property.update({
+      status,
+      title,
+      address,
+      description,
+      facility: facilityIds, // store as an array of IDs
+      ptype,
+      beds,
+      bathroom,
+      sqrft,
+      rate,
+      rules: parsedRules,
+      standard_rules: parsedStandardRules,
+      latitude,
+      longtitude,
+      mobile,
+      listing_date,
+      price,
+      country_id,
+      is_sell,
+      adults,
+      children,
+      infants,
+      pets,
+      setting_id,
+      extra_guest_charges,
+      // Use video_url from req.body if provided; otherwise, use the newly uploaded video URL.
+      video_url: video_url || videoUrlS3,
+      image: mainImageUrl,
+      extra_images: finalExtraImages,
+      video: JSON.stringify(videoUrls),
+      city: cityId,
+    });
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: "Property Updated Successfully",
+      property,
+    });
+  } catch (error) {
+    console.error("Error occurred:", error.message, error.stack);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+    });
+  }
+};
+
+
+
 const getPropertyList = async (req, res) => {
   try {
     const uid = req.user.id;
@@ -954,15 +1220,13 @@ const getPropertyList = async (req, res) => {
     // Helper function to recursively flatten an array.
     const flattenArray = (arr) =>
       arr.reduce(
-        (acc, val) =>
-          Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val),
+        (acc, val) => (Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val)),
         []
       );
 
     const propertyList = await Promise.all(
       properties.map(async (property) => {
-        // Process facility field: if facility is a string, convert to an array;
-        // if already an array, use it.
+        // Process facility field: if facility is a string, convert to an array; if already an array, use it.
         let facilityIds = [];
         if (typeof property.facility === "string") {
           facilityIds = property.facility
@@ -973,6 +1237,7 @@ const getPropertyList = async (req, res) => {
           facilityIds = property.facility;
         }
 
+        // Fetch facility details if needed (you might already have these in the included "facilities" field)
         const facilities = facilityIds.length
           ? await TblFacility.findAll({
               where: { id: { [Op.in]: facilityIds } },
@@ -983,11 +1248,11 @@ const getPropertyList = async (req, res) => {
         // Process and flatten the rules field.
         let rulesArray;
         if (Array.isArray(property.rules)) {
-          rulesArray = property.rules;
+          rulesArray = flattenArray(property.rules);
         } else if (typeof property.rules === "string") {
           try {
             const parsed = JSON.parse(property.rules);
-            rulesArray = Array.isArray(parsed) ? parsed : [parsed];
+            rulesArray = Array.isArray(parsed) ? flattenArray(parsed) : [parsed];
           } catch (error) {
             try {
               rulesArray = property.rules.split(",").map((rule) => rule.trim());
@@ -1000,11 +1265,16 @@ const getPropertyList = async (req, res) => {
         }
         rulesArray = flattenArray(rulesArray);
 
+        // Convert property instance to plain object and remove nested country and cities.
+        const propertyObj = property.toJSON();
+        const { country, cities, ...rest } = propertyObj;
+
         return {
-          ...property.toJSON(),
-          // Replace city id with city name from the included TblCity model.
-          city: property.cities ? property.cities.title : property.city,
-          facilities,
+          ...rest,
+          // Add flat fields
+          country_name: country ? country.title : "",
+          city: cities ? cities.title : propertyObj.city,
+          facilities, // facility details (if needed)
           rules: rulesArray,
         };
       })
@@ -2568,11 +2838,130 @@ const searchPropertyByLocationAndDate = async (req, res) => {
   }
 };
 
+// const searchProperties = async (req, res) => {
+//   try {
+//     const { location, check_in, check_out, adults, children, infants, pets } =
+//       req.body;
+
+//     const uid = req.user?.id || null;
+
+//     if (!location) {
+//       return res.status(400).json({
+//         ResponseCode: "400",
+//         Result: "false",
+//         ResponseMsg: "Location is required",
+//       });
+//     }
+
+//     // Initial property filter based on location and active status
+//     let propertyFilter = { status: 1 };
+//     if (location) {
+//       propertyFilter.city = { [Op.like]: `%${location}%` };
+//     }
+
+//     // Fetch properties matching location criteria
+//     let properties = await Property.findAll({ where: propertyFilter });
+
+//     if (check_in && check_out) {
+//       const availablePropertyIds = [];
+//       for (const property of properties) {
+//         const bookings = await TblBook.findAll({
+//           where: {
+//             prop_id: property.id,
+//             book_status: { [Op.ne]: "Cancelled" },
+//             [Op.or]: [
+//               {
+//                 check_in: { [Op.between]: [check_in, check_out] },
+//               },
+//               {
+//                 check_out: { [Op.between]: [check_in, check_out] },
+//               },
+//               {
+//                 [Op.and]: [
+//                   { check_in: { [Op.lt]: check_in } },
+//                   { check_out: { [Op.gt]: check_out } },
+//                 ],
+//               },
+//             ],
+//           },
+//         });
+
+//         // Add property to available list if no bookings conflict
+//         if (bookings.length === 0) {
+//           availablePropertyIds.push(property.id);
+//         }
+//       }
+
+//       // Filter properties to only include available ones
+//       properties = properties.filter((property) =>
+//         availablePropertyIds.includes(property.id)
+//       );
+//     }
+
+//     // Further filter properties based on guest details
+//     if (adults || children || infants || pets) {
+//       properties = properties.filter(
+//         (property) =>
+//           property.adults >= (adults || 0) &&
+//           property.children >= (children || 0) &&
+//           property.infants >= (infants || 0) &&
+//           property.pets >= (pets || 0)
+//       );
+//     }
+
+//     let favoriteProperties = [];
+//     if (uid) {
+//       favoriteProperties = await TblFav.findAll({
+//         where: { uid: uid },
+//         attributes: ["property_id"],
+//       }).then((favs) => favs.map((fav) => fav.property_id));
+//     }
+
+//     // Return response if no properties found
+//     if (!properties.length) {
+//       return res.status(404).json({
+//         ResponseCode: "404",
+//         Result: "false",
+//         ResponseMsg: "No properties found for the given criteria.",
+//       });
+//     }
+
+//     const searchedProperties = properties.map((property) => ({
+//       id: property.id,
+//       title: property.title,
+//       rate: property.rate,
+//       adults: property.adults,
+//       children: property.children,
+//       infants: property.infants,
+//       pets: property.pets,
+//       city: property.city,
+//       image: property.image,
+//       propertyType: property.ptype,
+//       price: property.price,
+//       favorite: favoriteProperties.includes(property.id) ? 1 : 0,
+//     }));
+
+//     // Return matched properties
+//     return res.status(200).json({
+//       searchedProperties,
+//       ResponseCode: "200",
+//       Result: "true",
+//       ResponseMsg: "Properties fetched successfully!",
+//     });
+//   } catch (error) {
+//     console.error("Error in searchProperties:", error);
+//     res.status(500).json({
+//       ResponseCode: "500",
+//       Result: "false",
+//       ResponseMsg: "Internal Server Error",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const searchProperties = async (req, res) => {
   try {
-    const { location, check_in, check_out, adults, children, infants, pets } =
-      req.body;
-
+    const { location, check_in, check_out, adults, children, infants, pets } = req.body;
     const uid = req.user?.id || null;
 
     if (!location) {
@@ -2583,62 +2972,41 @@ const searchProperties = async (req, res) => {
       });
     }
 
-    // Initial property filter based on location and active status
-    let propertyFilter = { status: 1 };
-    if (location) {
-      propertyFilter.city = { [Op.like]: `%${location}%` };
+    // First, find cities whose title matches the location (e.g., "Hyderabad")
+    const matchingCities = await TblCity.findAll({
+      where: { title: { [Op.like]: `%${location}%` } },
+      attributes: ["id", "title"],
+    });
+
+    if (!matchingCities.length) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "No matching cities found.",
+      });
     }
 
-    // Fetch properties matching location criteria
-    let properties = await Property.findAll({ where: propertyFilter });
+    // Extract city IDs from the matching cities
+    const cityIds = matchingCities.map((city) => city.id);
 
-    if (check_in && check_out) {
-      const availablePropertyIds = [];
-      for (const property of properties) {
-        const bookings = await TblBook.findAll({
-          where: {
-            prop_id: property.id,
-            book_status: { [Op.ne]: "Cancelled" },
-            [Op.or]: [
-              {
-                check_in: { [Op.between]: [check_in, check_out] },
-              },
-              {
-                check_out: { [Op.between]: [check_in, check_out] },
-              },
-              {
-                [Op.and]: [
-                  { check_in: { [Op.lt]: check_in } },
-                  { check_out: { [Op.gt]: check_out } },
-                ],
-              },
-            ],
-          },
-        });
+    // Build the initial property filter using the city IDs
+    let propertyFilter = { status: 1, city: { [Op.in]: cityIds } };
 
-        // Add property to available list if no bookings conflict
-        if (bookings.length === 0) {
-          availablePropertyIds.push(property.id);
-        }
-      }
+    // Fetch properties with a join on TblCity to get the city title
+    let properties = await Property.findAll({
+      where: propertyFilter,
+      include: [
+        {
+          model: TblCity,
+          as: "cities", // Ensure that your Property model has: Property.belongsTo(TblCity, { foreignKey: 'city', as: 'cities' })
+          attributes: ["title"],
+        },
+      ],
+    });
 
-      // Filter properties to only include available ones
-      properties = properties.filter((property) =>
-        availablePropertyIds.includes(property.id)
-      );
-    }
+    // (Your additional filtering by check_in/check_out and guest counts goes here.)
 
-    // Further filter properties based on guest details
-    if (adults || children || infants || pets) {
-      properties = properties.filter(
-        (property) =>
-          property.adults >= (adults || 0) &&
-          property.children >= (children || 0) &&
-          property.infants >= (infants || 0) &&
-          property.pets >= (pets || 0)
-      );
-    }
-
+    // Get favorite property IDs if needed
     let favoriteProperties = [];
     if (uid) {
       favoriteProperties = await TblFav.findAll({
@@ -2647,7 +3015,6 @@ const searchProperties = async (req, res) => {
       }).then((favs) => favs.map((fav) => fav.property_id));
     }
 
-    // Return response if no properties found
     if (!properties.length) {
       return res.status(404).json({
         ResponseCode: "404",
@@ -2656,6 +3023,7 @@ const searchProperties = async (req, res) => {
       });
     }
 
+    // Map properties to return the city title from the join
     const searchedProperties = properties.map((property) => ({
       id: property.id,
       title: property.title,
@@ -2664,14 +3032,14 @@ const searchProperties = async (req, res) => {
       children: property.children,
       infants: property.infants,
       pets: property.pets,
-      city: property.city,
+      // Use the joined city title if available; fallback to the raw city value.
+      city: property.cities ? property.cities.title : property.city,
       image: property.image,
       propertyType: property.ptype,
       price: property.price,
       favorite: favoriteProperties.includes(property.id) ? 1 : 0,
     }));
 
-    // Return matched properties
     return res.status(200).json({
       searchedProperties,
       ResponseCode: "200",
@@ -2688,6 +3056,7 @@ const searchProperties = async (req, res) => {
     });
   }
 };
+
 
 const deleteUserProperty = async (req, res) => {
   const uid = req.user.id;

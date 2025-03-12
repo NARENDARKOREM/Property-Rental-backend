@@ -289,20 +289,22 @@ const createBooking = async (req, res) => {
     // }
 
     let idProofUrl = null;
-if (id_proof_img) {
-  try {
-    // Wrap the single file into an array to work with uploadToS3
-    const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
-    idProofUrl = uploadedFiles; // Extract the first URL (only one file uploaded)
-  } catch (error) {
-    console.error("Error uploading ID proof to S3:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to upload ID proof. Please try again later.",
-    });
-  }
-}
-
+    if (id_proof_img) {
+      try {
+        // Wrap the single file into an array to work with uploadToS3
+        const uploadedFiles = await uploadToS3(
+          [id_proof_img],
+          "id-proof-images"
+        );
+        idProofUrl = uploadedFiles; // Extract the first URL (only one file uploaded)
+      } catch (error) {
+        console.error("Error uploading ID proof to S3:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to upload ID proof. Please try again later.",
+        });
+      }
+    }
 
     const bookingData = {
       prop_id,
@@ -962,9 +964,11 @@ const getBookingDetails = async (req, res) => {
 
     let checkInTime = "";
     let checkOutTime = "";
+    
     if (booking.properties && booking.properties.standard_rules) {
       try {
-        const rules = JSON.parse(booking.properties.standard_rules);
+        const rules = booking.properties.standard_rules;
+        
         checkInTime = rules.checkIn || "";
         checkOutTime = rules.checkOut || "";
       } catch (error) {
