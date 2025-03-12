@@ -12,9 +12,9 @@ const sequelize = new Sequelize(
     dialectModule: require("mysql2"),
     port: process.env.DB_PORT,
     timezone: process.env.TIMEZONE || "+05:30",
-    pool:{
-      max: 5,
-      min: 0, 
+    pool: {
+      max: 10,
+      min: 0,
       acquire: 30000,
       idle: 10000,
     },
@@ -22,7 +22,7 @@ const sequelize = new Sequelize(
       timezone: "+05:30",
       typeCast: function (field, next) {
         if (field.type === "DATETIME" || field.type === "DATE") {
-          return field.string(); 
+          return field.string();
         }
         return next();
       },
