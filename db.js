@@ -13,7 +13,7 @@ const sequelize = new Sequelize(
     port: process.env.DB_PORT,
     timezone: process.env.TIMEZONE || "+05:30",
     pool: {
-      max: 10,
+      max: 200,
       min: 0,
       acquire: 30000,
       idle: 10000,
