@@ -914,7 +914,6 @@ const addProperty = async (req, res) => {
 //   }
 // };
 
-
 const editProperty = async (req, res) => {
   try {
     // Destructure fields from req.body
@@ -923,7 +922,7 @@ const editProperty = async (req, res) => {
       title,
       address,
       description,
-      ccount, // This is expected to be the city field from the host (raw value or object)
+      city, // Expected as an object { value, label } or JSON string
       facility,
       ptype,
       beds,
@@ -946,7 +945,7 @@ const editProperty = async (req, res) => {
       pets,
       setting_id,
       extra_guest_charges,
-      video_url, // optional fallback video URL from the body
+      video_url, // Optional fallback video URL from the body
     } = req.body;
 
     console.log("Request Body:", req.body);
@@ -959,9 +958,21 @@ const editProperty = async (req, res) => {
         ResponseMsg: "Authorization failed: User ID missing",
       });
     }
+    const user_id = req.user.id;
+
+    // Fetch the property instance that the user wants to edit
+    const property = await Property.findOne({
+      where: { id: prop_id, add_user_id: user_id },
+    });
+    if (!property) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg: "Property not found or you are not authorized to edit this property",
+      });
+    }
 
     const files = req.files; // Uploaded files from multipart/form-data
-    const user_id = req.user.id;
 
     // Parse standard_rules ensuring it's a JSON object
     let parsedStandardRules;
@@ -995,7 +1006,7 @@ const editProperty = async (req, res) => {
         if (trimmed.startsWith("[")) {
           parsedRules = JSON.parse(trimmed);
         } else {
-          // Assume comma-separated list
+          // Assume it's a comma-separated list.
           parsedRules = trimmed.split(",").map((item) => item.trim());
         }
       }
@@ -1019,7 +1030,7 @@ const editProperty = async (req, res) => {
     const getFileExtension = (filename) =>
       filename.split(".").pop().toLowerCase();
 
-    // Validate main image
+    // Validate main image: main_image is required during update.
     if (!files || !files.main_image || files.main_image.length === 0) {
       return res.status(400).json({
         ResponseCode: "400",
@@ -1073,7 +1084,7 @@ const editProperty = async (req, res) => {
       }
     }
 
-    // Process video_url file if provided (separate from video files in extra_files)
+    // Process video_url file if provided (separate from extra_files)
     let videoUrlS3 = null;
     if (files.video_url && files.video_url.length > 0) {
       const videoFile = files.video_url[0];
@@ -1085,11 +1096,45 @@ const editProperty = async (req, res) => {
           ResponseMsg: "Invalid video file format for video_url! Only mp4 is allowed.",
         });
       }
-      // Optionally, check file size if needed.
       videoUrlS3 = await uploadToS3([videoFile], "property-videos");
       if (Array.isArray(videoUrlS3)) {
         videoUrlS3 = videoUrlS3[0];
       }
+    }
+
+    // Determine City ID using the "city" field from the request.
+    let cityId;
+    if (typeof city === "object" && city !== null && city.value) {
+      cityId = city.value;
+    } else if (typeof city === "string") {
+      if (city.trim().startsWith("{")) {
+        try {
+          const parsedCity = JSON.parse(city);
+          if (parsedCity && parsedCity.value) {
+            cityId = parsedCity.value;
+          }
+        } catch (err) {
+          console.error("Error parsing city JSON:", err.message);
+        }
+      } else if (!isNaN(Number(city))) {
+        cityId = Number(city);
+      } else {
+        // Try to look up the city by title
+        const cityRecord = await TblCity.findOne({
+          where: { title: city },
+          attributes: ["title"],
+        });
+        if (cityRecord) {
+          cityId = cityRecord.id;
+        }
+      }
+    }
+    if (!cityId) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Valid city ID is required!",
+      });
     }
 
     // Upload main image and extra files to S3
@@ -1103,39 +1148,6 @@ const editProperty = async (req, res) => {
     const videoUrls = videos.length
       ? await uploadToS3(videos, "property-videos")
       : [];
-
-    console.log("Extra Images:", extraImageUrls);
-
-    // Determine City ID – using 'ccount' field from the request.
-    let cityId;
-    if (typeof ccount === "object" && ccount !== null && ccount.value) {
-      cityId = ccount.value;
-    } else if (typeof ccount === "string") {
-      if (ccount.trim().startsWith("{")) {
-        try {
-          const parsedCity = JSON.parse(ccount);
-          if (parsedCity && parsedCity.value) {
-            cityId = parsedCity.value;
-          }
-        } catch (err) {
-          console.error("Error parsing city JSON:", err.message);
-        }
-      } else if (!isNaN(Number(ccount))) {
-        cityId = Number(ccount);
-      } else {
-        const cityRecord = await TblCity.findOne({ where: { title: ccount }, attributes: ['title'] });
-        if (cityRecord) {
-          cityId = cityRecord.id;
-        }
-      }
-    }
-    if (!cityId) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Valid city ID is required!",
-      });
-    }
 
     // Update the property with the new details
     await property.update({
@@ -1187,7 +1199,6 @@ const editProperty = async (req, res) => {
     });
   }
 };
-
 
 
 const getPropertyList = async (req, res) => {
