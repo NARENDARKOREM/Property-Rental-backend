@@ -41,7 +41,6 @@ const TblCountry = sequelize.define(
     tableName: "tbl_country",
     timestamps: true,
     paranoid: true,
-    charset: "latin1",
   }
 );
 
