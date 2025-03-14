@@ -28,8 +28,8 @@ TblCategory.hasMany(Property, { as: "properties", foreignKey: "ptype" });
 Property.belongsTo(TblCountry, { as: "country", foreignKey: "country_id" });
 TblCountry.hasMany(Property, { as: "properties", foreignKey: "country_id" });
 
-Property.belongsTo(TblFacility, { as: "facilities", foreignKey: "facility" });
-TblFacility.hasMany(Property, { as: "properties", foreignKey: "facility" });
+// Property.belongsTo(TblFacility, { as: "facilities", foreignKey: "facility" });
+// TblFacility.hasMany(Property, { as: "properties", foreignKey: "facility" });
 
 TblExtra.belongsTo(Property, { as: "properties", foreignKey: "pid" });
 Property.hasMany(TblExtra, { as: "extraImg", foreignKey: "pid" });
