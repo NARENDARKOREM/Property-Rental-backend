@@ -100,7 +100,7 @@ app.use(
       "https://servostay-three.vercel.app",
       "https://admin.servostay.com",
       "https://servostay.com",
-      "https://servostay.com"
+      "http://servostay.com"
     ],
     credentials: true,
   })
