@@ -98,6 +98,9 @@ app.use(
       "http://localhost:58160",
       "https://servostayweb1.vercel.app",
       "https://servostay-three.vercel.app",
+      "https://admin.servostay.com",
+      "https://servostay.com",
+      "http://servostay.com"
     ],
     credentials: true,
   })
