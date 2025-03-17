@@ -713,7 +713,7 @@ const deleteUser = async (req, res) => {
       where: {
         uid: uid,
         book_status: {
-          [Op.in]: ["Booked", "Check_in", "Confirmed", "Cancelled"], // Prevent deletion if bookings exist
+          [Op.in]: ["Booked", "Check_in", "Confirmed",], // Prevent deletion if bookings exist
         },
       },
     });
@@ -729,6 +729,7 @@ const deleteUser = async (req, res) => {
     await RoleChangeRequest.destroy({ where: { user_id: uid }, force: forceDelete === "true" });
     await TblBook.destroy({ where: { uid: uid }, force: forceDelete === "true" });
     await TblFav.destroy({ where: { uid: uid }, force: forceDelete === "true" });
+    await Property.destroy({where:{add_user_id:uid},force:forceDelete === "true"})
 
     if (forceDelete === "true") {
       await user.destroy({ force: true });

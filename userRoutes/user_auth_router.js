@@ -45,7 +45,7 @@ router.put("/user/forgotpassword",authMiddleware.isAuthenticated, forgotPassword
 router.get("/user/getalluser",adminMiddleware.isAdmin, getAllusers);
 router.get("/user/count", adminMiddleware.isAdmin, getUsersCount);
 router.put("/user/basic-info", authMiddleware.isAuthenticated, updateUser);
-router.delete("/user/delete", authMiddleware.isAuthenticated,deleteUser);
+router.delete("/user-info/delete", authMiddleware.isAuthenticated,deleteUser);
 router.patch("/user/toggle-update",adminMiddleware.isAdmin, handleToggle);
 router.post("/user/pro_image",authMiddleware.isAuthenticated,upload.single("image"),uploadUserImage);
 router.put("/user/delete", authMiddleware.isAuthenticated, deleteUserAccount);
