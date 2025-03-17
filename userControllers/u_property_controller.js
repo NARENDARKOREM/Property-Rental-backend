@@ -1220,7 +1220,7 @@ const getPropertyList = async (req, res) => {
       where: { add_user_id: uid, status: 1 },
       include: [
         { model: TblCategory, as: "category", attributes: ["title"] },
-        { model: TblFacility, as: "facilities", attributes: ["title"] },
+        // { model: TblFacility, as: "facilities", attributes: ["title"] },
         { model: TblCountry, as: "country", attributes: ["title"] },
         { model: TblCity, as: "cities", attributes: ["title"] },
       ],
