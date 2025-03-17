@@ -17,4 +17,17 @@ const SettingAPI = async(req,res)=>{
     }
 }
 
-module.exports = {SettingAPI}
+const GetPolicySetting = async(req,res)=>{
+    try {
+        const policySettings = await Setting.findOne({attributes:["privacy_policy","terms_conditions"]})
+        if(!policySettings){
+            return res.status(404).json({message:"Policy Setting not found"});
+        }
+        return res.status(200).json({message:"Privacy Policy/Terms & Conditions Fetched Successfully.",policySettings})
+    } catch (error) {
+        console.error("Error Occurs while fetching settings",error)
+        return res.status(500).json("Internal Server Error",error)
+    }
+}
+
+module.exports = {SettingAPI,GetPolicySetting}
