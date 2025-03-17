@@ -1349,11 +1349,6 @@ const getPropertyTypes = async (req, res) => {
           attributes: ["title"],
         },
         {
-          model: TblFacility,
-          as: "facilities",
-          attributes: ["title"],
-        },
-        {
           model: TblCountry,
           as: "country",
           attributes: ["title"],
@@ -1438,7 +1433,7 @@ const getPropertyTypes = async (req, res) => {
       Result: "true",
       ResponseMsg: "Property Type List Found!",
     });
-  } catch (error) {
+  } catch (error) { 
     console.error("Error in getPropertyTypes:", error);
     res.status(500).json({
       ResponseCode: "500",
