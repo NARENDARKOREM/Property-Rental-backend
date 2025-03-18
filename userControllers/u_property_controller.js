@@ -1214,6 +1214,8 @@ const getPropertyList = async (req, res) => {
     }
 
     console.log("Fetching properties for user ID:", uid);
+    console.log("Vercel JWT Secret:", process.env.JWT_SECRET);
+
 
     // Include TblCity to get city details
     const properties = await Property.findAll({
