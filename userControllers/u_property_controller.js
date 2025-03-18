@@ -1203,7 +1203,7 @@ const editProperty = async (req, res) => {
 
 const getPropertyList = async (req, res) => {
   try {
-    const uid = req.user.id;
+    const uid = req.user?.id || null;
 
     if (!uid) {
       return res.status(400).json({
