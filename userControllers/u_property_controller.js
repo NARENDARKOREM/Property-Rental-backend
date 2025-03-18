@@ -1213,7 +1213,7 @@ const getPropertyList = async (req, res) => {
     //   });
     // }
 
-    const uid = req.user.id;
+      const uid = req.user?.id || null;
     console.log("Fetching properties for user ID:", uid);
     
     // Include TblCity to get city details
