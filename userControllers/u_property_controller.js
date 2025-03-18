@@ -1203,9 +1203,9 @@ const editProperty = async (req, res) => {
 
 const getPropertyList = async (req, res) => {
   try {
-    const uid = req.user?.id || null;
+ console.log("Request User:", req.user);
 
-    if (!uid) {
+    if (!req.user || !req.user.id) {
       return res.status(400).json({
         ResponseCode: "401",
         Result: "false",
@@ -1213,10 +1213,9 @@ const getPropertyList = async (req, res) => {
       });
     }
 
+    const uid = req.user.id;
     console.log("Fetching properties for user ID:", uid);
-    console.log("Vercel JWT Secret:", process.env.JWT_SECRET);
-
-
+    
     // Include TblCity to get city details
     const properties = await Property.findAll({
       where: { add_user_id: uid, status: 1 },
