@@ -476,7 +476,6 @@ const importIcal = async (req, res) => {
     if (!calendarUrl || !propertyId || !calendarName) {
       return res.status(400).json({ message: 'Calendar URL, Calendar Name, and Property ID are required.' });
     }
-
     const response = await axios.get(calendarUrl);
     console.log(response,"from icallllllllllllllll")
     const events = icals.parseICS(response.data);

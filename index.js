@@ -48,7 +48,7 @@ const PriceCalendar = require("./models/PriceCalendar");
 const TravelerHostReview = require("./models/TravelerHostReview");
 const HostTravelerReview = require("./models/HostTravelerReview");
 const TblCity = require("./models/TblCity");
-const PropertyBlock = require('./models/PropertyBlock');
+const PropertyBlock = require("./models/PropertyBlock");
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 // Routes
@@ -93,10 +93,11 @@ app.use(
       "https://servostay-flame.vercel.app",
       "https://servostay-ten.vercel.app",
       "http://localhost:3000",
+      "http://localhost:3002",
       "https://property-rental-backend-6.onrender.com",
       "http://localhost:58160",
       "https://servostayweb1.vercel.app",
-      "https://servostay-three.vercel.app"
+      "https://servostay-three.vercel.app",
     ],
     credentials: true,
   })
@@ -149,7 +150,7 @@ const checkInAvailabilityRoutes = require("./userRoutes/user_check_availablity_r
 const priceCalendarRoutes = require("./userRoutes/u_price_calendar_routes");
 const traverlerReviewRoutes = require("./userRoutes/traveler_host_review_route");
 const hostTravelerReviewRoutes = require("./userRoutes/host_traveler_review_routes");
-const uCityRoutes = require('./userRoutes/u_city_routes'); 
+const uCityRoutes = require("./userRoutes/u_city_routes");
 
 app.use("/users", require("./userRoutes/user_auth_router"));
 app.use("/u_paymentgateway", require("./userRoutes/user_paymentgateway_route"));
@@ -169,10 +170,20 @@ app.use("/check-availability", checkInAvailabilityRoutes);
 app.use("/price-calendar", priceCalendarRoutes);
 app.use("/traveler-review", traverlerReviewRoutes);
 app.use("/host-review", hostTravelerReviewRoutes);
-app.use("/u_cities",uCityRoutes)
-app.use("/app-settings",require("./userRoutes/setting_routes"))
-app.use("/notifications",require('./userRoutes/u_nofifications_routes'))
-app.use("/booking-refund",require('./userRoutes/u_refund_routes'))
+app.use("/u_cities", uCityRoutes);
+app.use("/app-settings", require("./userRoutes/setting_routes"));
+app.use("/notifications", require("./userRoutes/u_nofifications_routes"));
+app.use("/booking-refund", require("./userRoutes/u_refund_routes"));
+
+app.post("/webhook/whatsapp-status", (req, res) => {
+  console.log("Received webhook event:", req.body);
+
+  res.sendStatus(200);
+});
+
+// const server = app.listen(PORT, () => {
+//   console.log(`server running on port ${PORT}`);
+// });
 
 app.get("/", (req, res) => {
   // const query

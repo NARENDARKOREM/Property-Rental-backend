@@ -2,11 +2,12 @@ const User = require("../models/User");
 const PersonRecord = require("../models/PersonRecord");
 const TblBook = require("../models/TblBook");
 const Property = require("../models/Property");
+const moment = require("moment");
 const { Op, or, where } = require("sequelize");
 // const { sendResponse } = require("../utils");
 const twilio = require("twilio");
-const Sib = require('sib-api-v3-sdk');
-require('dotenv').config();
+const Sib = require("sib-api-v3-sdk");
+require("dotenv").config();
 const { default: axios } = require("axios");
 
 const uploadToS3 = require("../config/fileUpload.aws");
@@ -32,25 +33,85 @@ const client = new twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-const sendWhatsAppMessage = async (to, message) => {
-  try {
-    console.log(`Sending WhatsApp message to: ${to}`);
-    const response = await client.messages.create({
-      from: process.env.TWILIO_WHATSAPP_NUMBER,
-      // to: `whatsapp:+91${to}`,
-      to: `whatsapp:+91${to.trim()}`,
-      body: message,
-    });
-    console.log(`WhatsApp message sent successfully to ${to}`, response.sid);
-  } catch (error) {
-    console.error("Error sending WhatsApp message:", error);
-    if (error.code === 63003) {
-      console.error("Twilio sandbox not enabled for this number. Ensure the traveler and host have joined Twilio sandbox.");
-    } else if (error.code === 21606) {
-      console.error("The recipient is not enabled for WhatsApp messaging.");
-    }
+// const sendWhatsAppMessage = async (to, message) => {
+//   try {
+//     console.log(`Sending WhatsApp message to: ${to}`);
+//     const response = await client.messages.create({
+//       from: process.env.TWILIO_WHATSAPP_NUMBER,
+//       // to: `whatsapp:+91${to}`,
+//       to: `whatsapp:+91${to.trim()}`,
+//       body: message,
+//     });
+//     console.log(`WhatsApp message sent successfully to ${to}`, response.sid);
+//   } catch (error) {
+//     console.error("Error sending WhatsApp message:", error);
+//     if (error.code === 63003) {
+//       console.error("Twilio sandbox not enabled for this number. Ensure the traveler and host have joined Twilio sandbox.");
+//     } else if (error.code === 21606) {
+//       console.error("The recipient is not enabled for WhatsApp messaging.");
+//     }
+//   }
+// };
+
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const BREVO_WHATSAPP_SENDER = process.env.BREVO_WHATSAPP_SENDER;
+
+function formatPhoneNumber(number) {
+  if (!number.startsWith("+")) {
+    return `+91${number}`;
   }
-};
+  return number;
+}
+
+async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) {
+  try {
+    const formattedNumber = formatPhoneNumber(recipient);
+    console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
+
+    const payload = {
+      senderNumber: BREVO_WHATSAPP_SENDER,
+      contactNumbers: [formattedNumber],
+      templateId: parseInt(templateId, 10),
+      params: {
+        FIRSTNAME: firstName,
+        BOOKING_ID: bookingId,
+      },
+    };
+
+    const response = await axios.post(
+      "https://api.brevo.com/v3/whatsapp/sendMessage",
+      payload,
+      {
+        headers: {
+          accept: "application/json",
+          "api-key": BREVO_API_KEY,
+          "content-type": "application/json",
+        },
+      }
+    );
+
+    console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+  } catch (error) {
+    console.error(
+      `Error sending WhatsApp message to: ${recipient}`,
+      error.response?.data || error.message
+    );
+  }
+}
+
+// Test calls
+// sendWhatsAppMessage(
+//   "+918688468369",
+//   "John",
+//   "ABC123",
+//   process.env.BREVO_TEMPLATE_ID
+// );
+// sendWhatsAppMessage(
+//   "+919505171479",
+//   "Jane",
+//   "XYZ987",
+//   process.env.BREVO_TEMPLATE_ID
+// );
 
 const sendEmailNotification = async (toEmail, subject, content) => {
   try {
@@ -59,7 +120,10 @@ const sendEmailNotification = async (toEmail, subject, content) => {
     apiKey.apiKey = process.env.BREVO_API_KEY;
 
     const transactionalEmailApi = new Sib.TransactionalEmailsApi();
-    const sender = { email: 'narendar.korem@innoitlabs.com', name: 'Servostay' };
+    const sender = {
+      email: "servostay@gmail.com",
+      name: "Servostay",
+    };
     const receivers = [{ email: toEmail }];
 
     const response = await transactionalEmailApi.sendTransacEmail({
@@ -71,7 +135,10 @@ const sendEmailNotification = async (toEmail, subject, content) => {
 
     console.log(`Email sent successfully to ${toEmail}`, response);
   } catch (error) {
-    console.error("Error sending email:", error.response ? error.response.data : error);
+    console.error(
+      "Error sending email:",
+      error.response ? error.response.data : error
+    );
   }
 };
 
@@ -108,7 +175,7 @@ const createBooking = async (req, res) => {
     platform_fee,
   } = req.body;
 
-  const id_proof_img = req.file; 
+  const id_proof_img = req.file;
 
   if (
     !prop_id ||
@@ -281,7 +348,11 @@ const createBooking = async (req, res) => {
       <p>Thank you for choosing our platform!</p>
     `;
 
-    await sendEmailNotification(user.email, "Booking Confirmed!", userEmailContent);
+    await sendEmailNotification(
+      user.email,
+      "Booking Confirmed!",
+      userEmailContent
+    );
 
     if (host) {
       const hostEmailContent = `
@@ -291,18 +362,52 @@ const createBooking = async (req, res) => {
         <p>Please check your dashboard for more details.</p>
       `;
 
-      await sendEmailNotification(host.email, "New Booking Received!", hostEmailContent);
+      await sendEmailNotification(
+        host.email,
+        "New Booking Received!",
+        hostEmailContent
+      );
     }
 
+    // Sending WhatsApp Notifications
+    // const userMessage = `Hello ${user.name}, your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}`;
+    // await sendWhatsAppMessage(user.mobile, userMessage);
 
-      // Sending WhatsApp Notifications
-    const userMessage = `Hello ${user.name}, your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}`;
-    await sendWhatsAppMessage(user.mobile, userMessage);
+    // if (host) {
+    //   const hostMessage = `Hello ${host.name}, you have received a new booking for ${booking.prop_title}. Booking ID: ${booking.id}`;
+    //   await sendWhatsAppMessage(host.mobile, hostMessage);
+    // }
+
+    //   // For Traveler
+    await sendWhatsAppMessage(
+      user.mobile,
+      user.name,
+      booking.id,
+      process.env.BREVO_TEMPLATE_ID
+    );
+
+    // // For Host (if exists)
+    // if (host) {
+    //   await sendWhatsAppMessage(host.mobile, host.name, booking.id, process.env.BREVO_TEMPLATE_ID_HOST);
+    // }
+
+    // const userMessage = `Hello ${user.name}, your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id},`;
+    // await sendWhatsAppMessage(user.mobile, userMessage);
+
+    // if (host) {
+    //   const hostMessage = `Hello ${host.name}, you have received a new booking for ${booking.prop_title}. Booking ID: ${booking.id}`;
+    //   await sendWhatsAppMessage(host.mobile, hostMessage);
+    // }
 
     if (host) {
-      const hostMessage = `Hello ${host.name}, you have received a new booking for ${booking.prop_title}. Booking ID: ${booking.id}`;
-      await sendWhatsAppMessage(host.mobile, hostMessage);
+      await sendWhatsAppMessage(
+        host.mobile,
+        host.name,
+        booking.id,
+        process.env.BREVO_TEMPLATE_ID
+      );
     }
+
     // Send notifications
     try {
       if (host && host.one_subscription) {
@@ -383,6 +488,45 @@ const createBooking = async (req, res) => {
 };
 
 const editBooking = async (req, res) => {
+  function formatPhoneNumber(number) {
+    if (!number.startsWith("+")) {
+      return `+91${number}`;
+    }
+    return number;
+  }
+  async function sendWhatsAppMessage(recipient,firstName,bookingId,templateId){
+    try{
+      const formattedNumber = formatPhoneNumber(recipient)
+      console.log("Message sending from:", )
+      const payload = {
+        senderNumber:process.env.BREVO_WHATSAPP_SENDER,
+        contactNumbers:[formatPhoneNumber],
+        templateId:parseInt(templateId,10),
+        params:{
+          FIRSTNAME:firstName,
+          BOOKING_ID:bookingId
+        }
+      }
+      const response = await axios.post(
+        "https://api.brevo.com/v3/whatsapp/sendMessage",
+        payload,
+        {
+          headers: {
+            accept: "application/json",
+            "api-key": BREVO_API_KEY,
+            "content-type": "application/json",
+          },
+        }
+      );
+      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+
+    }catch(error){
+      console.error(
+        `Error sending WhatsApp message to: ${recipient}`,
+        error.response?.data || error.message
+      );
+    }
+  }
   const uid = req.user.id;
   const { book_id } = req.params;
   const {
@@ -516,23 +660,47 @@ const editBooking = async (req, res) => {
     const traveler = await User.findByPk(uid);
     const host = await User.findByPk(property.add_user_id);
 
+    await sendWhatsAppMessage(
+      traveler.mobile,
+      traveler.name,
+      booking.id,
+      process.env.BREVO_TEMPLATE_ID
+    )
+
+    if(host){
+      await sendWhatsAppMessage(
+        host.mobile,
+        host.name,
+        booking.id,
+        process.env.BREVO_TEMPLATE_ID
+      )
+    }
+
     const travelerEmailContent = `
       <h3>Hello ${traveler.name},</h3>
       <p>Your booking for <strong>${booking.prop_title}</strong> has been updated.</p>
       <p><strong>Booking ID:</strong> ${booking.id}</p>
       <p>Thank you for choosing our platform!</p>
-    `
-    await sendEmailNotification(traveler.email, "Booking Updated!", travelerEmailContent)
+    `;
+    await sendEmailNotification(
+      traveler.email,
+      "Booking Updated!",
+      travelerEmailContent
+    );
 
     if (host) {
-        const hostEmailContent = `
+      const hostEmailContent = `
         <h3>Hello ${host.name},</h3>
         <p>You have received a updated booking for <strong>${booking.prop_title}</strong>.</p>
         <p><strong>Booking ID:</strong> ${booking.id}</p>
         <p>Please check your dashboard for more details.</p>
       `;
 
-      await sendEmailNotification(host.email, "Booking has been updated!", hostEmailContent);
+      await sendEmailNotification(
+        host.email,
+        "Booking has been updated!",
+        hostEmailContent
+      );
     }
 
     try {
@@ -722,7 +890,7 @@ const getBookingDetails = async (req, res) => {
         {
           model: Property,
           as: "properties",
-          attributes: ["add_user_id"],
+          attributes: ["add_user_id","standard_rules"],
         },
       ],
     });
@@ -736,16 +904,31 @@ const getBookingDetails = async (req, res) => {
       );
     }
 
+    let checkInTime = "";
+    let checkOutTime = "";
+    if (booking.properties && booking.properties.standard_rules) {
+      try {
+        const rules = JSON.parse(booking.properties.standard_rules);
+        checkInTime = rules.checkIn || "";
+        checkOutTime = rules.checkOut || "";
+      } catch (error) {
+        console.error("Error parsing standard_rules:", error);
+      }
+    }
+    const formatDate = (date) => {
+      return date ? new Date(date).toISOString().split("T")[0] : null;
+    };
+
     const fp = {
       book_id: booking.id,
       prop_id: booking.prop_id,
       prop_title: booking.prop_title,
       uid: booking.uid,
-      book_date: booking.book_date,
-      id_proof:booking.id_proof,
-      id_proof_img:booking.id_proof_img,
-      check_in: booking.check_in,
-      check_out: booking.check_out,
+      book_date: formatDate(booking.book_date),
+      id_proof: booking.id_proof,
+      id_proof_img: booking.id_proof_img,
+      check_in: formatDate(booking.check_in),
+      check_out: formatDate(booking.check_out),
       payment_title: "",
       subtotal: booking.subtotal,
       total: booking.total,
@@ -755,14 +938,14 @@ const getBookingDetails = async (req, res) => {
       p_method_id: booking.p_method_id,
       add_note: booking.add_note,
       book_status: booking.book_status,
-      check_intime: booking.check_intime,
+      check_intime: checkInTime,
+      check_outtime: checkOutTime,
       extra_guest: booking.extra_guest,
       adults: booking.adults,
       children: booking.children,
       infants: booking.infants,
       pets: booking.pets,
       extra_guest_charges: booking.extra_guest_charges,
-      check_outtime: booking.check_outtime,
       book_for: booking.book_for,
       is_rate: booking.is_rate,
       total_rate: booking.total_rate || "",
@@ -1249,8 +1432,48 @@ const userCheckOut = async (req, res) => {
 //   }
 // };
 
-
 const cancelBooking = async (req, res) => {
+  function formatPhoneNumber(number) {
+    if (!number.startsWith("+")) {
+      return `+91${number}`;
+    }
+    return number;
+  }
+  async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) {
+    try {
+      const formattedNumber = formatPhoneNumber(recipient);
+      console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
+  
+      const payload = {
+        senderNumber: BREVO_WHATSAPP_SENDER,
+        contactNumbers: [formattedNumber],
+        templateId: parseInt(templateId, 10),
+        params: {
+          FIRSTNAME: firstName,
+          BOOKING_ID: bookingId,
+        },
+      };
+  
+      const response = await axios.post(
+        "https://api.brevo.com/v3/whatsapp/sendMessage",
+        payload,
+        {
+          headers: {
+            accept: "application/json",
+            "api-key": BREVO_API_KEY,
+            "content-type": "application/json",
+          },
+        }
+      );
+  
+      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+    } catch (error) {
+      console.error(
+        `Error sending WhatsApp message to: ${recipient}`,
+        error.response?.data || error.message
+      );
+    }
+  }
   const uid = req.user.id;
   if (!uid) {
     return res.status(401).json({ message: "User Not Found!" });
@@ -1300,6 +1523,22 @@ const cancelBooking = async (req, res) => {
       { where: { id: book_id, uid } }
     );
 
+    await sendWhatsAppMessage(
+      user.mobile,
+      user.email,
+      booking.id,
+      process.env.BREVO_TEMPLATE_ID
+    )
+
+    if(host){
+      await sendWhatsAppMessage(
+        host.mobile,
+        host.email,
+        booking.id,
+        process.env.BREVO_TEMPLATE_ID
+      )
+    }
+
     let refundMessage = "";
 
     // Refund Logic
@@ -1307,7 +1546,6 @@ const cancelBooking = async (req, res) => {
       console.log("Transaction ID:", booking.transaction_id);
       console.log("Platform fee Amount:", booking.platform_fee);
       try {
-        
         const refundAmount = Math.round(booking.platform_fee * 100);
         console.log("Refund Amount in Paise:", refundAmount);
         console.log("Initiating refund request to Razorpay...");
@@ -1319,7 +1557,9 @@ const cancelBooking = async (req, res) => {
           `https://api.razorpay.com/v1/payments/${booking.transaction_id}/refund`,
           {
             amount: refundAmount,
-            notes: { refund_reason: cancle_reason || "User requested cancellation" },
+            notes: {
+              refund_reason: cancle_reason || "User requested cancellation",
+            },
           },
           {
             auth: {
@@ -1330,16 +1570,23 @@ const cancelBooking = async (req, res) => {
         );
 
         console.log("Razorpay Key:", process.env.RAZORPAY_KEY_ID);
-        console.log("Razorpay Secret:", process.env.RAZORPAY_SECRET_KEY ? "Exists" : "Missing");
+        console.log(
+          "Razorpay Secret:",
+          process.env.RAZORPAY_SECRET_KEY ? "Exists" : "Missing"
+        );
 
         await booking.update({ refund_status: "Processed" });
 
         const updatedBooking = await TblBook.findByPk(book_id);
         console.log("Updated Refund Status:", updatedBooking.refund_status);
 
-        refundMessage = "Refund initiated! Amount credited in 5-7 business days.";
+        refundMessage =
+          "Refund initiated! Amount credited in 5-7 business days.";
       } catch (refundError) {
-        console.error("Refund Error:", refundError.response?.data || refundError.message);
+        console.error(
+          "Refund Error:",
+          refundError.response?.data || refundError.message
+        );
         await booking.update({ refund_status: "Failed" });
         refundMessage = " Refund initiation failed. Please contact support.";
       }
@@ -1353,7 +1600,11 @@ const cancelBooking = async (req, res) => {
       <p><strong>Booking ID:</strong> ${booking.id}</p>
       <p>${refundMessage}</p>
     `;
-    await sendEmailNotification(traveler.email, "Booking has been Cancelled!", travelerEmailContent);
+    await sendEmailNotification(
+      traveler.email,
+      "Booking has been Cancelled!",
+      travelerEmailContent
+    );
 
     if (host) {
       const hostEmailContent = `
@@ -1362,7 +1613,11 @@ const cancelBooking = async (req, res) => {
         <p><strong>Booking ID:</strong> ${booking.id}</p>
         <p>Please check your dashboard for more details.</p>
       `;
-      await sendEmailNotification(host.email, "Booking has been cancelled!", hostEmailContent);
+      await sendEmailNotification(
+        host.email,
+        "Booking has been cancelled!",
+        hostEmailContent
+      );
     }
 
     // Push Notification via OneSignal
@@ -1370,7 +1625,10 @@ const cancelBooking = async (req, res) => {
       try {
         const notificationContent = {
           app_id: process.env.ONESIGNAL_APP_ID,
-          include_player_ids: [user.one_subscription, host.one_subscription].filter(Boolean),
+          include_player_ids: [
+            user.one_subscription,
+            host.one_subscription,
+          ].filter(Boolean),
           data: { user_id: user.id, type: "booking Cancelled" },
           contents: {
             en: `${user.name}, Your booking for ${property.title} has been cancelled!${refundMessage}`,
@@ -1409,7 +1667,12 @@ const cancelBooking = async (req, res) => {
       },
     ]);
 
-    return sendResponse(res, 200, "true", `Booking Cancelled Successfully!${refundMessage}`);
+    return sendResponse(
+      res,
+      200,
+      "true",
+      `Booking Cancelled Successfully!${refundMessage}`
+    );
   } catch (error) {
     console.error("Error canceling booking:", error);
     return sendResponse(res, 500, "false", "Internal Server Error!");
@@ -1472,7 +1735,7 @@ const cancelBooking = async (req, res) => {
 //       console.log("Transaction ID:", booking.transaction_id);
 //       console.log("Platform fee Amount:", booking.platform_fee);
 //       try {
-        
+
 //         const refundAmount = Math.round(booking.platform_fee * 100);
 //         console.log("Refund Amount in Paise:", refundAmount);
 //         console.log("Initiating refund request to Razorpay...");
@@ -1597,7 +1860,7 @@ const cancelBooking = async (req, res) => {
 //       200,
 //       "true",
 //       `Booking Cancelled Successfully by Host! ${refundMessage}`
-//     );    
+//     );
 //   } catch (error) {
 //     console.error("Error canceling booking by host:", error);
 //     return sendResponse(res, 500, "false", "Internal Server Error!");
@@ -1605,6 +1868,47 @@ const cancelBooking = async (req, res) => {
 // };
 
 const cancelTravelerBookingByHost = async (req, res) => {
+  function formatPhoneNumber(number) {
+    if (!number.startsWith("+")) {
+      return `+91${number}`;
+    }
+    return number;
+  }
+  async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) {
+    try {
+      const formattedNumber = formatPhoneNumber(recipient);
+      console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
+  
+      const payload = {
+        senderNumber: BREVO_WHATSAPP_SENDER,
+        contactNumbers: [formattedNumber],
+        templateId: parseInt(templateId, 10),
+        params: {
+          FIRSTNAME: firstName,
+          BOOKING_ID: bookingId,
+        },
+      };
+  
+      const response = await axios.post(
+        "https://api.brevo.com/v3/whatsapp/sendMessage",
+        payload,
+        {
+          headers: {
+            accept: "application/json",
+            "api-key": BREVO_API_KEY,
+            "content-type": "application/json",
+          },
+        }
+      );
+  
+      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+    } catch (error) {
+      console.error(
+        `Error sending WhatsApp message to: ${recipient}`,
+        error.response?.data || error.message
+      );
+    }
+  }
   const hostId = req.user.id;
   if (!hostId) {
     return res.status(401).json({ message: "User Not Found!" });
@@ -1667,25 +1971,71 @@ const cancelTravelerBookingByHost = async (req, res) => {
 
     let refundMessage = "";
 
-    // Refund Logic
-    if (booking.transaction_id && booking.platform_fee > 0) {
-      console.log("Transaction ID:", booking.transaction_id);
-      console.log("Platform fee Amount:", booking.platform_fee);
-      try {
-        const refundAmount = Math.round(booking.platform_fee * 100);
-        console.log("Refund Amount in Paise:", refundAmount);
-        console.log("Initiating refund request to Razorpay...");
-        console.log({
-          transactionId: booking.transaction_id,
-          refundAmount,
-        });
+    await sendWhatsAppMessage(
+      traveler.mobile,
+      traveler.email,
+      booking.id,
+      process.env.BREVO_WHATSAPP_SENDER
+    )
+    if(host){
+      await sendWhatsAppMessage(
+        host.mobile,
+        host.name,
+        booking.id,
+        process.env.BREVO_TEMPLATE_ID
+      )
+    }
 
-        await axios.post(
-          `https://api.razorpay.com/v1/payments/${booking.transaction_id}/refund`,
-          {
-            amount: refundAmount,
-            notes: { refund_reason: cancle_reason || "Host cancelled the booking" },
-          },
+    // Refund Logic
+    // if (booking.transaction_id && booking.platform_fee > 0) {
+    //   console.log("Transaction ID:", booking.transaction_id);
+    //   console.log("Platform fee Amount:", booking.platform_fee);
+    //   try {
+    //     const refundAmount = Math.round(booking.platform_fee * 100);
+    //     console.log("Refund Amount in Paise:", refundAmount);
+    //     console.log("Initiating refund request to Razorpay...");
+    //     console.log({
+    //       transactionId: booking.transaction_id,
+    //       refundAmount,
+    //     });
+
+    //     await axios.post(
+    //       `https://api.razorpay.com/v1/payments/${booking.transaction_id}/refund`,
+    //       {
+    //         amount: refundAmount,
+    //         notes: { refund_reason: cancle_reason || "Host cancelled the booking" },
+    //       },
+    //       {
+    //         auth: {
+    //           username: process.env.RAZORPAY_KEY_ID,
+    //           password: process.env.RAZORPAY_SECRET_KEY,
+    //         },
+    //       }
+    //     );
+
+    //     console.log("Razorpay Key:", process.env.RAZORPAY_KEY_ID);
+    //     console.log("Razorpay Secret:", process.env.RAZORPAY_SECRET_KEY ? "Exists" : "Missing");
+
+    //     await booking.update({ refund_status: "Processed" });
+
+    //     const updatedBooking = await TblBook.findByPk(book_id);
+    //     console.log("Updated Refund Status:", updatedBooking.refund_status);
+
+    //     refundMessage = "Refund initiated! Amount credited in 5-7 business days.";
+    //   } catch (refundError) {
+    //     console.error("Refund Error:", refundError.response?.data || refundError.message);
+    //     await booking.update({ refund_status: "Failed" });
+    //     refundMessage = " Refund initiation failed. Please contact support.";
+    //   }
+    // }
+
+    if (booking.transaction_id) {
+      console.log("Transaction ID:", booking.transaction_id);
+
+      try {
+        // Fetch payment details from Razorpay
+        const paymentDetails = await axios.get(
+          `https://api.razorpay.com/v1/payments/${booking.transaction_id}`,
           {
             auth: {
               username: process.env.RAZORPAY_KEY_ID,
@@ -1694,19 +2044,51 @@ const cancelTravelerBookingByHost = async (req, res) => {
           }
         );
 
-        console.log("Razorpay Key:", process.env.RAZORPAY_KEY_ID);
-        console.log("Razorpay Secret:", process.env.RAZORPAY_SECRET_KEY ? "Exists" : "Missing");
+        const paymentAmount = paymentDetails.data.amount; // Original amount in paise
+        const refundedAmount = paymentDetails.data.amount_refunded || 0; // Already refunded in paise
 
-        await booking.update({ refund_status: "Processed" });
+        console.log("Original Payment Amount:", paymentAmount);
+        console.log("Already Refunded:", refundedAmount);
 
-        const updatedBooking = await TblBook.findByPk(book_id);
-        console.log("Updated Refund Status:", updatedBooking.refund_status);
+        const refundAmount = Math.min(
+          paymentAmount - refundedAmount,
+          Math.round(booking.platform_fee * 100)
+        );
 
-        refundMessage = "Refund initiated! Amount credited in 5-7 business days.";
+        if (refundAmount <= 0) {
+          refundMessage =
+            "Refund not possible as the full amount has already been refunded.";
+        } else {
+          console.log("Refund Amount in Paise:", refundAmount);
+
+          // Process refund request
+          await axios.post(
+            `https://api.razorpay.com/v1/payments/${booking.transaction_id}/refund`,
+            {
+              amount: refundAmount,
+              notes: {
+                refund_reason: cancle_reason || "Host cancelled the booking",
+              },
+            },
+            {
+              auth: {
+                username: process.env.RAZORPAY_KEY_ID,
+                password: process.env.RAZORPAY_SECRET_KEY,
+              },
+            }
+          );
+
+          await booking.update({ refund_status: "Processed" });
+          refundMessage =
+            "Refund initiated! Amount credited in 5-7 business days.";
+        }
       } catch (refundError) {
-        console.error("Refund Error:", refundError.response?.data || refundError.message);
+        console.error(
+          "Refund Error:",
+          refundError.response?.data || refundError.message
+        );
         await booking.update({ refund_status: "Failed" });
-        refundMessage = " Refund initiation failed. Please contact support.";
+        refundMessage = "Refund initiation failed. Please contact support.";
       }
     }
 
@@ -1717,7 +2099,11 @@ const cancelTravelerBookingByHost = async (req, res) => {
       <p><strong>Booking ID:</strong> ${booking.id}</p>
       <p>${refundMessage}</p>
     `;
-    await sendEmailNotification(traveler.email, "Booking Cancelled by Host!", travelerEmailContent);
+    await sendEmailNotification(
+      traveler.email,
+      "Booking Cancelled by Host!",
+      travelerEmailContent
+    );
 
     const hostEmailContent = `
       <h3>Hello ${host.name},</h3>
@@ -1726,14 +2112,21 @@ const cancelTravelerBookingByHost = async (req, res) => {
       <p>${refundMessage}</p>
       <p>Please check your dashboard for more details.</p>
     `;
-    await sendEmailNotification(host.email, "Booking Cancelled Successfully!", hostEmailContent);
+    await sendEmailNotification(
+      host.email,
+      "Booking Cancelled Successfully!",
+      hostEmailContent
+    );
 
     // Push Notification via OneSignal
     if (traveler.one_subscription || host.one_subscription) {
       try {
         const notificationContent = {
           app_id: process.env.ONESIGNAL_APP_ID,
-          include_player_ids: [traveler.one_subscription, host.one_subscription].filter(Boolean),
+          include_player_ids: [
+            traveler.one_subscription,
+            host.one_subscription,
+          ].filter(Boolean),
           data: { user_id: traveler.id, type: "booking Cancelled by Host" },
           contents: {
             en: `${traveler.name}, Your booking for ${property.title} has been cancelled by the host! ${refundMessage}`,
@@ -1772,13 +2165,17 @@ const cancelTravelerBookingByHost = async (req, res) => {
       },
     ]);
 
-    return sendResponse(res, 200, "true", `Booking Cancelled Successfully! ${refundMessage}`);
+    return sendResponse(
+      res,
+      200,
+      "true",
+      `Booking Cancelled Successfully! ${refundMessage}`
+    );
   } catch (error) {
     console.error("Error canceling booking:", error);
     return sendResponse(res, 500, "false", "Internal Server Error!");
   }
 };
-
 
 // Get Traveller Bookings Status
 // const getTravelerBookingsByStatus = async (req, res) => {
@@ -2297,12 +2694,20 @@ const hostPropertiesBookingStatus = async (req, res) => {
       {
         model: Property,
         as: "properties",
-        attributes: ["id", "title", "address", "price", "facility", "rules", "image"],
+        attributes: [
+          "id",
+          "title",
+          "address",
+          "price",
+          "facility",
+          "rules",
+          "image",
+        ],
       },
       {
         model: User,
         as: "travler_details", // Fetching traveler details from User if booked for self
-        attributes: ["id","name", "mobile", "email"],
+        attributes: ["id", "name", "mobile", "email"],
       },
       {
         model: PersonRecord,
@@ -2377,41 +2782,47 @@ const hostPropertiesBookingStatus = async (req, res) => {
     });
 
     if (bookings.length === 0) {
-      return res.status(404).json({ message: `No bookings found for status: ${status}` });
+      return res
+        .status(404)
+        .json({ message: `No bookings found for status: ${status}` });
     }
 
     const travelerIds = bookings
-    .map((b) => b.travler_details?.id || null)
-    .filter((id) => id !== null);
+      .map((b) => b.travler_details?.id || null)
+      .filter((id) => id !== null);
 
-  // Fetch traveler reviews based on extracted traveler IDs
-  const travelerReviews = await HostTravelerReview.findAll({
-    where: {
-      traveler_id: { [Op.in]: travelerIds },
-    },
-  });
+    // Fetch traveler reviews based on extracted traveler IDs
+    const travelerReviews = await HostTravelerReview.findAll({
+      where: {
+        traveler_id: { [Op.in]: travelerIds },
+      },
+    });
 
     // Process booking data to include traveler details
     const processedBookings = bookings.map((booking) => {
       const no_of_days = Math.ceil(
-        (new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24)
+        (new Date(booking.check_out) - new Date(booking.check_in)) /
+          (1000 * 60 * 60 * 24)
       );
 
       // Fetch traveler details from either User or PersonRecord
-      const travelerDetails = booking.book_for === "self" ? booking.traveler : booking.travelerDetails;
+      const travelerDetails =
+        booking.book_for === "self"
+          ? booking.traveler
+          : booking.travelerDetails;
 
-        // const travelerReview = travelerReviews.filter(
-        //   (review) => review.traveler_id === booking.travler_details?.id
-        // );
+      // const travelerReview = travelerReviews.filter(
+      //   (review) => review.traveler_id === booking.travler_details?.id
+      // );
       const travelerName = booking.travler_details?.name || "Unknown";
       const hostName = booking.hostDetails?.name || "Unknown";
       const travelerReview = travelerReviews
-    .filter((review) => review.traveler_id === booking.travler_details?.id)
-    .map((review) => ({
-      traveler_name: travelerName, 
-      host_name: hostName,
-      ...review.toJSON(),
-    }));
+        .filter((review) => review.traveler_id === booking.travler_details?.id)
+        .map((review) => ({
+          traveler_name: travelerName,
+          host_name: hostName,
+          ...review.toJSON(),
+        }));
       return {
         ...booking.toJSON(),
         no_of_days,
@@ -2421,12 +2832,16 @@ const hostPropertiesBookingStatus = async (req, res) => {
     });
 
     res.status(200).json({
-      message: `${status.charAt(0).toUpperCase() + status.slice(1)} bookings fetched successfully!`,
+      message: `${
+        status.charAt(0).toUpperCase() + status.slice(1)
+      } bookings fetched successfully!`,
       bookings: processedBookings,
     });
   } catch (error) {
     console.error("Error fetching bookings:", error);
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
 
@@ -2698,9 +3113,7 @@ const hostBlockBookingProperty = async (req, res) => {
   }
 
   if (!prop_id || !block_start || !block_end || !reason) {
-    return res
-      .status(400)
-      .json({ success: false, message: "All fields required!" });
+    return res.status(400).json({ success: false, message: "All fields required!" });
   }
 
   try {
@@ -2711,16 +3124,16 @@ const hostBlockBookingProperty = async (req, res) => {
     });
 
     if (!property) {
-      console.log(
-        `No property found for prop_id: ${prop_id} and host_id: ${host_id}`
-      );
       return res.status(403).json({
         success: false,
         message: "You are not authorized to block this property!",
       });
     }
 
-    // Insert a new blocked date range into PropertyBlock
+    // Use moment.utc without a fixed input format to prevent unwanted timezone shifts
+    // const formattedBlockStart = moment.utc(block_start).format("YYYY-MM-DD");
+    // const formattedBlockEnd = moment.utc(block_end).format("YYYY-MM-DD");
+
     const newBlock = await PropertyBlock.create({
       prop_id,
       block_start,
@@ -2728,90 +3141,18 @@ const hostBlockBookingProperty = async (req, res) => {
       reason,
     });
 
-    console.log(`Property ${prop_id} blocked from ${block_start} to ${block_end}`);
-
-    // Find all bookings affected by the new block
-    const affectedBookings = await TblBook.findAll({
-      where: {
-        prop_id,
-        book_status: { [Op.in]: ["Booked", "Confirmed"] },
-        [Op.or]: [
-          { check_in: { [Op.between]: [block_start, block_end] } },
-          { check_out: { [Op.between]: [block_start, block_end] } },
-          {
-            check_in: { [Op.lte]: block_start },
-            check_out: { [Op.gte]: block_end },
-          },
-        ],
-      },
-    });
-
-    console.log("Affected bookings:", affectedBookings);
-
-    if (affectedBookings.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: "No travelers are affected by this block.",
-      });
-    }
-
-    for (const booking of affectedBookings) {
-      const traveler = await User.findByPk(booking.uid);
-
-      if (traveler?.one_subscription) {
-        try {
-          console.log(`Notifying traveler ${traveler.email}`);
-
-          await axios.post(
-            "https://onesignal.com/api/v1/notifications",
-            {
-              app_id: process.env.ONESIGNAL_APP_ID,
-              include_player_ids: [traveler.one_subscription],
-              data: { prop_id, type: "booking_cancellation" },
-              contents: {
-                en: `Your booking for ${property.title} has been blocked due to: ${reason}`,
-              },
-              headings: { en: "Booking Blocked!" },
-            },
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
-              },
-            }
-          );
-
-          await TblNotification.create({
-            uid: traveler.id,
-            datetime: new Date(),
-            title: "Booking Blocked!",
-            description: `Your booking for ${property.title} has been blocked due to: ${reason}`,
-          });
-
-          console.log(`Updating booking ${booking.id} to Blocked`);
-          await TblBook.update(
-            { book_status: "Blocked" },
-            { where: { id: booking.id } }
-          );
-          console.log(`Booking ${booking.id} status updated to Blocked`);
-        } catch (error) {
-          console.error(
-            `Error sending notification to ${traveler.email}:`,
-            error
-          );
-        }
-      }
-    }
+    // console.log(
+    //   `Property ${prop_id} blocked from ${formattedBlockStart} to ${formattedBlockEnd}`
+    // );
 
     return res.status(200).json({
       success: true,
-      message: "Affected travelers have been notified, and bookings are blocked.",
+      message: "Property successfully blocked!",
+      data: newBlock,
     });
   } catch (error) {
     console.error("Error blocking property booking:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal Server Error!" });
+    return res.status(500).json({ success: false, message: "Internal Server Error!" });
   }
 };
 
