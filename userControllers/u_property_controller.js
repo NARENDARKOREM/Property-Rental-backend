@@ -1205,13 +1205,13 @@ const getPropertyList = async (req, res) => {
   try {
  console.log("Request User:", req.user);
 
-    if (!req.user || !req.user.id) {
-      return res.status(400).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "User ID not provided",
-      });
-    }
+    // if (!req.user || !req.user.id) {
+    //   return res.status(400).json({
+    //     ResponseCode: "401",
+    //     Result: "false",
+    //     ResponseMsg: "User ID not provided",
+    //   });
+    // }
 
     const uid = req.user.id;
     console.log("Fetching properties for user ID:", uid);
