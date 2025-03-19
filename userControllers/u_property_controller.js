@@ -1203,18 +1203,12 @@ const editProperty = async (req, res) => {
 
 const getPropertyList = async (req, res) => {
   try {
-    const uid = req.user.id;
-
-    if (!uid) {
-      return res.status(400).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "User ID not provided",
-      });
+    console.log("Request User:", req.user);
+    const uid = req.user?.id || null;
+    if(!uid){
+      res.status(401).json({message:"Unauthorized: User not found!"})
     }
-
     console.log("Fetching properties for user ID:", uid);
-
     // Include TblCity to get city details
     const properties = await Property.findAll({
       where: { add_user_id: uid, status: 1 },
@@ -1307,6 +1301,7 @@ const getPropertyList = async (req, res) => {
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Properties found",
+      useriiid:req.user
     });
   } catch (error) {
     console.error("Error fetching property list:", error);
