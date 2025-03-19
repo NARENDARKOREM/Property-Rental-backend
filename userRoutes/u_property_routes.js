@@ -28,7 +28,7 @@ router.patch(
 
 router.get(
   "/list",
-  // authMiddleware.isAuthenticated,
+  authMiddleware.isAuthenticated,
   userPropertyController.getPropertyList
 );
 
