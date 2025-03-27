@@ -1,11 +1,14 @@
 const Property = require("../models/Property");
 const fs = require("fs");
 const path = require("path");
-const { TblCategory, TblCountry, } = require("../models");
+const { TblCategory, TblCountry, User, } = require("../models");
 const TblFacility = require("../models/TblFacility");
 const TblCity = require('../models/TblCity');
 const { error } = require("console");
 const sequelize = require("../db");
+const { Op } = require("sequelize");
+const { default: axios } = require("axios");
+const TblNotification = require("../models/TblNotification");
 const formatDate = (date) => {
   return date ? new Date(date).toISOString().split("T")[0] : null;
 };
@@ -263,6 +266,7 @@ const upsertProperty = async (req, res) => {
 const getAllProperties = async (req, res) => {
   try {
     const properties = await Property.findAll({
+      where:{status:1},
       include: [
         {
           model: TblCategory,
@@ -354,6 +358,197 @@ const getAllProperties = async (req, res) => {
       .json({ error: "Internal server error", details: error.message });
   }
 };
+
+
+const requestProperties = async (req, res) => {
+  
+  try {
+    const properties = await Property.findAll({
+      where:{status:0,
+        add_user_id: { [Op.ne]: null },
+       },
+      include: [
+        {
+          model: TblCategory,
+          as: "category",
+          attributes: ["title"],
+        },
+        {
+          model: TblCity,
+          as: "cities",
+          attributes: ["title"],
+          include: [
+            {
+              model: TblCountry,
+              as: "country",
+              attributes: ["title"],
+            },
+          ],
+        },
+      ],
+    });
+
+    const formattedProperties = await Promise.all(
+      properties.map(async (property) => {
+        let facilityIds = [];
+        if (property.facility) {
+          if (typeof property.facility === "string") {
+            // If it's a string, split by commas
+            facilityIds = property.facility
+              .split(",")
+              .map((id) => parseInt(id, 10))
+              .filter((id) => Number.isInteger(id));
+          } else if (Array.isArray(property.facility)) {
+            // If it's already an array, use it directly
+            facilityIds = property.facility;
+          } else if (typeof property.facility === "number") {
+            // If it's a single number, wrap it in an array
+            facilityIds = [property.facility];
+          }
+        }
+
+        // Fetch facilities if applicable (resolve the promise)
+        let facilities = [];
+        if (facilityIds.length) {
+          facilities = await TblFacility.findAll({
+            where: { id: facilityIds },
+            attributes: ["id", "title"],
+          });
+        }
+
+        // Format city name with country
+        const cityWithCountry =
+          property.city && property.city.country
+            ? `${property.city.title} (${property.city.country.title})`
+            : property.city?.title || "";
+
+        // Format the listing date
+        const formattedListingDate = property.listing_date
+          ? formatDate(property.listing_date)
+          : null;
+
+        // Ensure standard_rules is formatted correctly
+        let formattedStandardRules = "N/A";
+        if (
+          property.standard_rules &&
+          typeof property.standard_rules === "object"
+        ) {
+          formattedStandardRules = `checkIn: ${property.standard_rules.checkIn || "N/A"}, checkOut: ${property.standard_rules.checkOut || "N/A"}, smokingAllowed: ${
+            property.standard_rules.smokingAllowed !== undefined
+              ? property.standard_rules.smokingAllowed
+              : "N/A"
+          }`;
+        }
+
+
+
+        return {
+          ...property.toJSON(),
+          facilities,
+          city: cityWithCountry,
+          listing_date: formattedListingDate,
+          formatted_standard_rules: formattedStandardRules,
+        };
+      })
+    );
+
+    res.status(200).json(formattedProperties);
+  } catch (error) {
+    console.error("Error fetching properties:", error);
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+};
+
+
+
+const acceptRequestProperties = async (req, res) => {
+  const { property_id, type } = req.body;
+
+  console.log(req.body, "Request body logged"); 
+
+  try {
+   
+    if (!property_id) {
+      return res.status(400).json({ error: "Property ID is required" });
+    }
+
+    // Fetch property
+    const property = await Property.findOne({ where: { id: property_id } });
+    if (!property) {
+      return res.status(404).json({ error: "Property not found" });
+    }
+
+    // Fetch user
+    const user = await User.findOne({ where: { id: property.add_user_id } });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Determine approval status and notification details
+    const isApproved = Boolean(type);
+    const status = isApproved ? 1 : 0;
+    const action = isApproved ? "Approved" : "Rejected";
+    const message = isApproved
+      ? `Congratulations ${user.name}, Your ${property.title} has been Approved!`
+      : `Sorry ${user.name}, Your ${property.title} has been Rejected!`;
+
+
+    await property.update({
+      accept: type,
+      status: status,
+    });
+
+    // Send OneSignal notification
+    const notificationContent = {
+      app_id: process.env.ONESIGNAL_APP_ID,
+      include_player_ids: [user.one_subscription],
+      data: { user_id: user.id, type: `Property has been ${action}` },
+      contents: { en: message },
+      headings: { en: `Property ${action}!` },
+    };
+
+    try {
+      const response = await axios.post(
+        "https://onesignal.com/api/v1/notifications",
+        notificationContent,
+        {
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+          },
+        }
+      );
+      console.log("Notification sent:", response.data);
+    } catch (notificationError) {
+      console.error("Failed to send notification:", notificationError.message);
+      // Optionally log this error but don't interrupt the flow
+    }
+
+    // Create notification record in the database
+    await TblNotification.create({
+      uid: user.id,
+      datetime: new Date(),
+      title: `Property ${action}`,
+      description: message,
+    });
+
+    // Send success response
+    return res.status(200).json({
+      message: `Property ${action} successfully`,
+      property_id: property.id,
+    });
+  } catch (error) {
+    console.error("Error in acceptRequestProperties:", error.message);
+    return res.status(500).json({
+      error: "An unexpected error occurred",
+      details: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+module.exports = acceptRequestProperties;
 
 
 // Get Property Count
@@ -550,4 +745,6 @@ module.exports = {
   togglePropertyStatus,
   fetchPropertiesByCountries,
   isPanoramaToggle,
+  requestProperties,
+  acceptRequestProperties
 };

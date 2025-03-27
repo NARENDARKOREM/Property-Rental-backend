@@ -157,6 +157,10 @@ const Property = sequelize.define(
     video_url:{
       type:DataTypes.TEXT,
       allowNull:true
+    },
+    accept:{
+      type:DataTypes.BOOLEAN,
+      allowNull:true,
     }
   },
   {
