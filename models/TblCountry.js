@@ -13,8 +13,6 @@ const TblCountry = sequelize.define(
     title: {
       type: DataTypes.STRING,
       allowNull: false,
-      charset: "utf8mb4",
-      collate: "utf8mb4_general_ci",
     },
     img: {
       type: DataTypes.STRING,
@@ -43,7 +41,6 @@ const TblCountry = sequelize.define(
     tableName: "tbl_country",
     timestamps: true,
     paranoid: true,
-    charset: "latin1",
   }
 );
 

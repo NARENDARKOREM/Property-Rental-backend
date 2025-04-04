@@ -63,7 +63,12 @@ function formatPhoneNumber(number) {
   return number;
 }
 
-async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) {
+async function sendWhatsAppMessage(
+  recipient,
+  firstName,
+  bookingId,
+  templateId
+) {
   try {
     const formattedNumber = formatPhoneNumber(recipient);
     console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
@@ -187,8 +192,6 @@ const createBooking = async (req, res) => {
     !p_method_id ||
     !book_for ||
     !prop_price ||
-    !id_proof ||
-    !id_proof_img ||
     !transaction_id
   ) {
     return res
@@ -272,17 +275,35 @@ const createBooking = async (req, res) => {
         .json({ success: false, message: "That Date Range Already Booked!" });
     }
 
-    let idProofUrl;
-    try {
-      // Wrap the single file into an array to work with uploadToS3
-      const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
-      idProofUrl = uploadedFiles; // Extract the first URL (only one file uploaded)
-    } catch (error) {
-      console.error("Error uploading ID proof to S3:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Failed to upload ID proof. Please try again later.",
-      });
+    // let idProofUrl;
+    // try {
+    //   // Wrap the single file into an array to work with uploadToS3
+    //   const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
+    //   idProofUrl = uploadedFiles; // Extract the first URL (only one file uploaded)
+    // } catch (error) {
+    //   console.error("Error uploading ID proof to S3:", error);
+    //   return res.status(500).json({
+    //     success: false,
+    //     message: "Failed to upload ID proof. Please try again later.",
+    //   });
+    // }
+
+    let idProofUrl = null;
+    if (id_proof_img) {
+      try {
+        // Wrap the single file into an array to work with uploadToS3
+        const uploadedFiles = await uploadToS3(
+          [id_proof_img],
+          "id-proof-images"
+        );
+        idProofUrl = uploadedFiles; // Extract the first URL (only one file uploaded)
+      } catch (error) {
+        console.error("Error uploading ID proof to S3:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to upload ID proof. Please try again later.",
+        });
+      }
     }
 
     const bookingData = {
@@ -312,7 +333,7 @@ const createBooking = async (req, res) => {
       pets,
 
       id_proof,
-      id_proof_img: idProofUrl,
+      id_proof_img: idProofUrl || null,
 
       book_status: "Confirmed",
       platform_fee,
@@ -404,7 +425,7 @@ const createBooking = async (req, res) => {
         host.mobile,
         host.name,
         booking.id,
-        process.env.BREVO_TEMPLATE_ID
+        process.env.BREVO_TEMPLATE_ID_HOST
       );
     }
 
@@ -470,13 +491,43 @@ const createBooking = async (req, res) => {
       });
     }
 
+    let propertyObj = property.toJSON();
+
+    // Process rules field:
+    let rulesArray;
+    if (Array.isArray(propertyObj.rules)) {
+      rulesArray = propertyObj.rules;
+    } else if (typeof propertyObj.rules === "string") {
+      try {
+        const parsed = JSON.parse(propertyObj.rules);
+        rulesArray = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (error) {
+        try {
+          rulesArray = propertyObj.rules.split(",").map((rule) => rule.trim());
+        } catch (e) {
+          rulesArray = [];
+        }
+      }
+    } else {
+      rulesArray = [];
+    }
+    // Helper function to recursively flatten an array.
+    const flattenArray = (arr) =>
+      arr.reduce(
+        (acc, val) =>
+          Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val),
+        []
+      );
+    rulesArray = flattenArray(rulesArray);
+    propertyObj.rules = rulesArray;
+
     return res.status(200).json({
       success: true,
       message: "Booking Confirmed Successfully!!!",
       data: {
         book_id: booking.id,
         booking_details: booking,
-        property_details: property,
+        property_details: propertyObj,
       },
     });
   } catch (error) {
@@ -494,19 +545,24 @@ const editBooking = async (req, res) => {
     }
     return number;
   }
-  async function sendWhatsAppMessage(recipient,firstName,bookingId,templateId){
-    try{
-      const formattedNumber = formatPhoneNumber(recipient)
-      console.log("Message sending from:", )
+  async function sendWhatsAppMessage(
+    recipient,
+    firstName,
+    bookingId,
+    templateId
+  ) {
+    try {
+      const formattedNumber = formatPhoneNumber(recipient);
+      console.log("Message sending from:");
       const payload = {
-        senderNumber:process.env.BREVO_WHATSAPP_SENDER,
-        contactNumbers:[formatPhoneNumber],
-        templateId:parseInt(templateId,10),
-        params:{
-          FIRSTNAME:firstName,
-          BOOKING_ID:bookingId
-        }
-      }
+        senderNumber: process.env.BREVO_WHATSAPP_SENDER,
+        contactNumbers: [formatPhoneNumber],
+        templateId: parseInt(templateId, 10),
+        params: {
+          FIRSTNAME: firstName,
+          BOOKING_ID: bookingId,
+        },
+      };
       const response = await axios.post(
         "https://api.brevo.com/v3/whatsapp/sendMessage",
         payload,
@@ -518,9 +574,11 @@ const editBooking = async (req, res) => {
           },
         }
       );
-      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
-
-    }catch(error){
+      console.log(
+        `WhatsApp message sent to: ${formattedNumber}`,
+        response.data
+      );
+    } catch (error) {
       console.error(
         `Error sending WhatsApp message to: ${recipient}`,
         error.response?.data || error.message
@@ -664,16 +722,16 @@ const editBooking = async (req, res) => {
       traveler.mobile,
       traveler.name,
       booking.id,
-      process.env.BREVO_TEMPLATE_ID
-    )
+      process.env.BREVO_EDIT_TEMPLATE_ID_TRAVELER
+    );
 
-    if(host){
+    if (host) {
       await sendWhatsAppMessage(
         host.mobile,
         host.name,
         booking.id,
-        process.env.BREVO_TEMPLATE_ID
-      )
+        process.env.BREVO_EDIT_TEMPLATE_ID_HOST
+      );
     }
 
     const travelerEmailContent = `
@@ -890,7 +948,7 @@ const getBookingDetails = async (req, res) => {
         {
           model: Property,
           as: "properties",
-          attributes: ["add_user_id","standard_rules"],
+          attributes: ["add_user_id", "standard_rules"],
         },
       ],
     });
@@ -906,9 +964,11 @@ const getBookingDetails = async (req, res) => {
 
     let checkInTime = "";
     let checkOutTime = "";
+    
     if (booking.properties && booking.properties.standard_rules) {
       try {
-        const rules = JSON.parse(booking.properties.standard_rules);
+        const rules = booking.properties.standard_rules;
+        
         checkInTime = rules.checkIn || "";
         checkOutTime = rules.checkOut || "";
       } catch (error) {
@@ -1439,11 +1499,16 @@ const cancelBooking = async (req, res) => {
     }
     return number;
   }
-  async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) {
+  async function sendWhatsAppMessage(
+    recipient,
+    firstName,
+    bookingId,
+    templateId
+  ) {
     try {
       const formattedNumber = formatPhoneNumber(recipient);
       console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
-  
+
       const payload = {
         senderNumber: BREVO_WHATSAPP_SENDER,
         contactNumbers: [formattedNumber],
@@ -1453,7 +1518,7 @@ const cancelBooking = async (req, res) => {
           BOOKING_ID: bookingId,
         },
       };
-  
+
       const response = await axios.post(
         "https://api.brevo.com/v3/whatsapp/sendMessage",
         payload,
@@ -1465,8 +1530,11 @@ const cancelBooking = async (req, res) => {
           },
         }
       );
-  
-      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+
+      console.log(
+        `WhatsApp message sent to: ${formattedNumber}`,
+        response.data
+      );
     } catch (error) {
       console.error(
         `Error sending WhatsApp message to: ${recipient}`,
@@ -1527,16 +1595,16 @@ const cancelBooking = async (req, res) => {
       user.mobile,
       user.email,
       booking.id,
-      process.env.BREVO_TEMPLATE_ID
-    )
+      process.env.BREVO_TRAVELER_CANCEL_TEMPLATE_ID_TRAVELER
+    );
 
-    if(host){
+    if (host) {
       await sendWhatsAppMessage(
         host.mobile,
         host.email,
         booking.id,
-        process.env.BREVO_TEMPLATE_ID
-      )
+        process.env.BREVO_TRAVELER_CANCEL_TEMPLATE_ID_HOST
+      );
     }
 
     let refundMessage = "";
@@ -1874,11 +1942,16 @@ const cancelTravelerBookingByHost = async (req, res) => {
     }
     return number;
   }
-  async function sendWhatsAppMessage(recipient, firstName, bookingId, templateId) {
+  async function sendWhatsAppMessage(
+    recipient,
+    firstName,
+    bookingId,
+    templateId
+  ) {
     try {
       const formattedNumber = formatPhoneNumber(recipient);
       console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
-  
+
       const payload = {
         senderNumber: BREVO_WHATSAPP_SENDER,
         contactNumbers: [formattedNumber],
@@ -1888,7 +1961,7 @@ const cancelTravelerBookingByHost = async (req, res) => {
           BOOKING_ID: bookingId,
         },
       };
-  
+
       const response = await axios.post(
         "https://api.brevo.com/v3/whatsapp/sendMessage",
         payload,
@@ -1900,8 +1973,11 @@ const cancelTravelerBookingByHost = async (req, res) => {
           },
         }
       );
-  
-      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+
+      console.log(
+        `WhatsApp message sent to: ${formattedNumber}`,
+        response.data
+      );
     } catch (error) {
       console.error(
         `Error sending WhatsApp message to: ${recipient}`,
@@ -1975,15 +2051,15 @@ const cancelTravelerBookingByHost = async (req, res) => {
       traveler.mobile,
       traveler.email,
       booking.id,
-      process.env.BREVO_WHATSAPP_SENDER
-    )
-    if(host){
+      process.env.BREVO_HOST_CANCEL_TEMPLATE_ID_TRAVELER
+    );
+    if (host) {
       await sendWhatsAppMessage(
         host.mobile,
         host.name,
         booking.id,
-        process.env.BREVO_TEMPLATE_ID
-      )
+        process.env.BREVO_HOST_CANCEL_TEMPLATE_ID_HOST
+      );
     }
 
     // Refund Logic
@@ -3113,7 +3189,9 @@ const hostBlockBookingProperty = async (req, res) => {
   }
 
   if (!prop_id || !block_start || !block_end || !reason) {
-    return res.status(400).json({ success: false, message: "All fields required!" });
+    return res
+      .status(400)
+      .json({ success: false, message: "All fields required!" });
   }
 
   try {
@@ -3152,10 +3230,11 @@ const hostBlockBookingProperty = async (req, res) => {
     });
   } catch (error) {
     console.error("Error blocking property booking:", error);
-    return res.status(500).json({ success: false, message: "Internal Server Error!" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error!" });
   }
 };
-
 
 module.exports = {
   createBooking,

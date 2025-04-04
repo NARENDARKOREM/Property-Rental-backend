@@ -111,7 +111,6 @@ const User = sequelize.define(
   },
   {
     tableName: "tbl_user",
-    charset: "latin1",
     timestamps: true,
     paranoid: true,
   }

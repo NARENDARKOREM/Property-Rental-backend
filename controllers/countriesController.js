@@ -12,48 +12,62 @@ const TblCity = require("../models/TblCity");
 // Create or Update Country
 const upsertCountry = async (req, res) => {
   const { id, title, status, currency } = req.body;
-  console.log(req.body);
+  console.log("Received data:", req.body);
+  
   let imgUrl;
 
-  if(req.file){
-    imgUrl=await uploadToS3(req.file,"image")
+  if (req.file) {
+    imgUrl = await uploadToS3(req.file, "image");
   }
+
   try {
     if (id) {
-      // Update country
+      // Update existing country
       const country = await TblCountry.findByPk(id);
       if (!country) {
         return res.status(404).json({ error: "Country not found" });
       }
 
       country.title = title;
-      country.img = imgUrl || country.img;
+      country.img = imgUrl || country.img; // Ensure `img` is always present
       country.status = status;
-      country.currency = currency;
+      country.currency = currency || country.currency;
+      country.d_con = country.d_con || 0; // Ensure d_con is always set
 
       await country.save();
-      res
-        .status(200)
-        .json({ message: "Country updated successfully", country });
+      return res.status(200).json({
+        message: "Country updated successfully",
+        country,
+      });
     } else {
+      // Validate required fields
+      if (!title || !status || !imgUrl) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
       // Create new country
       const country = await TblCountry.create({
         title,
-        img:imgUrl,
+        img: imgUrl,
         status,
-        d_con: 0,
-        currency: currency || "INR", 
+        d_con: 0, // Ensure `d_con` is always set
+        currency: currency || "INR",
       });
-      res
-        .status(201)
-        .json({ message: "Country created successfully", country });
+
+      return res.status(201).json({
+        message: "Country created successfully",
+        country,
+      });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
+    console.error("Error inserting country:", error);
+    return res.status(500).json({
+      error: "Internal server error",
+      details: error.message,
+    });
   }
 };
+
 
 // Get All Countries
 const getAllCountries = async (req, res) => {

@@ -110,7 +110,6 @@ const Setting = sequelize.define(
   },
   {
     tableName: "tbl_setting",
-    charset: "latin1",
     timestamps: true,
     paranoid: true,
   }
