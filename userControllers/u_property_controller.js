@@ -218,8 +218,7 @@ const TblCity = require("../models/TblCity");
 const addProperty = async (req, res) => {
   const {
     title,
-    price,
-    status,
+    price,   
     address,
     facility,
     description,
@@ -260,7 +259,6 @@ const addProperty = async (req, res) => {
   if (
     !is_sell ||
     !country_id ||
-    !status ||
     !title ||
     !listing_date ||
     !rules ||
@@ -475,7 +473,7 @@ const addProperty = async (req, res) => {
       video: JSON.stringify(videoUrls), // Save the video URLs as a JSON string
       video_url: videoUrlS3,
       price,
-      status,
+      status:0,
       address,
       facility: facilityIds, // store as an array (if your model supports JSON)
       description,
@@ -921,7 +919,7 @@ const editProperty = async (req, res) => {
   try {
     // Destructure fields from req.body
     const {
-      status,
+      
       title,
       address,
       description,
@@ -1156,7 +1154,7 @@ const editProperty = async (req, res) => {
 
     // Update the property with the new details
     await property.update({
-      status,
+      status:property.status,
       title,
       address,
       description,

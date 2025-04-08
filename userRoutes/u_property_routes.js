@@ -4,10 +4,10 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const userPropertyController = require("../userControllers/u_property_controller");
 const upload = require("../config/multer");
 
-// router.post("/add",authMiddleware.isHost,upload.array("files", 10),userPropertyController.addProperty);
+// router.post("/add",authMiddleware.isAuthenticated,upload.array("files", 10),userPropertyController.addProperty);
 router.post(
   "/add",
-  authMiddleware.isHost,
+  authMiddleware.isAuthenticated,
   upload.fields([
     { name: "main_image", maxCount: 1 },
     { name: "extra_files", maxCount: 10 },
@@ -18,7 +18,7 @@ router.post(
 
 router.patch(
   "/edit",
-  authMiddleware.isHost,
+  authMiddleware.isAuthenticated,
   upload.fields([
     { name: "main_image", maxCount: 1 },
     { name: "extra_files", maxCount: 10 },
