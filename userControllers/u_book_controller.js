@@ -536,6 +536,7 @@ const createBooking = async (req, res) => {
       datetime: new Date(),
       title: "Booking Confirmed",
       description: `Your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}`,
+      is_read:false
     });
     if (host) {
       await TblNotification.create({
@@ -543,6 +544,7 @@ const createBooking = async (req, res) => {
         datetime: new Date(),
         title: "New Booking",
         description: `A new booking has been confirmed for ${booking.prop_title}. Booking ID: ${booking.id}`,
+        is_read:false
       });
     }
 
@@ -863,6 +865,22 @@ const editBooking = async (req, res) => {
       );
 
       console.log("Notification sent for booking update.");
+
+      await TblNotification.create({
+        uid: traveler.id,
+        datetime: new Date(),
+        title: "Booking Updated",
+        description: `Your booking for ${property.title} has been successfully updated!`,
+        is_read:false
+      });
+
+      await TblNotification.create({
+        uid: host.id,
+        datetime: new Date(),
+        title: "Booking Updated",
+        description: `The booking for ${property.title} has been updated by ${traveler.name}.`,
+        is_read:false
+      });
     } catch (error) {
       console.error("Error sending notification:", error);
     }
@@ -952,6 +970,7 @@ const confirmBooking = async (req, res) => {
       datetime: new Date(),
       title: "Booking Confirmed",
       description: `Your booking for ${booking.prop_title} has been confirmed! Your Booking ID is ${booking.id}`,
+      is_read:false
     });
 
     // Return success response
@@ -1238,12 +1257,14 @@ const userCheckIn = async (req, res) => {
         datetime: new Date(),
         title: "Check-in Successful",
         description: `You have successfully checked into ${property.title}. Enjoy your stay!`,
+        is_read:false
       },
       {
         uid: host.id,
         datetime: new Date(),
         title: "Guest Checked In",
         description: `A guest has checked into your property: ${property.title}.`,
+        is_read:false
       },
     ]);
 
@@ -1389,12 +1410,14 @@ const userCheckOut = async (req, res) => {
         datetime: new Date(),
         title: "Check-out Successful",
         description: `You have successfully checked out from ${property.title}. We hope you had a great stay!`,
+        is_read:false
       },
       {
         uid: host.id,
         datetime: new Date(),
         title: "Guest Checked Out",
         description: `A guest has checked out from your property: ${property.title}.`,
+        is_read:false
       },
     ]);
 
@@ -1781,12 +1804,14 @@ const cancelBooking = async (req, res) => {
         datetime: new Date(),
         title: "Booking Cancelled",
         description: `Your booking for ${property.title} has been cancelled!${refundMessage}`,
+        is_read:false
       },
       {
         uid: host.id,
         datetime: new Date(),
         title: "Booking Cancelled",
         description: `A booking for your property ${property.title} has been cancelled!`,
+        is_read:false
       },
     ]);
 
@@ -2287,12 +2312,14 @@ const cancelTravelerBookingByHost = async (req, res) => {
         datetime: new Date(),
         title: "Booking Cancelled by Host",
         description: `Your booking for ${property.title} has been cancelled by the host. ${refundMessage}`,
+        is_read:false
       },
       {
         uid: host.id,
         datetime: new Date(),
         title: "Booking Cancelled",
         description: `You have cancelled a booking for your property ${property.title}.`,
+        is_read:false
       },
     ]);
 
