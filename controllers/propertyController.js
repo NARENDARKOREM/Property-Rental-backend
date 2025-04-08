@@ -9,6 +9,7 @@ const sequelize = require("../db");
 const { Op } = require("sequelize");
 const { default: axios } = require("axios");
 const TblNotification = require("../models/TblNotification");
+const TblBook = require("../models/TblBook");
 const formatDate = (date) => {
   return date ? new Date(date).toISOString().split("T")[0] : null;
 };
@@ -593,6 +594,20 @@ console.log("Force Delete:", forceDelete);
 
     if (!property) {
       return res.status(404).json({ error: "Property not found" });
+    }
+
+    const activeBookings = await TblBook.findAll({
+      where: {
+        prop_id: id,
+        book_status: { [Op.in]: ["Booked", "Check_in", "Confirmed"] },
+      },
+    })
+
+    if (activeBookings.length > 0) {
+      return res.status(400).json({
+        error: "Cannot delete property with active bookings",
+        activeBookingsCount: activeBookings.length,
+      });
     }
 
     if (property.deletedAt && forceDelete !== "true") {
