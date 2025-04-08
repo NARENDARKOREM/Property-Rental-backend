@@ -242,7 +242,7 @@ const addProperty = async (req, res) => {
     setting_id,
     standard_rules,
     extra_guest_charges,
-    video_url
+    video_url,
   } = req.body;
 
   const files = req.files; // Uploaded files from multipart/form-data
@@ -408,7 +408,7 @@ const addProperty = async (req, res) => {
     const videoUrls = videos.length
       ? await uploadToS3(videos, "property-videos")
       : [];
-    
+
     let videoUrlS3 = null;
     if (files.video_url && files.video_url.length > 0) {
       const videoFile = files.video_url[0];
@@ -417,7 +417,8 @@ const addProperty = async (req, res) => {
         return res.status(400).json({
           ResponseCode: "400",
           Result: "false",
-          ResponseMsg: "Invalid video file format for video_url! Only mp4 is allowed.",
+          ResponseMsg:
+            "Invalid video file format for video_url! Only mp4 is allowed.",
         });
       }
       // Optionally set a different size limit for video_url files.
@@ -446,7 +447,10 @@ const addProperty = async (req, res) => {
       } else if (!isNaN(Number(city))) {
         cityId = Number(city);
       } else {
-        const cityRecord = await TblCity.findOne({ where: { title: city }, attributes: ['title'] });
+        const cityRecord = await TblCity.findOne({
+          where: { title: city },
+          attributes: ["title"],
+        });
         if (cityRecord) {
           cityId = cityRecord.id;
         }
@@ -494,7 +498,7 @@ const addProperty = async (req, res) => {
       pets,
       setting_id,
       extra_guest_charges,
-      video_url
+      video_url,
     });
 
     res.status(201).json({
@@ -512,7 +516,6 @@ const addProperty = async (req, res) => {
     });
   }
 };
-
 
 // const editProperty = async (req, res) => {
 //   try {
@@ -966,7 +969,8 @@ const editProperty = async (req, res) => {
       return res.status(404).json({
         ResponseCode: "404",
         Result: "false",
-        ResponseMsg: "Property not found or you are not authorized to edit this property",
+        ResponseMsg:
+          "Property not found or you are not authorized to edit this property",
       });
     }
 
@@ -1091,7 +1095,8 @@ const editProperty = async (req, res) => {
         return res.status(400).json({
           ResponseCode: "400",
           Result: "false",
-          ResponseMsg: "Invalid video file format for video_url! Only mp4 is allowed.",
+          ResponseMsg:
+            "Invalid video file format for video_url! Only mp4 is allowed.",
         });
       }
       videoUrlS3 = await uploadToS3([videoFile], "property-videos");
@@ -1198,18 +1203,17 @@ const editProperty = async (req, res) => {
   }
 };
 
-
 const getPropertyList = async (req, res) => {
   try {
     console.log("Request User:", req.user);
     const uid = req.user?.id || null;
-    if(!uid){
-      res.status(401).json({message:"Unauthorized: User not found!"})
+    if (!uid) {
+      res.status(401).json({ message: "Unauthorized: User not found!" });
     }
     console.log("Fetching properties for user ID:", uid);
     // Include TblCity to get city details
     const properties = await Property.findAll({
-      where: { add_user_id: uid, status: 1 },
+      where: { add_user_id: uid, status: 1, add_user_id: { [Op.ne]: null } },
       include: [
         { model: TblCategory, as: "category", attributes: ["title"] },
         // { model: TblFacility, as: "facilities", attributes: ["title"] },
@@ -1218,12 +1222,11 @@ const getPropertyList = async (req, res) => {
       ],
     });
 
-    console.log("Fetched properties:", properties);
-
     // Helper function to recursively flatten an array.
     const flattenArray = (arr) =>
       arr.reduce(
-        (acc, val) => (Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val)),
+        (acc, val) =>
+          Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val),
         []
       );
 
@@ -1255,7 +1258,9 @@ const getPropertyList = async (req, res) => {
         } else if (typeof property.rules === "string") {
           try {
             const parsed = JSON.parse(property.rules);
-            rulesArray = Array.isArray(parsed) ? flattenArray(parsed) : [parsed];
+            rulesArray = Array.isArray(parsed)
+              ? flattenArray(parsed)
+              : [parsed];
           } catch (error) {
             try {
               rulesArray = property.rules.split(",").map((rule) => rule.trim());
@@ -1283,8 +1288,6 @@ const getPropertyList = async (req, res) => {
       })
     );
 
-    console.log("Final property list:", propertyList);
-
     if (propertyList.length === 0) {
       return res.status(200).json({
         proplist: [],
@@ -1299,7 +1302,7 @@ const getPropertyList = async (req, res) => {
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Properties found",
-      useriiid:req.user
+      useriiid: req.user,
     });
   } catch (error) {
     console.error("Error fetching property list:", error);
@@ -1393,10 +1396,14 @@ const getPropertyTypes = async (req, res) => {
           if (typeof property.rules === "string") {
             try {
               const parsed = JSON.parse(property.rules);
-              rulesArray = Array.isArray(parsed) ? flattenArray(parsed) : [parsed];
+              rulesArray = Array.isArray(parsed)
+                ? flattenArray(parsed)
+                : [parsed];
             } catch (error) {
               try {
-                rulesArray = property.rules.split(",").map((rule) => rule.trim());
+                rulesArray = property.rules
+                  .split(",")
+                  .map((rule) => rule.trim());
               } catch (e) {
                 rulesArray = [];
               }
@@ -1415,7 +1422,7 @@ const getPropertyTypes = async (req, res) => {
           ...property.toJSON(),
           facilities,
           rules: rulesArray,
-          city:cityName
+          city: cityName,
         };
       })
     );
@@ -1426,7 +1433,7 @@ const getPropertyTypes = async (req, res) => {
       Result: "true",
       ResponseMsg: "Property Type List Found!",
     });
-  } catch (error) { 
+  } catch (error) {
     console.error("Error in getPropertyTypes:", error);
     res.status(500).json({
       ResponseCode: "500",
@@ -1479,7 +1486,7 @@ const getPropertyDetails = async (req, res) => {
           "Invalid JSON in standard_rules:",
           property.standard_rules
         );
-        return property.standard_rules; 
+        return property.standard_rules;
       }
     })();
 
@@ -1527,7 +1534,7 @@ const getPropertyDetails = async (req, res) => {
           Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val),
         []
       );
-    
+
     let rulesArray;
     if (Array.isArray(property.rules)) {
       rulesArray = property.rules;
@@ -1546,7 +1553,6 @@ const getPropertyDetails = async (req, res) => {
       rulesArray = [];
     }
     rulesArray = flattenArray(rulesArray);
-    
 
     const completedBookings = await TblBook.findAll({
       where: {
@@ -1703,49 +1709,51 @@ const getPropertyDetails = async (req, res) => {
     const propertyImage = property.image;
     const panoramaStatus = property.is_panorama;
 
-// Fetch extra images and video from property table
-const extraImages = (() => {
-  if (!property.extra_images) {
-    return [];
-  } else if (typeof property.extra_images === "string") {
-    const trimmed = property.extra_images.trim();
-    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
-      try {
-        let parsed = JSON.parse(trimmed);
-        return Array.isArray(parsed) ? parsed : [parsed];
-      } catch (err) {
-        console.error("Error parsing extra_images JSON:", err.message);
-        return [property.extra_images];
+    // Fetch extra images and video from property table
+    const extraImages = (() => {
+      if (!property.extra_images) {
+        return [];
+      } else if (typeof property.extra_images === "string") {
+        const trimmed = property.extra_images.trim();
+        if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+          try {
+            let parsed = JSON.parse(trimmed);
+            return Array.isArray(parsed) ? parsed : [parsed];
+          } catch (err) {
+            console.error("Error parsing extra_images JSON:", err.message);
+            return [property.extra_images];
+          }
+        } else {
+          return [property.extra_images];
+        }
+      } else if (Array.isArray(property.extra_images)) {
+        return property.extra_images;
       }
-    } else {
-      return [property.extra_images];
-    }
-  } else if (Array.isArray(property.extra_images)) {
-    return property.extra_images;
-  }
-  return [];
-})();
+      return [];
+    })();
 
-const videoUrl = property.video
-  ? (typeof property.video === "string"
-      ? (property.video.trim().startsWith("[") || property.video.trim().startsWith("{")
+    const videoUrl = property.video
+      ? typeof property.video === "string"
+        ? property.video.trim().startsWith("[") ||
+          property.video.trim().startsWith("{")
           ? JSON.parse(property.video)
-          : property.video)
-      : property.video)
-  : null;
+          : property.video
+        : property.video
+      : null;
 
-  const youtubeUrl = property.video_url
-  ? (typeof property.video_url === "string"
-      ? (property.video_url.trim().startsWith("[") || property.video_url.trim().startsWith("{")
+    const youtubeUrl = property.video_url
+      ? typeof property.video_url === "string"
+        ? property.video_url.trim().startsWith("[") ||
+          property.video_url.trim().startsWith("{")
           ? JSON.parse(property.video_url)
-          : property.video_url)
-      : property.video_url)
-  : null;
+          : property.video_url
+        : property.video_url
+      : null;
 
     const gallery = {
       extra_images: extraImages,
       video: videoUrl,
-      video_url:youtubeUrl
+      video_url: youtubeUrl,
     };
 
     const cityRecord = await TblCity.findByPk(property.city, {
@@ -1755,9 +1763,9 @@ const videoUrl = property.video
 
     const propertyObj = {
       ...property.toJSON(),
-      city:cityName,
-      rules:rulesArray
-    }
+      city: cityName,
+      rules: rulesArray,
+    };
 
     const response = {
       propetydetails: {
@@ -2027,8 +2035,6 @@ const videoUrl = property.video
 //     });
 //   }
 // };
- 
-
 
 // const getAllHostAddedProperties = async (req, res) => {
 //   const uid = req.user?.id || null;
@@ -2210,7 +2216,6 @@ const videoUrl = property.video
 //   }
 // };
 
-
 const getAllHostAddedProperties = async (req, res) => {
   const uid = req.user?.id || null;
 
@@ -2274,7 +2279,8 @@ const getAllHostAddedProperties = async (req, res) => {
     // Helper function to recursively flatten an array.
     const flattenArray = (arr) =>
       arr.reduce(
-        (acc, val) => (Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val)),
+        (acc, val) =>
+          Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val),
         []
       );
 
@@ -2292,12 +2298,13 @@ const getAllHostAddedProperties = async (req, res) => {
         //   );
         if (property.priceCalendars) {
           const futureEntries = property.priceCalendars.filter(
-            (calendar) => new Date(calendar.date).toISOString().split("T")[0] >= today
-          );          
+            (calendar) =>
+              new Date(calendar.date).toISOString().split("T")[0] >= today
+          );
           const todayEntry = property.priceCalendars.find(
             (calendar) => calendar.date === today
           );
-        
+
           if (todayEntry) {
             upcomingPrices.push({
               date: todayEntry.date,
@@ -2314,7 +2321,7 @@ const getAllHostAddedProperties = async (req, res) => {
             })),
           ];
         }
-        console.log("Fetched Price Calendars: ", property.priceCalendars);
+        // console.log("Fetched Price Calendars: ", property.priceCalendars);
 
         // Process and flatten the rules field.
         let rulesArray;
@@ -2348,8 +2355,10 @@ const getAllHostAddedProperties = async (req, res) => {
         const calculatedRate =
           completedBookings.length > 0
             ? (
-                completedBookings.reduce((sum, booking) => sum + booking.total_rate, 0) /
-                completedBookings.length
+                completedBookings.reduce(
+                  (sum, booking) => sum + booking.total_rate,
+                  0
+                ) / completedBookings.length
               ).toFixed(0)
             : property.rate;
 
@@ -2381,9 +2390,7 @@ const getAllHostAddedProperties = async (req, res) => {
         // Process facility field: if it's a string, convert to an array.
         let facilityIds = [];
         if (typeof property.facility === "string") {
-          facilityIds = property.facility
-            .split(",")
-            .map((id) => id.trim());
+          facilityIds = property.facility.split(",").map((id) => id.trim());
         } else if (Array.isArray(property.facility)) {
           facilityIds = property.facility;
         }
@@ -2443,7 +2450,9 @@ const getAllHostAddedProperties = async (req, res) => {
         // Process extra images and video.
         let extraImagesParsed = [];
         try {
-          extraImagesParsed = property.extra_images ? JSON.parse(property.extra_images) : [];
+          extraImagesParsed = property.extra_images
+            ? JSON.parse(property.extra_images)
+            : [];
         } catch (err) {
           extraImagesParsed = [];
         }
@@ -2453,7 +2462,7 @@ const getAllHostAddedProperties = async (req, res) => {
         } catch (err) {
           videoUrlParsed = null;
         }
-        console.log("Video URL:", videoUrlParsed);
+        // console.log("Video URL:", videoUrlParsed);
 
         return {
           id: property.id,
@@ -2502,7 +2511,6 @@ const getAllHostAddedProperties = async (req, res) => {
     });
   }
 };
-
 
 const getSortedProperties = async (req, res) => {
   try {
@@ -2565,7 +2573,7 @@ const getSortedProperties = async (req, res) => {
         } else if (Array.isArray(property.facility)) {
           facilityIds = property.facility;
         }
-        
+
         // Fetch facility details using the facility IDs
         const facilities = facilityIds.length
           ? await TblFacility.findAll({
@@ -2694,7 +2702,6 @@ const getSortedPropertiestitle = async (req, res) => {
     });
   }
 };
-
 
 const searchPropertyByLocationAndDate = async (req, res) => {
   try {
@@ -2896,7 +2903,8 @@ const searchPropertyByLocationAndDate = async (req, res) => {
 
 const searchProperties = async (req, res) => {
   try {
-    const { location, check_in, check_out, adults, children, infants, pets } = req.body;
+    const { location, check_in, check_out, adults, children, infants, pets } =
+      req.body;
     const uid = req.user?.id || null;
 
     if (!location) {
@@ -2991,7 +2999,6 @@ const searchProperties = async (req, res) => {
     });
   }
 };
-
 
 const deleteUserProperty = async (req, res) => {
   const uid = req.user.id;
