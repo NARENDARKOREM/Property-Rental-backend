@@ -2,26 +2,42 @@ const { Property } = require('../models');
 const TblNotification = require('../models/TblNotification');
 
 const FetchNotifications = async (req, res) => {
-    console.log("user from request*******",req.user)
+    console.log("User from request:", req.user);
+  
     if (!req.user || !req.user.id) {
-        return res.status(401).json({ message: "User not found!" });
+      return res.status(401).json({
+        success: false,
+        ResponseCode: "401",
+        ResponseMsg: "User not authenticated",
+      });
     }
+  
     const uid = req.user.id;
+  
     try {
-        const notifications = await TblNotification.findAll({ where: { uid:uid } });
-
-        if (!notifications.length) {
-            return res.status(404).json({ message: "No notifications found!" });
-        }
-        return res.status(200).json({
-            message: "Notifications fetched successfully!",
-            notifications
-        });
+      const unreadNotifications = await TblNotification.findAll({
+        where: { uid: uid, is_read: false },
+        order: [['datetime', 'DESC']], // Latest first
+      });
+  
+      return res.status(200).json({
+        success: true,
+        ResponseCode: "200",
+        ResponseMsg: unreadNotifications.length
+          ? "Notifications fetched successfully!"
+          : "No unread notifications found",
+        unreadNotifications: unreadNotifications || [],
+      });
     } catch (error) {
-        console.error("Error fetching notifications:", error);
-        return res.status(500).json({ message: "Internal Server Error", error });
+      console.error("Error fetching notifications:", error);
+      return res.status(500).json({
+        success: false,
+        ResponseCode: "500",
+        ResponseMsg: "Internal Server Error",
+        error: error.message,
+      });
     }
-};
+  };
 
 const markNotificationAsRead = async (req, res) => {
     const uid = req.user?.id;
