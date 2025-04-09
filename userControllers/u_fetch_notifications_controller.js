@@ -22,6 +22,7 @@ const FetchNotifications = async (req, res) => {
   
       return res.status(200).json({
         success: true,
+        is_read: false,
         ResponseCode: "200",
         ResponseMsg: unreadNotifications.length
           ? "Notifications fetched successfully!"
@@ -83,6 +84,7 @@ const markNotificationAsRead = async (req, res) => {
   
       return res.status(200).json({
         success: true,
+        is_read: true,
         ResponseCode: "200",
         ResponseMsg: "Notifications marked as read successfully",
         notifications: updatedNotifications,
