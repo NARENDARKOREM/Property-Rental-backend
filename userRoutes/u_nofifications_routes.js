@@ -4,5 +4,6 @@ const notificationController = require('../userControllers/u_fetch_notifications
 const authMiddleware = require('../middlewares/authMiddleware');
 
 router.get("/fetch-notifications",authMiddleware.isAuthenticated,notificationController.FetchNotifications)
+router.post("/mark-as-read",authMiddleware.isAuthenticated,notificationController.markNotificationAsRead)
 
 module.exports = router;

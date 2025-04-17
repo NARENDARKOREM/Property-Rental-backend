@@ -94,7 +94,7 @@ app.use(
       "http://localhost:58160",
       "https://admin.servostay.com",
       "https://servostay.com",
-      "https://servostay-three.vercel.app"
+      "https://servostay-three.vercel.app",
     ],
     credentials: true,
   })
@@ -172,7 +172,7 @@ app.use("/u_cities", uCityRoutes);
 app.use("/app-settings", require("./userRoutes/setting_routes"));
 app.use("/notifications", require("./userRoutes/u_nofifications_routes"));
 app.use("/booking-refund", require("./userRoutes/u_refund_routes"));
-app.use("/request-property" ,requestProperties);
+app.use("/request-property", requestProperties);
 
 app.post("/webhook/whatsapp-status", (req, res) => {
   console.log("Received webhook event:", req.body);
