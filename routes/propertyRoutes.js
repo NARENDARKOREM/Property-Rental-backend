@@ -19,5 +19,7 @@ router.post(
   propertyController.fetchPropertiesByCountries
 );
 router.patch("/toggle-panorama",adminMiddleware.isAdmin, propertyController.isPanoramaToggle);
+router.post("/property-verify",adminMiddleware.isAdmin, propertyController.acceptRequestProperties);
+
 
 module.exports = router;

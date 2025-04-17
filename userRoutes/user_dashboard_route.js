@@ -3,13 +3,13 @@ const userDashboardController = require('../userControllers/u_dashboard_controll
 const router = express.Router();
 const authMiddleware = require("../middlewares/authMiddleware");
 
-router.get("/all", authMiddleware.isHost,userDashboardController.dashboardData);
-router.get("/total-earnings-bymonth", authMiddleware.isHost,userDashboardController.TotalEarningsByMonth);
-router.get("/listing-properties", authMiddleware.isHost,userDashboardController.listingProperties);
-router.get("/list-by-location", authMiddleware.isHost,userDashboardController.listByLocations);
-router.get("/avg-customer-reviews", authMiddleware.isHost,userDashboardController.averageCustomerReviews);
-router.get("/total-reviews", authMiddleware.isHost,userDashboardController.totalReviewCount);
-router.get("/total-nights", authMiddleware.isHost,userDashboardController.totalNightsBookedByTraveler);
-router.get("/average-nights",authMiddleware.isHost,userDashboardController.averageNightBookingByTraveler);
+router.get("/all", authMiddleware.isAuthenticated,userDashboardController.dashboardData);
+router.get("/total-earnings-bymonth", authMiddleware.isAuthenticated,userDashboardController.TotalEarningsByMonth);
+router.get("/listing-properties", authMiddleware.isAuthenticated,userDashboardController.listingProperties);
+router.get("/list-by-location", authMiddleware.isAuthenticated,userDashboardController.listByLocations);
+router.get("/avg-customer-reviews", authMiddleware.isAuthenticated,userDashboardController.averageCustomerReviews);
+router.get("/total-reviews", authMiddleware.isAuthenticated,userDashboardController.totalReviewCount);
+router.get("/total-nights", authMiddleware.isAuthenticated,userDashboardController.totalNightsBookedByTraveler);
+router.get("/average-nights",authMiddleware.isAuthenticated,userDashboardController.averageNightBookingByTraveler);
 
 module.exports = router;

@@ -31,7 +31,7 @@ TblCountry.hasMany(Property, { as: "properties", foreignKey: "country_id" });
 // Property.belongsTo(TblFacility, { as: "facilities", foreignKey: "facility" });
 // TblFacility.hasMany(Property, { as: "properties", foreignKey: "facility" });
 
-TblExtra.belongsTo(Property, { as: "properties", foreignKey: "pid" });
+TblExtra.belongsTo(Property, { as: "properties", foreignKey: "pid",onDelete:"CASCADE",onUpdate:"CASCADE" });
 Property.hasMany(TblExtra, { as: "extraImg", foreignKey: "pid" });
 
 TblExtra.hasMany(TblExtraImage, { foreignKey: "extra_id", as: "images" });

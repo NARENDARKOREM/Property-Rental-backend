@@ -12,6 +12,7 @@ const sequelize = new Sequelize(
     dialectModule: require("mysql2"),
     port: process.env.DB_PORT,
     timezone: process.env.TIMEZONE || "+05:30",
+    logging: false,
     pool: {
       max: 200,
       min: 0,

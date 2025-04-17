@@ -3,16 +3,16 @@ const Admin = require("../models/Admin");
 
 exports.isAdmin = async (req, res, next) => {
   const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
-  console.log("Token: ", token);
+  // console.log("Token: ", token);
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: No token provided" });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded token: ", decoded);
+    // console.log("Decoded token: ", decoded);
     req.user = await Admin.findByPk(decoded.id);
-    console.log("Admin user: ", req.user);
+    // console.log("Admin user: ", req.user);
 
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized: Admin not found" });

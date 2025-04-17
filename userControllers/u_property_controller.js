@@ -218,8 +218,7 @@ const TblCity = require("../models/TblCity");
 const addProperty = async (req, res) => {
   const {
     title,
-    price,
-    status,
+    price,   
     address,
     facility,
     description,
@@ -260,7 +259,6 @@ const addProperty = async (req, res) => {
   if (
     !is_sell ||
     !country_id ||
-    !status ||
     !title ||
     !listing_date ||
     !rules ||
@@ -471,7 +469,7 @@ const addProperty = async (req, res) => {
       video: JSON.stringify(videoUrls), // Save the video URLs as a JSON string
       video_url: videoUrlS3,
       price,
-      status,
+      status:0,
       address,
       facility: facilityIds, // store as an array (if your model supports JSON)
       description,
@@ -918,7 +916,7 @@ const editProperty = async (req, res) => {
   try {
     // Destructure fields from req.body
     const {
-      status,
+      
       title,
       address,
       description,
@@ -1151,7 +1149,7 @@ const editProperty = async (req, res) => {
 
     // Update the property with the new details
     await property.update({
-      status,
+      status:property.status,
       title,
       address,
       description,
@@ -1203,19 +1201,12 @@ const editProperty = async (req, res) => {
 
 const getPropertyList = async (req, res) => {
   try {
- console.log("Request User:", req.user);
-
-    if (!req.user || !req.user.id) {
-      return res.status(400).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "User ID not provided",
-      });
+    console.log("Request User:", req.user);
+    const uid = req.user?.id || null;
+    if(!uid){
+      res.status(401).json({message:"Unauthorized: User not found!"})
     }
-
-    const uid = req.user.id;
     console.log("Fetching properties for user ID:", uid);
-    
     // Include TblCity to get city details
     const properties = await Property.findAll({
       where: { add_user_id: uid, status: 1 },
@@ -1308,6 +1299,7 @@ const getPropertyList = async (req, res) => {
       ResponseCode: "200",
       Result: "true",
       ResponseMsg: "Properties found",
+      useriiid:req.user
     });
   } catch (error) {
     console.error("Error fetching property list:", error);

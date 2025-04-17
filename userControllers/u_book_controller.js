@@ -363,11 +363,51 @@ const createBooking = async (req, res) => {
     }
 
     const userEmailContent = `
-      <h3>Hello ${user.name},</h3>
-      <p><strong>Booking ID:</strong> ${booking.id}</p>
-      <p>Your booking for <strong>${booking.prop_title}</strong> has been confirmed.</p>
-      <p>Thank you for choosing our platform!</p>
-    `;
+  <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; font-size:1rem">
+    <h3>Hello ${user.name},</h3>
+    <p><strong>Thanks ${user.name}! Your booking at ${booking.prop_title} is 
+  <span style="color: #333; font-weight: bold;">confirmed</span>.
+</strong></p>
+<p>We are delighted to confirm your stay. Prepare for a comfortable and luxurious experience. Below are your reservation details:</p>
+<p>From the moment you arrive, we want you to feel at home. Enjoy world-class amenities, exceptional hospitality, and a seamless stay tailored to your comfort. Whether you’re here for business, leisure, or a special occasion, we are committed to making your experience unforgettable.</p>
+<p>If you have any special requests or need assistance, feel free to reach out to us. We look forward to welcoming you soon!</p>
+
+    <h4 style="color: #045D78; font-size:1.5rem">📌 Booking Details</h4>
+    <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+      <tr><td><strong>Booking ID</strong></td><td>${booking.id}</td></tr>
+      <tr><td><strong>Property Name</strong></td><td>${booking.prop_title}</td></tr>
+      <tr><td><strong>Check-in Date</strong></td><td>${booking.check_in}</td></tr>
+      <tr><td><strong>Check-out Date</strong></td><td>${booking.check_out}</td></tr>
+      <tr><td><strong>Total Amount</strong></td><td>₹${booking.total}</td></tr>
+      <tr><td><strong>Transaction ID</strong></td><td>${booking.transaction_id}</td></tr>
+      <tr><td><strong>Payment Method</strong></td><td>${booking.p_method_id}</td></tr>
+      <tr><td><strong>Tax</strong></td><td>${booking.tax}%</td></tr>
+      <tr><td><strong>Guests</strong></td><td>${booking.adults} Adults, ${booking.children} Children, ${booking.infants} Infants, ${booking.pets} Pets</td></tr>
+      <tr><td><strong>ID Proof</strong></td><td>${booking.id_proof}</td></tr>
+    </table>
+
+    <h4 style="color: #045D78; font-size:1.5rem">🏡 Property Details</h4>
+    <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+      <tr><td><strong>Address</strong></td><td>${property.address}</td></tr>
+      <tr><td><strong>Price per Night</strong></td><td>₹${property.price}</td></tr>
+      <tr><td><strong>Beds</strong></td><td>${property.beds}</td></tr>
+      <tr><td><strong>Bathrooms</strong></td><td>${property.bathroom}</td></tr>
+      <tr><td><strong>Size</strong></td><td>${property.sqrft} sq ft</td></tr>
+      <tr><td><strong>Rules</strong></td><td>${property.rules.join(", ")}</td></tr>
+      <tr><td><strong>Check-in Time</strong></td><td>${property.standard_rules.checkIn}</td></tr>
+      <tr><td><strong>Check-out Time</strong></td><td>${property.standard_rules.checkOut}</td></tr>
+    </table>
+
+    <h4 style="color: #045D78; font-size:1.5rem">👤 Property Owner Details</h4>
+    <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+      <tr><td><strong>Host Name</strong></td><td>${host ? host.name : "N/A"}</td></tr>
+      <tr><td><strong>Contact</strong></td><td>${host ? host.email : "N/A"}</td></tr>
+      <tr><td><strong>Phone</strong></td><td>${host ? host.mobile : "N/A"}</td></tr>
+    </table>
+
+    <p>Thank you for choosing <strong>Servostay</strong>. Enjoy your stay!</p>
+  </div>
+`;
 
     await sendEmailNotification(
       user.email,
@@ -377,11 +417,26 @@ const createBooking = async (req, res) => {
 
     if (host) {
       const hostEmailContent = `
-        <h3>Hello ${host.name},</h3>
-        <p>You have received a new booking for <strong>${booking.prop_title}</strong>.</p>
-        <p><strong>Booking ID:</strong> ${booking.id}</p>
-        <p>Please check your dashboard for more details.</p>
-      `;
+      <h3>Hello ${host.name},</h3>
+      <p>You have received a new booking for your property <strong>${booking.prop_title}</strong>.</p>
+  
+      <h4>📌 Booking Details:</h4>
+      <ul>
+        <li><strong>Booking ID:</strong> ${booking.id}</li>
+        <li><strong>Check-in Date:</strong> ${booking.check_in}</li>
+        <li><strong>Check-out Date:</strong> ${booking.check_out}</li>
+        <li><strong>Total Amount Paid:</strong> ₹${booking.total}</li>
+      </ul>
+  
+      <h4>👤 Traveler Details:</h4>
+      <ul>
+        <li><strong>Name:</strong> ${user.name}</li>
+        <li><strong>Email:</strong> ${user.email}</li>
+        <li><strong>Phone:</strong> ${user.phone}</li>
+      </ul>
+  
+      <p>Please check your dashboard for more details.</p>
+    `;
 
       await sendEmailNotification(
         host.email,
@@ -1492,7 +1547,7 @@ const userCheckOut = async (req, res) => {
 //   }
 // };
 
-const cancelBooking = async (req, res) => {
+const cancelBooking = async (req, res) => { 
   function formatPhoneNumber(number) {
     if (!number.startsWith("+")) {
       return `+91${number}`;
@@ -2376,7 +2431,7 @@ const getTravelerBookingsByStatus = async (req, res) => {
     let queryFilter = { uid };
 
     if (status === "active") {
-      queryFilter.book_status = { [Op.in]: ["Booked", "Confirmed"] };
+      queryFilter.book_status = { [Op.in]: ["Booked", "Confirmed","Check_in"] };
     } else if (status === "completed") {
       queryFilter.book_status = "Completed";
     } else if (status === "cancelled") {
