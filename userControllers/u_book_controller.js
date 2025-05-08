@@ -8,7 +8,7 @@ const { Op, or, where } = require("sequelize");
 const twilio = require("twilio");
 const Sib = require("sib-api-v3-sdk");
 require("dotenv").config();
-const { default: axios } = require("axios");
+// const { default: axios } = require("axios");
 
 const uploadToS3 = require("../config/fileUpload.aws");
 const HostTravelerReview = require("../models/HostTravelerReview");
@@ -17,6 +17,8 @@ const TravelerHostReview = require("../models/TravelerHostReview");
 const PaymentList = require("../models/PaymentList");
 const router = require("../routes/adminRoutes");
 const PropertyBlock = require("../models/PropertyBlock");
+const { Setting } = require("../models");
+const axios = require('axios');
 
 const sendResponse = (res, code, result, msg, additionalData = {}) => {
   res.status(code).json({
@@ -57,6 +59,9 @@ const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const BREVO_WHATSAPP_SENDER = process.env.BREVO_WHATSAPP_SENDER;
 
 function formatPhoneNumber(number) {
+  if (!number) return null;
+  number = number.toString().trim();
+  number = number.replace(/[^+\d]/g, "");
   if (!number.startsWith("+")) {
     return `+91${number}`;
   }
@@ -65,22 +70,22 @@ function formatPhoneNumber(number) {
 
 async function sendWhatsAppMessage(
   recipient,
-  firstName,
-  bookingId,
-  templateId
+  templateId,
+  params
 ) {
   try {
     const formattedNumber = formatPhoneNumber(recipient);
-    console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
+    if (!formattedNumber) {
+      throw new Error("Invalid or missing phone number");
+    }
+
+    console.log("Sending WhatsApp message to:", formattedNumber);
 
     const payload = {
-      senderNumber: BREVO_WHATSAPP_SENDER,
+      senderNumber: process.env.BREVO_WHATSAPP_SENDER,
       contactNumbers: [formattedNumber],
       templateId: parseInt(templateId, 10),
-      params: {
-        FIRSTNAME: firstName,
-        BOOKING_ID: bookingId,
-      },
+      params, 
     };
 
     const response = await axios.post(
@@ -89,34 +94,23 @@ async function sendWhatsAppMessage(
       {
         headers: {
           accept: "application/json",
-          "api-key": BREVO_API_KEY,
+          "api-key": process.env.BREVO_API_KEY,
           "content-type": "application/json",
         },
       }
     );
 
     console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+    return response.data;
   } catch (error) {
     console.error(
       `Error sending WhatsApp message to: ${recipient}`,
       error.response?.data || error.message
     );
+    throw error; 
   }
 }
 
-// Test calls
-// sendWhatsAppMessage(
-//   "+918688468369",
-//   "John",
-//   "ABC123",
-//   process.env.BREVO_TEMPLATE_ID
-// );
-// sendWhatsAppMessage(
-//   "+919505171479",
-//   "Jane",
-//   "XYZ987",
-//   process.env.BREVO_TEMPLATE_ID
-// );
 
 const sendEmailNotification = async (toEmail, subject, content) => {
   try {
@@ -126,7 +120,7 @@ const sendEmailNotification = async (toEmail, subject, content) => {
 
     const transactionalEmailApi = new Sib.TransactionalEmailsApi();
     const sender = {
-      email: "servostay@gmail.com",
+      email: "admin@servostay.com",
       name: "Servostay",
     };
     const receivers = [{ email: toEmail }];
@@ -155,7 +149,7 @@ const createBooking = async (req, res) => {
     check_out,
     subtotal,
     total,
-    tax,
+    // tax,
     p_method_id,
     book_for,
     prop_price,
@@ -188,7 +182,7 @@ const createBooking = async (req, res) => {
     !check_out ||
     !subtotal ||
     !total ||
-    !tax ||
+    // !tax ||
     !p_method_id ||
     !book_for ||
     !prop_price ||
@@ -218,6 +212,27 @@ const createBooking = async (req, res) => {
   }
 
   try {
+
+    const setting = await Setting.findOne()
+    if (!setting) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Tax configuration not found!" });
+    }
+
+    const tax = setting.tax;
+
+    const expectedTotal =
+    subtotal +
+    subtotal * (tax / 100) +
+    (platform_fee || 0) +
+    (extra_guest_charges || 0) -
+    (cou_amt || 0);
+  if (Math.abs(total - expectedTotal) > 0.01) {
+    console.warn(
+      `Total mismatch: expected ${expectedTotal}, received ${total}`
+    );
+  }
     const user = await User.findByPk(uid);
     if (!user) {
       return res
@@ -275,18 +290,6 @@ const createBooking = async (req, res) => {
         .json({ success: false, message: "That Date Range Already Booked!" });
     }
 
-    // let idProofUrl;
-    // try {
-    //   // Wrap the single file into an array to work with uploadToS3
-    //   const uploadedFiles = await uploadToS3([id_proof_img], "id-proof-images");
-    //   idProofUrl = uploadedFiles; // Extract the first URL (only one file uploaded)
-    // } catch (error) {
-    //   console.error("Error uploading ID proof to S3:", error);
-    //   return res.status(500).json({
-    //     success: false,
-    //     message: "Failed to upload ID proof. Please try again later.",
-    //   });
-    // }
 
     let idProofUrl = null;
     if (id_proof_img) {
@@ -445,43 +448,32 @@ const createBooking = async (req, res) => {
       );
     }
 
-    // Sending WhatsApp Notifications
-    // const userMessage = `Hello ${user.name}, your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id}`;
-    // await sendWhatsAppMessage(user.mobile, userMessage);
-
-    // if (host) {
-    //   const hostMessage = `Hello ${host.name}, you have received a new booking for ${booking.prop_title}. Booking ID: ${booking.id}`;
-    //   await sendWhatsAppMessage(host.mobile, hostMessage);
-    // }
-
-    //   // For Traveler
-    await sendWhatsAppMessage(
-      user.mobile,
-      user.name,
-      booking.id,
-      process.env.BREVO_TEMPLATE_ID
-    );
-
-    // // For Host (if exists)
-    // if (host) {
-    //   await sendWhatsAppMessage(host.mobile, host.name, booking.id, process.env.BREVO_TEMPLATE_ID_HOST);
-    // }
-
-    // const userMessage = `Hello ${user.name}, your booking for ${booking.prop_title} has been confirmed! Booking ID: ${booking.id},`;
-    // await sendWhatsAppMessage(user.mobile, userMessage);
-
-    // if (host) {
-    //   const hostMessage = `Hello ${host.name}, you have received a new booking for ${booking.prop_title}. Booking ID: ${booking.id}`;
-    //   await sendWhatsAppMessage(host.mobile, hostMessage);
-    // }
-
-    if (host) {
+    try {
+      // Traveler notification
       await sendWhatsAppMessage(
-        host.mobile,
-        host.name,
-        booking.id,
-        process.env.BREVO_TEMPLATE_ID_HOST
+        user.mobile,
+        process.env.BREVO_TEMPLATE_ID,
+        {
+          traveler: user.name,
+          propertyName: booking.prop_title,
+          bookingID: booking.id.toString(),
+        }
       );
+
+      // Host notification
+      if (host) {
+        await sendWhatsAppMessage(
+          host.mobile,
+          process.env.BREVO_TEMPLATE_ID_HOST,
+          {
+            host: host.name,
+            propertyName: booking.prop_title,
+            bookingID: booking.id.toString(),
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Failed to send WhatsApp notifications:", error);
     }
 
     // Send notifications
@@ -597,6 +589,9 @@ const createBooking = async (req, res) => {
 
 const editBooking = async (req, res) => {
   function formatPhoneNumber(number) {
+    if (!number) return null;
+    number = number.toString().trim();
+    number = number.replace(/[^+\d]/g, "");
     if (!number.startsWith("+")) {
       return `+91${number}`;
     }
@@ -604,42 +599,44 @@ const editBooking = async (req, res) => {
   }
   async function sendWhatsAppMessage(
     recipient,
-    firstName,
-    bookingId,
-    templateId
+    templateId,
+    params
   ) {
     try {
       const formattedNumber = formatPhoneNumber(recipient);
-      console.log("Message sending from:");
+      if (!formattedNumber) {
+        throw new Error("Invalid or missing phone number");
+      }
+  
+      console.log("Sending WhatsApp message to:", formattedNumber);
+  
       const payload = {
         senderNumber: process.env.BREVO_WHATSAPP_SENDER,
-        contactNumbers: [formatPhoneNumber],
+        contactNumbers: [formattedNumber],
         templateId: parseInt(templateId, 10),
-        params: {
-          FIRSTNAME: firstName,
-          BOOKING_ID: bookingId,
-        },
+        params, 
       };
+  
       const response = await axios.post(
         "https://api.brevo.com/v3/whatsapp/sendMessage",
         payload,
         {
           headers: {
             accept: "application/json",
-            "api-key": BREVO_API_KEY,
+            "api-key": process.env.BREVO_API_KEY,
             "content-type": "application/json",
           },
         }
       );
-      console.log(
-        `WhatsApp message sent to: ${formattedNumber}`,
-        response.data
-      );
+  
+      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+      return response.data;
     } catch (error) {
       console.error(
         `Error sending WhatsApp message to: ${recipient}`,
         error.response?.data || error.message
       );
+      throw error; 
     }
   }
   const uid = req.user.id;
@@ -670,12 +667,34 @@ const editBooking = async (req, res) => {
     transaction_id,
     prop_price,
     p_method_id,
-    tax,
+    // tax,
     extra_guest_charges,
     platform_fee,
   } = req.body;
   const id_proof_img = req.file;
   try {
+    
+    const setting = await Setting.findOne()
+    if (!setting) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Tax configuration not found!" });
+    }
+
+    const tax = setting.tax;
+
+    const expectedTotal =
+    subtotal +
+    subtotal * (tax / 100) +
+    (platform_fee || 0) +
+    (extra_guest_charges || 0) -
+    (cou_amt || 0);
+  if (Math.abs(total - expectedTotal) > 0.01) {
+    console.warn(
+      `Total mismatch: expected ${expectedTotal}, received ${total}`
+    );
+  }
+
     const booking = await TblBook.findOne({ where: { id: book_id, uid } });
     if (!booking) {
       return res.status(403).json({
@@ -775,28 +794,80 @@ const editBooking = async (req, res) => {
     const traveler = await User.findByPk(uid);
     const host = await User.findByPk(property.add_user_id);
 
-    await sendWhatsAppMessage(
-      traveler.mobile,
-      traveler.name,
-      booking.id,
-      process.env.BREVO_EDIT_TEMPLATE_ID_TRAVELER
-    );
-
-    if (host) {
+    try {
       await sendWhatsAppMessage(
-        host.mobile,
-        host.name,
-        booking.id,
-        process.env.BREVO_EDIT_TEMPLATE_ID_HOST
+      traveler.mobile,
+      process.env.BREVO_EDIT_TEMPLATE_ID_TRAVELER,
+      {
+        travelerName:traveler.name,
+        propertyName:booking.prop_title,
+        checkIn:booking.check_in,
+        checkOut:booking.check_out,
+        bookingId:booking.id.toString()
+      }
       );
+      if(host){
+        await sendWhatsAppMessage(
+          host.mobile,
+          process.env.BREVO_EDIT_TEMPLATE_ID_HOST,
+          {
+            hostName:host.name,
+            propertyName:booking.prop_title,
+            bookingId:booking.id.toString()
+          }
+        )
+      }
+    } catch (error) {
+      
     }
 
+    const updateDateTime = new Date().toISOString();
+
     const travelerEmailContent = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; font-size:1rem">
       <h3>Hello ${traveler.name},</h3>
-      <p>Your booking for <strong>${booking.prop_title}</strong> has been updated.</p>
-      <p><strong>Booking ID:</strong> ${booking.id}</p>
-      <p>Thank you for choosing our platform!</p>
-    `;
+      <p>Your booking for <strong>${booking.prop_title}</strong> has been successfully updated.</p>
+      <p>We've updated your reservation details as requested. Below are the updated details for your stay:</p>
+      <p>If you have any special requests or need further assistance, feel free to reach out to us. We look forward to ensuring a comfortable stay!</p>
+
+      <h4 style="color: #045D78; font-size:1.5rem">📌 Booking Details</h4>
+      <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+        <tr><td><strong>Booking ID</strong></td><td>${booking.id}</td></tr>
+        <tr><td><strong>Property Name</strong></td><td>${booking.prop_title}</td></tr>
+        <tr><td><strong>Property Location</strong></td><td>${property.address}</td></tr>
+        <tr><td><strong>Check-in Date</strong></td><td>${booking.check_in}</td></tr>
+        <tr><td><strong>Check-out Date</strong></td><td>${booking.check_out}</td></tr>
+        <tr><td><strong>Number of Guests</strong></td><td>${booking.adults} Adults, ${booking.children} Children, ${booking.infants} Infants, ${booking.pets} Pets</td></tr>
+        <tr><td><strong>Total Amount</strong></td><td>₹${booking.total}</td></tr>
+        <tr><td><strong>Transaction ID</strong></td><td>${booking.transaction_id}</td></tr>
+        <tr><td><strong>Payment Method</strong></td><td>${booking.p_method_id}</td></tr>
+        <tr><td><strong>Tax</strong></td><td>${booking.tax}%</td></tr>
+        <tr><td><strong>ID Proof</strong></td><td>${booking.id_proof || "N/A"}</td></tr>
+        <tr><td><strong>Update Date & Time</strong></td><td>${updateDateTime}</td></tr>
+      </table>
+
+      <h4 style="color: #045D78; font-size:1.5rem">🏡 Property Details</h4>
+      <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+        <tr><td><strong>Address</strong></td><td>${property.address}</td></tr>
+        <tr><td><strong>Price per Night</strong></td><td>₹${property.price}</td></tr>
+        <tr><td><strong>Beds</strong></td><td>${property.beds}</td></tr>
+        <tr><td><strong>Bathrooms</strong></td><td>${property.bathroom}</td></tr>
+        <tr><td><strong>Size</strong></td><td>${property.sqrft} sq ft</td></tr>
+        <tr><td><strong>Rules</strong></td><td>${property.rules.join(", ")}</td></tr>
+        <tr><td><strong>Check-in Time</strong></td><td>${property.standard_rules.checkIn}</td></tr>
+        <tr><td><strong>Check-out Time</strong></td><td>${property.standard_rules.checkOut}</td></tr>
+      </table>
+
+      <h4 style="color: #045D78; font-size:1.5rem">👤 Property Owner Details</h4>
+      <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+        <tr><td><strong>Host Name</strong></td><td>${host ? host.name : "N/A"}</td></tr>
+        <tr><td><strong>Contact</strong></td><td>${host ? host.email : "N/A"}</td></tr>
+        <tr><td><strong>Phone</strong></td><td>${host ? host.mobile : "N/A"}</td></tr>
+      </table>
+
+      <p>Thank you for choosing <strong>Servostay</strong>. Enjoy your stay!</p>
+    </div>
+  `;
     await sendEmailNotification(
       traveler.email,
       "Booking Updated!",
@@ -805,84 +876,113 @@ const editBooking = async (req, res) => {
 
     if (host) {
       const hostEmailContent = `
-        <h3>Hello ${host.name},</h3>
-        <p>You have received a updated booking for <strong>${booking.prop_title}</strong>.</p>
-        <p><strong>Booking ID:</strong> ${booking.id}</p>
-        <p>Please check your dashboard for more details.</p>
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; font-size:1rem">
+          <h3>Hello ${host.name},</h3>
+          <p>A booking for your property <strong>${booking.prop_title}</strong> has been updated by the traveler.</p>
+          <p>Below are the updated details of the booking:</p>
+
+          <h4 style="color: #045D78; font-size:1.5rem">📌 Booking Details</h4>
+          <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+            <tr><td><strong>Booking ID</strong></td><td>${booking.id}</td></tr>
+            <tr><td><strong>Traveler's Name</strong></td><td>${traveler.name}</td></tr>
+            <tr><td><strong>Property Name</strong></td><td>${booking.prop_title}</td></tr>
+            <tr><td><strong>Check-in Date</strong></td><td>${booking.check_in}</td></tr>
+            <tr><td><strong>Check-out Date</strong></td><td>${booking.check_out}</td></tr>
+            <tr><td><strong>Number of Guests</strong></td><td>${booking.adults} Adults, ${booking.children} Children, ${booking.infants} Infants, ${booking.pets} Pets</td></tr>
+            <tr><td><strong>Total Amount Paid</strong></td><td>₹${booking.total}</td></tr>
+            <tr><td><strong>Update Date & Time</strong></td><td>${updateDateTime}</td></tr>
+          </table>
+
+          <p>Please check your dashboard for more details or contact the traveler if needed.</p>
+          <p>Thank you for hosting with <strong>Servostay</strong>.</p>
+        </div>
       `;
 
       await sendEmailNotification(
         host.email,
-        "Booking has been updated!",
+        "Booking Updated Notification",
         hostEmailContent
       );
     }
 
     try {
       // Notification for Traveler
-      const travelerNotification = {
-        app_id: process.env.ONESIGNAL_APP_ID,
-        include_player_ids: [traveler.one_subscription],
-        data: { user_id: traveler.id, type: "booking_update" },
-        contents: {
-          en: `Your booking for ${property.title} has been successfully updated!`,
-        },
-        headings: { en: "Booking Updated!" },
-      };
+      if (traveler.one_subscription) {
+        const travelerNotification = {
+          app_id: process.env.ONESIGNAL_APP_ID,
+          include_player_ids: [traveler.one_subscription],
+          data: { user_id: traveler.id, type: "booking_update" },
+          contents: {
+            en: `Your booking for ${booking.prop_title} has been successfully updated!`,
+          },
+          headings: { en: "Booking Updated!" },
+        };
+
+        await axios.post(
+          "https://onesignal.com/api/v1/notifications",
+          travelerNotification,
+          {
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+              Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+            },
+          }
+        );
+        console.log(`Traveler notification sent for booking ${booking.id}`);
+      } else {
+        console.log(`No subscription ID for traveler ${traveler.id}, skipping notification`);
+      }
 
       // Notification for Host
-      const hostNotification = {
-        app_id: process.env.ONESIGNAL_APP_ID,
-        include_player_ids: [host.one_subscription],
-        data: { user_id: host.id, type: "booking_update" },
-        contents: {
-          en: `The booking for ${property.title} has been updated by ${traveler.name}.`,
-        },
-        headings: { en: "Booking Updated by Guest!" },
-      };
-
-      // Send notifications separately
-      await axios.post(
-        "https://onesignal.com/api/v1/notifications",
-        travelerNotification,
-        {
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+      if (host && host.one_subscription) {
+        const hostNotification = {
+          app_id: process.env.ONESIGNAL_APP_ID,
+          include_player_ids: [host.one_subscription],
+          data: { user_id: host.id, type: "booking_update" },
+          contents: {
+            en: `The booking for ${booking.prop_title} has been updated by ${traveler.name}.`,
           },
-        }
-      );
+          headings: { en: "Booking Updated by Guest!" },
+        };
 
-      await axios.post(
-        "https://onesignal.com/api/v1/notifications",
-        hostNotification,
-        {
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
-          },
-        }
-      );
-
-      console.log("Notification sent for booking update.");
+        await axios.post(
+          "https://onesignal.com/api/v1/notifications",
+          hostNotification,
+          {
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+              Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+            },
+          }
+        );
+        console.log(`Host notification sent for booking ${booking.id}`);
+      } else {
+        console.log(`No subscription ID for host ${host?.id || "unknown"}, skipping notification`);
+      }
 
       await TblNotification.create({
         uid: traveler.id,
         datetime: new Date(),
         title: "Booking Updated",
-        description: `Your booking for ${property.title} has been successfully updated!`,
-        is_read:false
+        description: `Your booking for ${booking.prop_title} has been successfully updated!`,
+        is_read: false,
       });
 
-      await TblNotification.create({
-        uid: host.id,
-        datetime: new Date(),
-        title: "Booking Updated",
-        description: `The booking for ${property.title} has been updated by ${traveler.name}.`,
-        is_read:false
-      });
+      if (host) {
+        await TblNotification.create({
+          uid: host.id,
+          datetime: new Date(),
+          title: "Booking Updated",
+          description: `The booking for ${booking.prop_title} has been updated by ${traveler.name}.`,
+          is_read: false,
+        });
+      }
     } catch (error) {
-      console.error("Error sending notification:", error);
+      console.error("Error sending OneSignal notification:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
     }
     return res.status(201).json({
       success: true,
@@ -1572,54 +1672,58 @@ const userCheckOut = async (req, res) => {
 
 const cancelBooking = async (req, res) => {
   function formatPhoneNumber(number) {
+    if (!number) return null;
+    number = number.toString().trim();
+    number = number.replace(/[^+\d]/g, "");
     if (!number.startsWith("+")) {
       return `+91${number}`;
     }
     return number;
   }
+
   async function sendWhatsAppMessage(
-    recipient,
-    firstName,
-    bookingId,
-    templateId
-  ) {
-    try {
-      const formattedNumber = formatPhoneNumber(recipient);
-      console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
-
-      const payload = {
-        senderNumber: BREVO_WHATSAPP_SENDER,
-        contactNumbers: [formattedNumber],
-        templateId: parseInt(templateId, 10),
-        params: {
-          FIRSTNAME: firstName,
-          BOOKING_ID: bookingId,
-        },
-      };
-
-      const response = await axios.post(
-        "https://api.brevo.com/v3/whatsapp/sendMessage",
-        payload,
-        {
-          headers: {
-            accept: "application/json",
-            "api-key": BREVO_API_KEY,
-            "content-type": "application/json",
-          },
-        }
-      );
-
-      console.log(
-        `WhatsApp message sent to: ${formattedNumber}`,
-        response.data
-      );
-    } catch (error) {
-      console.error(
-        `Error sending WhatsApp message to: ${recipient}`,
-        error.response?.data || error.message
-      );
+  recipient,
+  templateId,
+  params
+) {
+  try {
+    const formattedNumber = formatPhoneNumber(recipient);
+    if (!formattedNumber) {
+      throw new Error("Invalid or missing phone number");
     }
+
+    console.log("Sending WhatsApp message to:", formattedNumber);
+
+    const payload = {
+      senderNumber: process.env.BREVO_WHATSAPP_SENDER,
+      contactNumbers: [formattedNumber],
+      templateId: parseInt(templateId, 10),
+      params, 
+    };
+
+    const response = await axios.post(
+      "https://api.brevo.com/v3/whatsapp/sendMessage",
+      payload,
+      {
+        headers: {
+          accept: "application/json",
+          "api-key": process.env.BREVO_API_KEY,
+          "content-type": "application/json",
+        },
+      }
+    );
+
+    console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Error sending WhatsApp message to: ${recipient}`,
+      error.response?.data || error.message
+    );
+    throw error; 
   }
+}
+
   const uid = req.user.id;
   if (!uid) {
     return res.status(401).json({ message: "User Not Found!" });
@@ -1669,21 +1773,29 @@ const cancelBooking = async (req, res) => {
       { where: { id: book_id, uid } }
     );
 
-    await sendWhatsAppMessage(
-      user.mobile,
-      user.email,
-      booking.id,
-      process.env.BREVO_TRAVELER_CANCEL_TEMPLATE_ID_TRAVELER
-    );
-
-    if (host) {
-      await sendWhatsAppMessage(
-        host.mobile,
-        host.email,
-        booking.id,
-        process.env.BREVO_TRAVELER_CANCEL_TEMPLATE_ID_HOST
-      );
+try {
+  await sendWhatsAppMessage(
+    user.mobile,
+    process.env.BREVO_TRAVELER_CANCEL_TEMPLATE_ID_TRAVELER,
+    {
+      traveler:user.name,
+      propertyName:property.title,
+      bookingId:booking.id.toString()
     }
+  );
+
+  if (host) {
+    await sendWhatsAppMessage(
+      host.mobile,
+      process.env.BREVO_TRAVELER_CANCEL_TEMPLATE_ID_HOST,
+      {
+        hostName:host.name,
+        propertyName:property.title,
+        bookingId:booking.id.toString()
+      }
+    );
+  }
+} catch (error) {}
 
     let refundMessage = "";
 
@@ -1740,32 +1852,73 @@ const cancelBooking = async (req, res) => {
 
     // Send Emails to Traveler and Host
     const traveler = await User.findByPk(uid);
+    const cancellationDateTime = new Date().toISOString();
+
+
     const travelerEmailContent = `
-      <h3>Hello ${traveler.name},</h3>
-      <p>Your booking for <strong>${property.title}</strong> has been cancelled as per your request.</p>
-      <p><strong>Booking ID:</strong> ${booking.id}</p>
-      <p>${refundMessage}</p>
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; font-size: 1rem">
+        <h3>Hello ${user.name},</h3>
+        <p>Your booking for <strong>${booking.prop_title}</strong> has been cancelled.</p>
+        <p>We're sorry to see your plans change. Below are the details of your cancellation:</p>
+
+        <h4 style="color: #045D78; font-size: 1.5rem">📌 Cancellation Details</h4>
+        <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+          <tr><td><strong>Booking ID</strong></td><td>${booking.id}</td></tr>
+          <tr><td><strong>Property Name</strong></td><td>${booking.prop_title}</td></tr>
+          <tr><td><strong>Property Location</strong></td><td>${property.address}</td></tr>
+          <tr><td><strong>Check-in Date</strong></td><td>${booking.check_in}</td></tr>
+          <tr><td><strong>Check-out Date</strong></td><td>${booking.check_out}</td></tr>
+          <tr><td><strong>Number of Guests</strong></td><td>${booking.adults} Adults, ${booking.children} Children, ${booking.infants} Infants, ${booking.pets} Pets</td></tr>
+          <tr><td><strong>Cancellation Date & Time</strong></td><td>${cancellationDateTime}</td></tr>
+          <tr><td><strong>Refund Status</strong></td><td>${booking.refund_status}</td></tr>
+        </table>
+
+        <p>If you have any questions, please contact our support team.</p>
+        <p>Thank you for choosing <strong>Servostay</strong>.</p>
+      </div>
     `;
+
+    // Host email content
+    const hostEmailContent = host
+      ? `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; font-size: 1rem">
+        <h3>Hello ${host.name},</h3>
+        <p>A booking for your property <strong>${booking.prop_title}</strong> has been cancelled by the traveler.</p>
+        <p>Below are the details of the cancellation:</p>
+
+        <h4 style="color: #045D78; font-size: 1.5rem">📌 Cancellation Details</h4>
+        <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+          <tr><td><strong>Booking ID</strong></td><td>${booking.id}</td></tr>
+          <tr><td><strong>Traveler's Name</strong></td><td>${user.name}</td></tr>
+          <tr><td><strong>Property Name</strong></td><td>${booking.prop_title}</td></tr>
+          <tr><td><strong>Check-in Date</strong></td><td>${booking.check_in}</td></tr>
+          <tr><td><strong>Check-out Date</strong></td><td>${booking.check_out}</td></tr>
+          <tr><td><strong>Number of Guests</strong></td><td>${booking.adults} Adults, ${booking.children} Children, ${booking.infants} Infants, ${booking.pets} Pets</td></tr>
+          <tr><td><strong>Cancellation Date & Time</strong></td><td>${cancellationDateTime}</td></tr>
+          <tr><td><strong>Refund Status</strong></td><td>${booking.refund_status}</td></tr>
+          <tr><td><strong>Payout Information</strong></td><td>No payout due to cancellation</td></tr>
+        </table>
+
+        <p>Please check your dashboard for more details.</p>
+        <p>Thank you for hosting with <strong>Servostay</strong>.</p>
+      </div>
+    `
+      : null;
+
+    // Send email notifications
     await sendEmailNotification(
-      traveler.email,
-      "Booking has been Cancelled!",
+      user.email,
+      "Booking Cancelled",
       travelerEmailContent
     );
 
-    if (host) {
-      const hostEmailContent = `
-        <h3>Hello ${host.name},</h3>
-        <p>The traveler has cancelled their booking for <strong>${property.title}</strong>.</p>
-        <p><strong>Booking ID:</strong> ${booking.id}</p>
-        <p>Please check your dashboard for more details.</p>
-      `;
+    if (host && hostEmailContent) {
       await sendEmailNotification(
         host.email,
-        "Booking has been cancelled!",
+        "Booking Cancellation Notification",
         hostEmailContent
       );
     }
-
     // Push Notification via OneSignal
     if (user.one_subscription || host.one_subscription) {
       try {
@@ -2017,54 +2170,58 @@ const cancelBooking = async (req, res) => {
 
 const cancelTravelerBookingByHost = async (req, res) => {
   function formatPhoneNumber(number) {
+    if (!number) return null;
+    number = number.toString().trim();
+    number = number.replace(/[^+\d]/g, "");
     if (!number.startsWith("+")) {
       return `+91${number}`;
     }
     return number;
   }
+
   async function sendWhatsAppMessage(
     recipient,
-    firstName,
-    bookingId,
-    templateId
+    templateId,
+    params
   ) {
     try {
       const formattedNumber = formatPhoneNumber(recipient);
-      console.log("Message sending from:", BREVO_WHATSAPP_SENDER);
-
+      if (!formattedNumber) {
+        throw new Error("Invalid or missing phone number");
+      }
+  
+      console.log("Sending WhatsApp message to:", formattedNumber);
+  
       const payload = {
-        senderNumber: BREVO_WHATSAPP_SENDER,
+        senderNumber: process.env.BREVO_WHATSAPP_SENDER,
         contactNumbers: [formattedNumber],
         templateId: parseInt(templateId, 10),
-        params: {
-          FIRSTNAME: firstName,
-          BOOKING_ID: bookingId,
-        },
+        params, 
       };
-
+  
       const response = await axios.post(
         "https://api.brevo.com/v3/whatsapp/sendMessage",
         payload,
         {
           headers: {
             accept: "application/json",
-            "api-key": BREVO_API_KEY,
+            "api-key": process.env.BREVO_API_KEY,
             "content-type": "application/json",
           },
         }
       );
-
-      console.log(
-        `WhatsApp message sent to: ${formattedNumber}`,
-        response.data
-      );
+  
+      console.log(`WhatsApp message sent to: ${formattedNumber}`, response.data);
+      return response.data;
     } catch (error) {
       console.error(
         `Error sending WhatsApp message to: ${recipient}`,
         error.response?.data || error.message
       );
+      throw error; 
     }
   }
+
   const hostId = req.user.id;
   if (!hostId) {
     return res.status(401).json({ message: "User Not Found!" });
@@ -2126,21 +2283,31 @@ const cancelTravelerBookingByHost = async (req, res) => {
     );
 
     let refundMessage = "";
-
-    await sendWhatsAppMessage(
-      traveler.mobile,
-      traveler.email,
-      booking.id,
-      process.env.BREVO_HOST_CANCEL_TEMPLATE_ID_TRAVELER
-    );
-    if (host) {
+try {
+  
       await sendWhatsAppMessage(
-        host.mobile,
-        host.name,
-        booking.id,
-        process.env.BREVO_HOST_CANCEL_TEMPLATE_ID_HOST
+        traveler.mobile,
+        process.env.BREVO_HOST_CANCEL_TEMPLATE_ID_TRAVELER,
+        {
+          travelerName:traveler.name,
+          propertyName:property.title,
+          bookingId:booking.id.toString()
+        }
       );
-    }
+      if (host) {
+        await sendWhatsAppMessage(
+          host.mobile,
+          process.env.BREVO_HOST_CANCEL_TEMPLATE_ID_HOST,
+          {
+            hostName:host.name,
+            propertyName:property.title,
+            bookingId:booking.id.toString()
+          }
+        );
+      }
+} catch (error) {
+  
+}
 
     // Refund Logic
     // if (booking.transaction_id && booking.platform_fee > 0) {
@@ -2248,13 +2415,32 @@ const cancelTravelerBookingByHost = async (req, res) => {
       }
     }
 
+    const cancellationDateTime = new Date().toISOString();
+
     // Send Emails to Traveler and Host
     const travelerEmailContent = `
-      <h3>Hello ${traveler.name},</h3>
-      <p>Your booking for <strong>${property.title}</strong> has been cancelled by the host.</p>
-      <p><strong>Booking ID:</strong> ${booking.id}</p>
-      <p>${refundMessage}</p>
-    `;
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; font-size: 1rem">
+      <h3>Hello ${user.name},</h3>
+      <p>We regret to inform you that your booking for <strong>${booking.prop_title}</strong> has been cancelled by the host.</p>
+      <p>We apologize for any inconvenience caused. Below are the details of your cancellation:</p>
+
+      <h4 style="color: #045D78; font-size: 1.5rem">📌 Cancellation Details</h4>
+      <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+        <tr><td><strong>Booking ID</strong></td><td>${booking.id}</td></tr>
+        <tr><td><strong>Property Name</strong></td><td>${booking.prop_title}</td></tr>
+        <tr><td><strong>Property Location</strong></td><td>${property.address}</td></tr>
+        <tr><td><strong>Check-in Date</strong></td><td>${booking.check_in}</td></tr>
+        <tr><td><strong>Check-out Date</strong></td><td>${booking.check_out}</td></tr>
+        <tr><td><strong>Number of Guests</strong></td><td>${booking.adults} Adults, ${booking.children} Children, ${booking.infants} Infants, ${booking.pets} Pets</td></tr>
+        <tr><td><strong>Amount Paid</strong></td><td>₹${booking.total}</td></tr>
+        <tr><td><strong>Cancellation Date & Time</strong></td><td>${cancellationDateTime}</td></tr>
+        <tr><td><strong>Refund Status</strong></td><td>${refundStatus}</td></tr>
+      </table>
+
+      <p>Please contact our support team if you need assistance finding an alternative property.</p>
+      <p>Thank you for choosing <strong>Servostay</strong>.</p>
+    </div>
+  `;
     await sendEmailNotification(
       traveler.email,
       "Booking Cancelled by Host!",
@@ -2262,11 +2448,27 @@ const cancelTravelerBookingByHost = async (req, res) => {
     );
 
     const hostEmailContent = `
-      <h3>Hello ${host.name},</h3>
-      <p>You have cancelled the booking for <strong>${property.title}</strong>.</p>
-      <p><strong>Booking ID:</strong> ${booking.id}</p>
-      <p>${refundMessage}</p>
-      <p>Please check your dashboard for more details.</p>
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; font-size: 1rem">
+        <h3>Hello ${host.name},</h3>
+        <p>You have successfully cancelled a booking for your property <strong>${booking.prop_title}</strong>.</p>
+        <p>Below are the details of the cancellation:</p>
+
+        <h4 style="color: #045D78; font-size: 1.5rem">📌 Cancellation Details</h4>
+        <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+          <tr><td><strong>Booking ID</strong></td><td>${booking.id}</td></tr>
+          <tr><td><strong>Traveler’s Name</strong></td><td>${user.name}</td></tr>
+          <tr><td><strong>Property Name</strong></td><td>${booking.prop_title}</td></tr>
+          <tr><td><strong>Check-in Date</strong></td><td>${booking.check_in}</td></tr>
+          <tr><td><strong>Check-out Date</strong></td><td>${booking.check_out}</td></tr>
+          <tr><td><strong>Number of Guests</strong></td><td>${booking.adults} Adults, ${booking.children} Children, ${booking.infants} Infants, ${booking.pets} Pets</td></tr>
+          <tr><td><strong>Cancellation Date & Time</strong></td><td>${cancellationDateTime}</td></tr>
+          <tr><td><strong>Refund Status</strong></td><td>${refundStatus}</td></tr>
+          <tr><td><strong>Payout Information</strong></td><td>No payout due to cancellation</td></tr>
+        </table>
+
+        <p>Please check your dashboard for more details.</p>
+        <p>Thank you for hosting with <strong>Servostay</strong>.</p>
+      </div>
     `;
     await sendEmailNotification(
       host.email,
