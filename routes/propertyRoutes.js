@@ -2,10 +2,11 @@ const express = require("express");
 const router = express.Router();
 const propertyController = require("../controllers/propertyController");
 const adminMiddleware = require("../middlewares/adminMiddleware");
+const upload = require("../config/multer");
 
 router.post(
   "/upsert",
-  adminMiddleware.isAdmin,
+  adminMiddleware.isAdmin,upload.single("image"),
   propertyController.upsertProperty
 );
 router.get("/",adminMiddleware.isAdmin, propertyController.getAllProperties);

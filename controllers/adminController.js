@@ -2,6 +2,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const { Op } = require("sequelize");
+const TblBook = require("../models/TblBook");
+const { RoleChangeRequest, Property, User, TblExtra, PriceCalendar } = require("../models");
+const TblFav = require("../models/TblFav");
 
 // Generate JWT
 const generateToken = (admin) => {
@@ -199,6 +202,116 @@ const searchAdmins = async (req, res) => {
   }
 };
 
+const deleteUserByAdmin = async (req, res) => {
+  const adminId = req.user.id;
+  const isAdmin = req.user.userType === "admin";
+  const { id } = req.params;
+  const { forceDelete } = req.query;
+
+  console.log("Admin delete user request:", { adminId, isAdmin, userId: id, forceDelete });
+
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Forbidden: Only admins can perform this action" });
+  }
+
+  if (!id) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  try {
+    const user = await User.findByPk(id);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (user.deletedAt && forceDelete !== "true") {
+      return res.status(400).json({ error: "User is already soft-deleted" });
+    }
+
+    // Check if the user is a host and has any properties
+    if (user.role === "host") {
+      const properties = await Property.findAll({ where: { add_user_id: id } });
+
+      for (const property of properties) {
+        const confirmedBookings = await TblBook.count({
+          where: {
+            prop_id: property.id,
+            book_status: "Confirmed",
+          },
+        });
+
+        if (confirmedBookings > 0) {
+          return res.status(403).json({
+            error: "Cannot delete property",
+            message: "Property has confirmed bookings and cannot be deleted.",
+          });
+        }
+
+        await PriceCalendar.destroy({
+          where: { prop_id: property.id },
+          force: forceDelete === "true",
+        });
+
+        await TblBook.destroy({
+          where: { prop_id: property.id },
+          force: forceDelete === "true",
+        });
+
+        await TblExtra.destroy({
+          where: { pid: property.id },
+          force: forceDelete === "true",
+        });
+
+        await TblFav.destroy({
+          where: { prop_id: property.id },
+          force: forceDelete === "true",
+        });
+
+        await property.destroy({ force: forceDelete === "true" });
+      }
+    }
+
+    // Check for active bookings
+    const activeBookings = await TblBook.count({
+      where: {
+        uid: id,
+        book_status: {
+          [Op.in]: ["Booked", "Check_in", "Confirmed"],
+        },
+      },
+    });
+
+    if (activeBookings > 0) {
+      return res.status(403).json({
+        error: "User cannot be deleted",
+        message: "User has active bookings that are not completed or blocked.",
+      });
+    }
+
+    // Delete related records
+    await RoleChangeRequest.destroy({ where: { user_id: id }, force: forceDelete === "true" });
+    await TblBook.destroy({ where: { uid: id }, force: forceDelete === "true" });
+    await TblFav.destroy({ where: { uid: id }, force: forceDelete === "true" });
+    await Property.destroy({ where: { add_user_id: id }, force: forceDelete === "true" });
+
+    // Delete the user
+    if (forceDelete === "true") {
+      await user.destroy({ force: true });
+      return res.status(200).json({ message: "User permanently deleted successfully" });
+    } else {
+      await user.destroy();
+      return res.status(200).json({ message: "User soft-deleted successfully" });
+    }
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return res.status(500).json({
+      error: "Internal server error",
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   registerAdmin,
   loginAdmin,
@@ -209,4 +322,5 @@ module.exports = {
   logoutAdmin,
   getUserbyToken,
   searchAdmins,
+  deleteUserByAdmin
 };

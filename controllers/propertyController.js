@@ -10,6 +10,7 @@ const { Op } = require("sequelize");
 const { default: axios } = require("axios");
 const TblNotification = require("../models/TblNotification");
 const TblBook = require("../models/TblBook");
+const uploadToS3 = require("../config/fileUpload.aws");
 const formatDate = (date) => {
   return date ? new Date(date).toISOString().split("T")[0] : null;
 };
@@ -20,7 +21,7 @@ const upsertProperty = async (req, res) => {
     const {
       id,
       title,
-      image,
+      // image,
       price,
       is_panorama,
       status,
@@ -50,7 +51,13 @@ const upsertProperty = async (req, res) => {
       standard_rules,
     } = req.body;
 
-    console.log(req.body);
+    console.log("Request body:", req.body);
+    console.log("Uploaded file:", req.file);
+
+    let imageUrl;
+    if (req.file) {
+      imageUrl = await uploadToS3(req.file, "property-images");
+    }
 
     // **Step 1: Validate City**
     if (!city || !city.label) {
@@ -101,6 +108,7 @@ const upsertProperty = async (req, res) => {
         // **Step 5: Fetch Property for Update**
         property = await Property.findByPk(id);
         if (!property) {
+          await transaction.rollback();
           return res.status(404).json({ error: "Property not found" });
         }
 
@@ -108,7 +116,7 @@ const upsertProperty = async (req, res) => {
         await property.update(
           {
             title,
-            image,
+            image:imageUrl || property.image,
             price,
             is_panorama,
             status,
@@ -141,10 +149,14 @@ const upsertProperty = async (req, res) => {
         );
       } else {
         // **Step 7: Create New Property**
+        if (!imageUrl) {
+          await transaction.rollback();
+          return res.status(400).json({ error: "Image is required for new properties" });
+        }
         property = await Property.create(
           {
             title,
-            image,
+            image:imageUrl,
             price,
             is_panorama,
             status,

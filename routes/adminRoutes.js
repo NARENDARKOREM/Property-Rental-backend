@@ -26,6 +26,6 @@ router.get('/protected',  authMiddleware.authenticateToken, (req, res) => {
     res.json({ message: `Welcome, ${req.user.username}` });
   });
 
-
+router.delete('/delete-user-by-admin/:id', adminMiddleware.isAdmin, adminController.deleteUserByAdmin);
 
 module.exports = router;
