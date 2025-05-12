@@ -16,12 +16,187 @@ const formatDate = (date) => {
 };
 
 // Create or Update Property
+// const upsertProperty = async (req, res) => {
+//   try {
+//     const {
+//       id,
+//       title,
+//       image,
+//       price,
+//       is_panorama,
+//       status,
+//       address,
+//       facility,
+//       description,
+//       beds,
+//       bathroom,
+//       sqrft,
+//       rate,
+//       ptype,
+//       latitude,
+//       longtitude,
+//       mobile,
+//       city,
+//       listing_date,
+//       rules,
+//       country_id,
+//       plimit,
+//       is_sell,
+//       adults,
+//       children,
+//       infants,
+//       pets,
+//       setting_id,
+//       extra_guest_charges,
+//       standard_rules,
+//     } = req.body;
+
+//     console.log(req.body);
+
+//     // **Step 1: Validate City**
+//     if (!city || !city.label) {
+//       return res.status(400).json({ error: "City is required" });
+//     }
+//     const validateCity = await TblCity.findOne({
+//       where: { title: city.label },
+//     });
+
+//     if (!validateCity) {
+//       return res.status(400).json({ error: `City '${city.label}' not found in database` });
+//     }
+
+//     // Convert facility to an array of numeric IDs.
+//     const facilityIds = Array.isArray(facility)
+//       ? facility.map(Number)
+//       : facility.split(",").map((id) => Number(id.trim()));
+
+//     // **Step 2: Ensure `standard_rules` is a Proper JSON Object**
+//     let parsedStandardRules;
+//     try {
+//       parsedStandardRules =
+//         typeof standard_rules === "object"
+//           ? standard_rules
+//           : JSON.parse(standard_rules);
+//     } catch (error) {
+//       return res.status(400).json({ error: "Invalid JSON format in standard_rules" });
+//     }
+
+//     // **Step 3: Make Sure Sequelize Receives a Valid JSON Object**
+//     if (typeof parsedStandardRules !== "object") {
+//       return res.status(400).json({ error: "standard_rules must be a valid JSON object" });
+//     }
+//     // Ensure `rules` is stored as a valid JSON array
+//     let parsedRules;
+//     try {
+//       parsedRules = typeof rules === "object" ? rules : JSON.parse(rules);
+//     } catch (error) {
+//       return res.status(400).json({ error: "Invalid JSON format in rules" });
+//     }
+
+//     // **Step 4: Start Transaction**
+//     const transaction = await sequelize.transaction();
+//     try {
+//       let property;
+
+//       if (id) {
+//         // **Step 5: Fetch Property for Update**
+//         property = await Property.findByPk(id);
+//         if (!property) {
+//           return res.status(404).json({ error: "Property not found" });
+//         }
+
+//         // **Step 6: Update Property**
+//         await property.update(
+//           {
+//             title,
+//             image,
+//             price,
+//             is_panorama,
+//             status,
+//             address,
+//             facility: facilityIds, // Use facilityIds array here
+//             description,
+//             beds,
+//             bathroom,
+//             sqrft,
+//             rate,
+//             ptype,
+//             latitude,
+//             longtitude,
+//             mobile,
+//             city: validateCity.id,
+//             listing_date,
+//             rules: parsedRules,
+//             country_id,
+//             plimit,
+//             is_sell,
+//             adults,
+//             children,
+//             infants,
+//             pets,
+//             setting_id,
+//             extra_guest_charges,
+//             standard_rules: parsedStandardRules,
+//           },
+//           { transaction }
+//         );
+//       } else {
+//         // **Step 7: Create New Property**
+//         property = await Property.create(
+//           {
+//             title,
+//             image,
+//             price,
+//             is_panorama,
+//             status,
+//             address,
+//             facility: facilityIds, // Use facilityIds array here, not the original facility value
+//             description,
+//             beds,
+//             bathroom,
+//             sqrft,
+//             rate,
+//             ptype,
+//             latitude,
+//             longtitude,
+//             mobile,
+//             city: validateCity.id,
+//             listing_date,
+//             rules: parsedRules,
+//             country_id,
+//             plimit,
+//             is_sell,
+//             adults,
+//             children,
+//             infants,
+//             pets,
+//             setting_id,
+//             extra_guest_charges,
+//             standard_rules: parsedStandardRules, // Ensure JSON Object, Not String
+//           },
+//           { transaction }
+//         );
+//       }
+
+//       // **Step 8: Commit Transaction**
+//       await transaction.commit();
+//       return res.status(200).json({ message: id ? "Property updated successfully" : "Property added successfully", property });
+//     } catch (error) {
+//       await transaction.rollback();
+//       return res.status(500).json({ error: "Database operation failed", details: error.message });
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ error: "Internal server error", details: error.message });
+//   }
+// };
+
 const upsertProperty = async (req, res) => {
   try {
+    console.log("Raw request body:", req.body);
     const {
       id,
       title,
-      // image,
       price,
       is_panorama,
       status,
@@ -51,7 +226,8 @@ const upsertProperty = async (req, res) => {
       standard_rules,
     } = req.body;
 
-    console.log("Request body:", req.body);
+    console.log("Parsed req.body:", req.body);
+    console.log("City value:", city, "Type:", typeof city, "Trimmed:", city?.trim());
     console.log("Uploaded file:", req.file);
 
     let imageUrl;
@@ -59,69 +235,80 @@ const upsertProperty = async (req, res) => {
       imageUrl = await uploadToS3(req.file, "property-images");
     }
 
-    // **Step 1: Validate City**
-    if (!city || !city.label) {
+    // Parse JSON-stringified fields
+    let parsedFacility = facility;
+    if (typeof facility === "string") {
+      try {
+        parsedFacility = JSON.parse(facility);
+      } catch (error) {
+        console.error("Error parsing facility:", error);
+        return res.status(400).json({ error: "Invalid facility format" });
+      }
+    }
+
+    let parsedRules = rules;
+    if (typeof rules === "string") {
+      try {
+        parsedRules = JSON.parse(rules);
+      } catch (error) {
+        console.error("Error parsing rules:", error);
+        return res.status(400).json({ error: "Invalid rules format" });
+      }
+    }
+
+    let parsedStandardRules = standard_rules;
+    if (typeof standard_rules === "string") {
+      try {
+        parsedStandardRules = JSON.parse(standard_rules);
+      } catch (error) {
+        console.error("Error parsing standard_rules:", error);
+        return res.status(400).json({ error: "Invalid standard_rules format" });
+      }
+    }
+
+    // Validate City
+    let cityId;
+    if (city && typeof city === "string" && city.trim() !== "") {
+      cityId = Number(city);
+      console.log("Parsed cityId:", cityId);
+      if (isNaN(cityId) || cityId <= 0) {
+        console.log("Invalid city ID:", city);
+        return res.status(400).json({ error: "City ID must be a positive number" });
+      }
+      const validateCity = await TblCity.findByPk(cityId);
+      if (!validateCity) {
+        console.log("City not found for ID:", cityId);
+        return res.status(400).json({ error: `City ID '${cityId}' not found in database` });
+      }
+      console.log("Validated city:", validateCity);
+    } else {
+      console.log("City validation failed:", { city, type: typeof city, trimmed: city?.trim() });
       return res.status(400).json({ error: "City is required" });
     }
-    const validateCity = await TblCity.findOne({
-      where: { title: city.label },
-    });
 
-    if (!validateCity) {
-      return res.status(400).json({ error: `City '${city.label}' not found in database` });
-    }
+    const facilityIds = Array.isArray(parsedFacility)
+      ? parsedFacility.map(Number)
+      : parsedFacility.split(",").map((id) => Number(id.trim()));
 
-    // Convert facility to an array of numeric IDs.
-    const facilityIds = Array.isArray(facility)
-      ? facility.map(Number)
-      : facility.split(",").map((id) => Number(id.trim()));
-
-    // **Step 2: Ensure `standard_rules` is a Proper JSON Object**
-    let parsedStandardRules;
-    try {
-      parsedStandardRules =
-        typeof standard_rules === "object"
-          ? standard_rules
-          : JSON.parse(standard_rules);
-    } catch (error) {
-      return res.status(400).json({ error: "Invalid JSON format in standard_rules" });
-    }
-
-    // **Step 3: Make Sure Sequelize Receives a Valid JSON Object**
-    if (typeof parsedStandardRules !== "object") {
-      return res.status(400).json({ error: "standard_rules must be a valid JSON object" });
-    }
-    // Ensure `rules` is stored as a valid JSON array
-    let parsedRules;
-    try {
-      parsedRules = typeof rules === "object" ? rules : JSON.parse(rules);
-    } catch (error) {
-      return res.status(400).json({ error: "Invalid JSON format in rules" });
-    }
-
-    // **Step 4: Start Transaction**
     const transaction = await sequelize.transaction();
     try {
       let property;
-
-      if (id) {
-        // **Step 5: Fetch Property for Update**
+      if (id && Number(id) > 0) {
         property = await Property.findByPk(id);
         if (!property) {
           await transaction.rollback();
           return res.status(404).json({ error: "Property not found" });
         }
 
-        // **Step 6: Update Property**
         await property.update(
           {
             title,
-            image:imageUrl || property.image,
+            image: imageUrl || property.image,
             price,
             is_panorama,
             status,
             address,
-            facility: facilityIds, // Use facilityIds array here
+            facility: facilityIds,
             description,
             beds,
             bathroom,
@@ -131,7 +318,7 @@ const upsertProperty = async (req, res) => {
             latitude,
             longtitude,
             mobile,
-            city: validateCity.id,
+            city: cityId,
             listing_date,
             rules: parsedRules,
             country_id,
@@ -148,7 +335,6 @@ const upsertProperty = async (req, res) => {
           { transaction }
         );
       } else {
-        // **Step 7: Create New Property**
         if (!imageUrl) {
           await transaction.rollback();
           return res.status(400).json({ error: "Image is required for new properties" });
@@ -156,12 +342,12 @@ const upsertProperty = async (req, res) => {
         property = await Property.create(
           {
             title,
-            image:imageUrl,
+            image: imageUrl,
             price,
             is_panorama,
             status,
             address,
-            facility: facilityIds, // Use facilityIds array here, not the original facility value
+            facility: facilityIds,
             description,
             beds,
             bathroom,
@@ -171,7 +357,7 @@ const upsertProperty = async (req, res) => {
             latitude,
             longtitude,
             mobile,
-            city: validateCity.id,
+            city: cityId,
             listing_date,
             rules: parsedRules,
             country_id,
@@ -183,21 +369,24 @@ const upsertProperty = async (req, res) => {
             pets,
             setting_id,
             extra_guest_charges,
-            standard_rules: parsedStandardRules, // Ensure JSON Object, Not String
+            standard_rules: parsedStandardRules,
           },
           { transaction }
         );
       }
 
-      // **Step 8: Commit Transaction**
       await transaction.commit();
-      return res.status(200).json({ message: id ? "Property updated successfully" : "Property added successfully", property });
+      return res.status(200).json({
+        message: id && Number(id) > 0 ? "Property updated successfully" : "Property added successfully",
+        property,
+      });
     } catch (error) {
       await transaction.rollback();
+      console.error("Database operation failed:", error);
       return res.status(500).json({ error: "Database operation failed", details: error.message });
     }
   } catch (error) {
-    console.error(error);
+    console.error("Upsert Error:", error);
     return res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
@@ -580,7 +769,15 @@ const getPropertyCount = async (req, res) => {
 const getPropertyById = async (req, res) => {
   try {
     const { id } = req.params;
-    const property = await Property.findByPk(id);
+    const property = await Property.findByPk(id,{
+      include:[
+        {
+          model:TblCity,
+          as:"cities",
+          attributes:["id","title"]
+        }
+      ]
+    });
     if (!property) {
       return res.status(404).json({ error: "Property not found" });
     }
