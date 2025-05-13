@@ -53,6 +53,7 @@ const addProperty = async (req, res) => {
     is_draft=false
   } = req.body;
 
+  const isDraft = is_draft === "true" || is_draft === true;
   const files = req.files;
   const add_user_id = req.user.id;
 
@@ -64,7 +65,7 @@ const addProperty = async (req, res) => {
     });
   }
 
-  if (!is_draft) {
+  if (!isDraft) {
     if (
       !is_sell ||
       !country_id ||
@@ -105,7 +106,7 @@ const addProperty = async (req, res) => {
 
   try {
     // Validate country exists
-    if (country_id && !is_draft) {
+    if (country_id && !isDraft) {
       const countryRecord = await TblCountry.findByPk(country_id);
       if (!countryRecord) {
         return res.status(404).json({
@@ -284,7 +285,7 @@ const addProperty = async (req, res) => {
         }
       }
     }
-    if (!cityId && !is_draft) {
+    if (!cityId && !isDraft) {
       return res.status(400).json({
         ResponseCode: "400",
         Result: "false",
@@ -328,13 +329,13 @@ const addProperty = async (req, res) => {
       setting_id,
       extra_guest_charges,
       video_url,
-      is_draft:is_draft,
+      is_draft:isDraft,
     });
 
     res.status(201).json({
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: is_draft ? "Draft property saved successfully!" : "Property added successfully!",
+      ResponseMsg: isDraft ? "Draft property saved successfully!" : "Property added successfully!",
       newProperty,
     });
   } catch (error) {
