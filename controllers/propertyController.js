@@ -468,7 +468,7 @@ const upsertProperty = async (req, res) => {
 const getAllProperties = async (req, res) => {
   try {
     const properties = await Property.findAll({
-      where:{status:1},
+      where:{status:1,is_draft:false},
       include: [
         {
           model: TblCategory,
@@ -548,6 +548,7 @@ const getAllProperties = async (req, res) => {
           city: cityWithCountry,
           listing_date: formattedListingDate,
           formatted_standard_rules: formattedStandardRules,
+          is_draft: property.is_draft,
         };
       })
     );
@@ -566,7 +567,7 @@ const requestProperties = async (req, res) => {
   
   try {
     const properties = await Property.findAll({
-      where:{status:0,
+      where:{status:0,is_draft:false,
         add_user_id: { [Op.ne]: null },
        },
       include: [
