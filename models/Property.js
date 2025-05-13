@@ -13,11 +13,11 @@ const Property = sequelize.define(
     },
     title: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     image: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     video: {
       type: DataTypes.TEXT,
@@ -29,7 +29,7 @@ const Property = sequelize.define(
     },
     price: {
       type: DataTypes.FLOAT,
-      allowNull: false,
+      allowNull: true,
     },
     status: {
       type: DataTypes.INTEGER,
@@ -37,27 +37,27 @@ const Property = sequelize.define(
     },
     address: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     facility: {
       type: DataTypes.JSON,
-      allowNull: false,
+      allowNull: true,
     },
     description: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     beds: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     bathroom: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     sqrft: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     rate: {
       type: DataTypes.FLOAT,
@@ -65,27 +65,27 @@ const Property = sequelize.define(
     },
     ptype: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     latitude: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     longtitude: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     mobile: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     city: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     listing_date: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
     },
     add_user_id: {
       type: DataTypes.INTEGER,
@@ -97,36 +97,36 @@ const Property = sequelize.define(
     },
     country_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     adults: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     children: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     infants: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     pets: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     is_sell: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       defaultValue: 0,
     },
     setting_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     is_panorama: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       defaultValue: 0,
     },
     standard_rules: {
@@ -161,7 +161,12 @@ const Property = sequelize.define(
     accept:{
       type:DataTypes.BOOLEAN,
       allowNull:true,
-    }
+    },
+    is_draft:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false,
+      defaultValue:false
+    },
   },
   {
     tableName: "tbl_property",

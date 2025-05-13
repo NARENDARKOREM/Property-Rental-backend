@@ -9,7 +9,7 @@ router.post(
   adminMiddleware.isAdmin,upload.single("image"),
   propertyController.upsertProperty
 );
-router.get("/",adminMiddleware.isAdmin, propertyController.getAllProperties);
+router.get("/", propertyController.getAllProperties);
 router.get("/count",adminMiddleware.isAdmin, propertyController.getPropertyCount);
 router.get("/:id",adminMiddleware.isAdmin, propertyController.getPropertyById);
 router.delete(
