@@ -65,7 +65,7 @@ const addProperty = async (req, res) => {
     });
   }
 
-  if (!isDraft) {
+  if (isDraft === false) {
     if (
       !is_sell ||
       !country_id ||
