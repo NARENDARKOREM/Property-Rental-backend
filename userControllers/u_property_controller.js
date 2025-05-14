@@ -66,6 +66,36 @@ const addProperty = async (req, res) => {
   }
 
 
+  if (isDraft === false ) {
+    if (
+      !is_sell ||
+      !country_id ||
+      !title ||
+      !listing_date ||
+      !rules ||
+      !standard_rules ||
+      !address ||
+      !description ||
+      !city ||
+      !facility ||
+      !ptype ||
+      !beds ||
+      !bathroom ||
+      !sqrft ||
+      !latitude ||
+      !mobile ||
+      !price ||
+      !files ||
+      !files.main_image
+    ) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "All fields and at least the main image are required!",
+      });
+    }
+  }
+
 
   // Required field check
   if (!add_user_id) {
@@ -91,25 +121,30 @@ const addProperty = async (req, res) => {
 
     // Parse standard_rules (ensure it's a JSON object)
     let parsedStandardRules;
-    try {
-      parsedStandardRules =
-        typeof standard_rules === "object"
-          ? standard_rules
-          : JSON.parse(standard_rules);
-    } catch (err) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Invalid JSON format in standard_rules",
-      });
+    if(standard_rules){
+      try {
+        parsedStandardRules =
+          typeof standard_rules === "object"
+            ? standard_rules
+            : JSON.parse(standard_rules);
+      } catch (err) {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg: "Invalid JSON format in standard_rules",
+        });
+      }
+
+      if (typeof parsedStandardRules !== "object") {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg: "standard_rules must be a valid JSON object",
+        });
+      }
     }
-    if (typeof parsedStandardRules !== "object") {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "standard_rules must be a valid JSON object",
-      });
-    }
+    
+    
 
     // Parse rules as a JSON array
     let parsedRules;
