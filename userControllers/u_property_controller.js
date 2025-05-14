@@ -65,6 +65,7 @@ const addProperty = async (req, res) => {
     });
   }
 
+
   if (isDraft === false ) {
     if (
       !is_sell ||
@@ -94,6 +95,7 @@ const addProperty = async (req, res) => {
       });
     }
   }
+
 
   // Required field check
   if (!add_user_id) {
