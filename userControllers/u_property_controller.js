@@ -21,11 +21,10 @@ const PropertyBlock = require("../models/PropertyBlock");
 const PersonRecord = require("../models/PersonRecord");
 const TblCity = require("../models/TblCity");
 
-
 const addProperty = async (req, res) => {
   const {
     title,
-    price,   
+    price,
     address,
     facility,
     description,
@@ -50,7 +49,7 @@ const addProperty = async (req, res) => {
     standard_rules,
     extra_guest_charges,
     video_url,
-    is_draft=false
+    is_draft = false,
   } = req.body;
 
   const isDraft = is_draft === "true" || is_draft === true;
@@ -65,7 +64,7 @@ const addProperty = async (req, res) => {
     });
   }
 
-  if (isDraft === false ) {
+  if (isDraft === false) {
     if (
       !is_sell ||
       !country_id ||
@@ -84,8 +83,8 @@ const addProperty = async (req, res) => {
       !latitude ||
       !mobile ||
       !price ||
-      !files ||
-      !files.main_image
+      !files
+      // !files.main_image
     ) {
       return res.status(400).json({
         ResponseCode: "400",
@@ -119,7 +118,7 @@ const addProperty = async (req, res) => {
 
     // Parse standard_rules (ensure it's a JSON object)
     let parsedStandardRules;
-    if(standard_rules){
+    if (standard_rules) {
       try {
         parsedStandardRules =
           typeof standard_rules === "object"
@@ -141,8 +140,6 @@ const addProperty = async (req, res) => {
         });
       }
     }
-    
-    
 
     // Parse rules as a JSON array
     let parsedRules;
@@ -184,24 +181,24 @@ const addProperty = async (req, res) => {
       filename.split(".").pop().toLowerCase();
 
     // Validate main image
-    const mainImage = files.main_image[0];
-    const mainImageExt = getFileExtension(mainImage.originalname);
-    if (!allowedImageTypes.includes(mainImageExt)) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg:
-          "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
-      });
-    }
-    if (mainImage.size > maxSize) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg:
-          "Main image file is too large! Please upload a file of 100KB or below.",
-      });
-    }
+    // const mainImage = files.main_image[0];
+    // const mainImageExt = getFileExtension(mainImage.originalname);
+    // if (!allowedImageTypes.includes(mainImageExt)) {
+    //   return res.status(400).json({
+    //     ResponseCode: "400",
+    //     Result: "false",
+    //     ResponseMsg:
+    //       "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+    //   });
+    // }
+    // if (mainImage.size > maxSize) {
+    //   return res.status(400).json({
+    //     ResponseCode: "400",
+    //     Result: "false",
+    //     ResponseMsg:
+    //       "Main image file is too large! Please upload a file of 100KB or below.",
+    //   });
+    // }
 
     // Process extra images and videos
     const extraImages = [];
@@ -231,7 +228,7 @@ const addProperty = async (req, res) => {
     }
 
     // Upload files to S3
-    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
+    // const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
     const extraImageUrls = extraImages.length
       ? await uploadToS3(extraImages, "property-extra-images")
       : [];
@@ -297,18 +294,18 @@ const addProperty = async (req, res) => {
         ResponseMsg: "Valid city ID is required!",
       });
     }
-  
+
     // --- End Determine City ID ---
 
     // Create new property. Listing_date is stored as provided (assumed YYYY-MM-DD).
     const newProperty = await Property.create({
       title,
-      image: mainImageUrl,
+      image:  "null",
       extra_images: finalExtraImages,
       video: JSON.stringify(videoUrls), // Save the video URLs as a JSON string
       video_url: videoUrlS3,
       price,
-      status:0,
+      status: 0,
       address,
       facility: facilityIds, // store as an array (if your model supports JSON)
       description,
@@ -334,13 +331,15 @@ const addProperty = async (req, res) => {
       setting_id,
       extra_guest_charges,
       video_url,
-      is_draft:isDraft,
+      is_draft: isDraft,
     });
 
     res.status(201).json({
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: isDraft ? "Draft property saved successfully!" : "Property added successfully!",
+      ResponseMsg: isDraft
+        ? "Draft property saved successfully!"
+        : "Property added successfully!",
       newProperty,
     });
   } catch (error) {
@@ -353,12 +352,10 @@ const addProperty = async (req, res) => {
   }
 };
 
-
 const editProperty = async (req, res) => {
   try {
     // Destructure fields from req.body
     const {
-      
       title,
       address,
       description,
@@ -386,7 +383,7 @@ const editProperty = async (req, res) => {
       setting_id,
       extra_guest_charges,
       video_url, // Optional fallback video URL from the body
-      is_draft=false,
+      is_draft = false,
     } = req.body;
 
     console.log("Request Body:", req.body);
@@ -605,7 +602,7 @@ const editProperty = async (req, res) => {
 
     // Update the property with the new details
     await property.update({
-      status:property.status,
+      status: property.status,
       title,
       address,
       description,
@@ -636,14 +633,16 @@ const editProperty = async (req, res) => {
       extra_images: finalExtraImages,
       video: JSON.stringify(videoUrls),
       city: cityId,
-      status:property.status,
-      is_draft:is_draft,
+      status: property.status,
+      is_draft: is_draft,
     });
 
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: is_draft ? "Draft Property Updated Successfully" : "Property Updated Successfully",
+      ResponseMsg: is_draft
+        ? "Draft Property Updated Successfully"
+        : "Property Updated Successfully",
       property,
     });
   } catch (error) {
@@ -1297,7 +1296,6 @@ const getPropertyDetails = async (req, res) => {
   }
 };
 
-
 const getAllHostAddedProperties = async (req, res) => {
   const uid = req.user?.id || null;
 
@@ -1861,7 +1859,6 @@ const searchPropertyByLocationAndDate = async (req, res) => {
     });
   }
 };
-
 
 const searchProperties = async (req, res) => {
   try {
