@@ -65,35 +65,7 @@ const addProperty = async (req, res) => {
     });
   }
 
-  if (isDraft === false) {
-    if (
-      !is_sell ||
-      !country_id ||
-      !title ||
-      !listing_date ||
-      !rules ||
-      !standard_rules ||
-      !address ||
-      !description ||
-      !city ||
-      !facility ||
-      !ptype ||
-      !beds ||
-      !bathroom ||
-      !sqrft ||
-      !latitude ||
-      !mobile ||
-      !price ||
-      !files ||
-      !files.main_image
-    ) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "All fields and at least the main image are required!",
-      });
-    }
-  }
+
 
   // Required field check
   if (!add_user_id) {
