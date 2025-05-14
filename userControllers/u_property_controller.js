@@ -64,7 +64,9 @@ const addProperty = async (req, res) => {
     });
   }
 
+
   if (isDraft === false) {
+
     if (
       !is_sell ||
       !country_id ||
@@ -93,6 +95,7 @@ const addProperty = async (req, res) => {
       });
     }
   }
+
 
   // Required field check
   if (!add_user_id) {
