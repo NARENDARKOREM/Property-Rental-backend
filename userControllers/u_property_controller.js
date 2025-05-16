@@ -50,7 +50,6 @@ const addProperty = async (req, res) => {
     standard_rules,
     extra_guest_charges,
     video_url,
-    prop_id,
     is_draft=false
   } = req.body;
 
@@ -105,6 +104,7 @@ const addProperty = async (req, res) => {
       });
     }
   }
+
 
   // Required field check
   if (!add_user_id) {
@@ -174,6 +174,10 @@ const addProperty = async (req, res) => {
     }
 
     // Convert facility to an array of numeric IDs.
+    // const facilityIds = Array.isArray(facility)
+    //   ? facility.map(Number)
+    //   : facility.split(",").map((id) => Number(id.trim()));
+
     let facilityIds = [];
     if (facility) {
       facilityIds = Array.isArray(facility)
@@ -315,62 +319,6 @@ const addProperty = async (req, res) => {
   
     // --- End Determine City ID ---
 
-    // Check for existing draft property if prop_id is provided
-    let property;
-    if (isDraft && prop_id) {
-      property = await Property.findOne({
-        where: { id: prop_id, add_user_id, is_draft: true },
-      });
-      if (!property) {
-        return res.status(404).json({
-          ResponseCode: "404",
-          Result: "false",
-          ResponseMsg: "Draft property not found!",
-        });
-      }
-      // Update existing draft
-      await property.update({
-        title,
-        image: mainImageUrl || null,
-        extra_images: finalExtraImages,
-        video: JSON.stringify(videoUrls),
-        video_url: videoUrlS3,
-        price,
-        status: 0,
-        address,
-        facility: facilityIds,
-        description,
-        beds,
-        bathroom,
-        sqrft,
-        rate,
-        rules: parsedRules,
-        standard_rules: parsedStandardRules,
-        ptype,
-        latitude,
-        longtitude,
-        mobile,
-        city: cityId,
-        listing_date,
-        add_user_id,
-        country_id: (!country_id || country_id === 'null') ? null : country_id,
-        is_sell,
-        adults,
-        children,
-        infants,
-        pets,
-        setting_id,
-        extra_guest_charges,
-        is_draft: isDraft === true ? true : false,
-      });
-      return res.status(200).json({
-        ResponseCode: "200",
-        Result: "true",
-        ResponseMsg: "Draft property updated successfully!",
-        newProperty: property,
-      });
-    }
-
     // Create new property. Listing_date is stored as provided (assumed YYYY-MM-DD).
     const newProperty = await Property.create({
       title,
@@ -424,6 +372,7 @@ const addProperty = async (req, res) => {
   }
 };
 
+
 const editProperty = async (req, res) => {
   try {
     // Destructure fields from req.body
@@ -460,6 +409,8 @@ const editProperty = async (req, res) => {
     } = req.body;
 
     console.log("Request Body:", req.body);
+    const isDraft = is_draft === "true" || is_draft === true;
+
 
     // Check if the user is authenticated
     if (!req.user || !req.user.id) {
@@ -471,7 +422,7 @@ const editProperty = async (req, res) => {
     }
     const user_id = req.user.id;
 
-    if (country_id && !is_draft) {
+    if (country_id && !isDraft) {
       const countryRecord = await TblCountry.findByPk(country_id);
       if (!countryRecord) {
         return res.status(404).json({
@@ -653,13 +604,13 @@ const editProperty = async (req, res) => {
         }
       }
     }
-    if (!cityId && !is_draft) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Valid city ID is required!",
-      });
-    }
+    // if (!cityId && !isDraft) {
+    //   return res.status(400).json({
+    //     ResponseCode: "400",
+    //     Result: "false",
+    //     ResponseMsg: "Valid city ID is required!",
+    //   });
+    // }
 
     // Upload main image and extra files to S3
     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
@@ -707,13 +658,13 @@ const editProperty = async (req, res) => {
       video: JSON.stringify(videoUrls),
       city: cityId,
       status:property.status,
-      is_draft:is_draft,
+      is_draft:isDraft,
     });
 
     return res.status(200).json({
       ResponseCode: "200",
       Result: "true",
-      ResponseMsg: is_draft ? "Draft Property Updated Successfully" : "Property Updated Successfully",
+      ResponseMsg: isDraft ? "Draft Property Updated Successfully" : "Property Updated Successfully",
       property,
     });
   } catch (error) {
@@ -729,7 +680,7 @@ const editProperty = async (req, res) => {
 const getPropertyList = async (req, res) => {
   try {
     console.log("Request User:", req.user);
-    const uid = req.user?.id;
+    const uid = req.user?.id || null;
     if (!uid) {
       res.status(401).json({ message: "Unauthorized: User not found!" });
     }
@@ -738,7 +689,8 @@ const getPropertyList = async (req, res) => {
     const properties = await Property.findAll({
       where: {
         add_user_id: uid,
-        // [Op.or]: [{ status: 1 }, { status: 0, is_draft: true }],
+        add_user_id: { [Op.ne]: null },
+        [Op.or]: [{ status: 1 }, { status: 0, is_draft: true }],
       },
       include: [
         { model: TblCategory, as: "category", attributes: ["title"] },
