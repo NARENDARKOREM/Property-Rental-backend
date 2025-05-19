@@ -422,7 +422,7 @@ const editProperty = async (req, res) => {
     }
     const user_id = req.user.id;
 
-    if (country_id && !isDraft) {
+    if (country_id) {
       const countryRecord = await TblCountry.findByPk(country_id);
       if (!countryRecord) {
         return res.status(404).json({
@@ -604,13 +604,13 @@ const editProperty = async (req, res) => {
         }
       }
     }
-    // if (!cityId && !isDraft) {
-    //   return res.status(400).json({
-    //     ResponseCode: "400",
-    //     Result: "false",
-    //     ResponseMsg: "Valid city ID is required!",
-    //   });
-    // }
+    if (!cityId && !isDraft) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Valid city ID is required!",
+      });
+    }
 
     // Upload main image and extra files to S3
     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
