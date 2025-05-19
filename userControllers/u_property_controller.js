@@ -22,6 +22,662 @@ const PersonRecord = require("../models/PersonRecord");
 const TblCity = require("../models/TblCity");
 
 
+const addProperty = async (req, res) => {
+  const {
+    title,
+    price,   
+    address,
+    facility,
+    description,
+    beds,
+    bathroom,
+    sqrft,
+    rate,
+    ptype,
+    latitude,
+    longtitude,
+    mobile,
+    city,
+    listing_date,
+    rules,
+    country_id,
+    is_sell,
+    adults,
+    children,
+    infants,
+    pets,
+    setting_id,
+    standard_rules,
+    extra_guest_charges,
+    video_url,
+    is_draft=false
+  } = req.body;
+
+  console.log(country_id,"jkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
+
+  const isDraft = is_draft === "true" || is_draft === true;
+  const files = req.files || {};
+  const add_user_id = req.user.id;
+
+  if (!add_user_id) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "User ID not provided",
+    });
+  }
+
+  if (!files.main_image || !files.main_image.length) {
+    return res.status(400).json({
+      ResponseCode: "400",
+      Result: "false",
+      ResponseMsg: "Main image is required!",
+    });
+  }
+
+  if (isDraft === false ) {
+    if (
+      !is_sell ||
+      !country_id ||
+      !title ||
+      !listing_date ||
+      !rules ||
+      !standard_rules ||
+      !address ||
+      !description ||
+      !city ||
+      !facility ||
+      !ptype ||
+      !beds ||
+      !bathroom ||
+      !sqrft ||
+      !latitude ||
+      !mobile ||
+      !price ||
+      !files 
+      // !files.main_image
+    ) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "All fields and at least the main image are required!",
+      });
+    }
+  }
+
+
+  // Required field check
+  if (!add_user_id) {
+    return res.status(401).json({
+      ResponseCode: "401",
+      Result: "false",
+      ResponseMsg: "User ID not provided",
+    });
+  }
+
+  try {
+    // Validate country exists
+    if (country_id && !isDraft) {
+      const countryRecord = await TblCountry.findByPk(country_id);
+      if (!countryRecord) {
+        return res.status(404).json({
+          ResponseCode: "404",
+          Result: "false",
+          ResponseMsg: "Country not found!",
+        });
+      }
+    }
+
+    // Parse standard_rules (ensure it's a JSON object)
+    let parsedStandardRules;
+    if(standard_rules){
+      try {
+        parsedStandardRules =
+          typeof standard_rules === "object"
+            ? standard_rules
+            : JSON.parse(standard_rules);
+      } catch (err) {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg: "Invalid JSON format in standard_rules",
+        });
+      }
+
+      if (typeof parsedStandardRules !== "object") {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg: "standard_rules must be a valid JSON object",
+        });
+      }
+    }
+    
+    // Parse rules as a JSON array
+    let parsedRules;
+    try {
+      if (typeof rules === "object") {
+        parsedRules = rules;
+      } else if (typeof rules === "string") {
+        const trimmed = rules.trim();
+        if (trimmed.startsWith("[")) {
+          parsedRules = JSON.parse(trimmed);
+        } else {
+          // Assume it's a comma-separated list.
+          parsedRules = trimmed.split(",").map((item) => item.trim());
+        }
+      }
+    } catch (err) {
+      return res.status(400).json({
+        error: "Invalid JSON format in rules",
+      });
+    }
+
+    // Convert facility to an array of numeric IDs.
+    // const facilityIds = Array.isArray(facility)
+    //   ? facility.map(Number)
+    //   : facility.split(",").map((id) => Number(id.trim()));
+
+    let facilityIds = [];
+    if (facility) {
+      facilityIds = Array.isArray(facility)
+        ? facility.map(Number)
+        : facility.split(",").map((id) => Number(id.trim()));
+    }
+
+    // File validations
+    const allowedImageTypes = ["jpeg", "png", "jpg"];
+    const allowedVideoTypes = ["mp4"];
+    const maxSize = 102400; // 100KB in bytes
+    const getFileExtension = (filename) =>
+      filename.split(".").pop().toLowerCase();
+
+    // Validate main image
+    const mainImage = files.main_image[0];
+    const mainImageExt = getFileExtension(mainImage.originalname);
+    if (!allowedImageTypes.includes(mainImageExt)) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg:
+          "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+      });
+    }
+    if (mainImage.size > maxSize) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg:
+          "Main image file is too large! Please upload a file of 100KB or below.",
+      });
+    }
+
+    if(isDraft === true){
+      if (!files || !files.main_image || files.main_image.length === 0) {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg: "Main image is required.",
+        });
+      }
+    }
+
+    // Process extra images and videos
+    const extraImages = [];
+    const videos = [];
+    if (files.extra_files) {
+      for (const file of files.extra_files) {
+        const ext = getFileExtension(file.originalname);
+        if (allowedImageTypes.includes(ext)) {
+          if (file.size > maxSize) {
+            return res.status(400).json({
+              ResponseCode: "400",
+              Result: "false",
+              ResponseMsg: `Extra image ${file.originalname} is too large! Each image must be 100KB or below.`,
+            });
+          }
+          extraImages.push(file);
+        } else if (allowedVideoTypes.includes(ext)) {
+          videos.push(file);
+        } else {
+          return res.status(400).json({
+            ResponseCode: "400",
+            Result: "false",
+            ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+          });
+        }
+      }
+    }
+
+    // Upload files to S3
+    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
+    const extraImageUrls = extraImages.length
+      ? await uploadToS3(extraImages, "property-extra-images")
+      : [];
+    const finalExtraImages = Array.isArray(extraImageUrls)
+      ? extraImageUrls
+      : [extraImageUrls];
+    // For videos, store as JSON string (since the column expects a string)
+    const videoUrls = videos.length
+      ? await uploadToS3(videos, "property-videos")
+      : [];
+
+    let videoUrlS3 = null;
+    if (files.video_url && files.video_url.length > 0) {
+      const videoFile = files.video_url[0];
+      const ext = getFileExtension(videoFile.originalname);
+      if (!allowedVideoTypes.includes(ext)) {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg:
+            "Invalid video file format for video_url! Only mp4 is allowed.",
+        });
+      }
+      // Optionally set a different size limit for video_url files.
+      videoUrlS3 = await uploadToS3([videoFile], "property-videos");
+      if (Array.isArray(videoUrlS3)) {
+        videoUrlS3 = videoUrlS3[0];
+      }
+    }
+
+    console.log("Extra Images", extraImageUrls);
+
+    // --- Determine City ID ---
+    let cityId;
+    if (typeof city === "object" && city !== null && city.value) {
+      cityId = city.value;
+    } else if (typeof city === "string") {
+      if (city.trim().startsWith("{")) {
+        try {
+          const parsedCity = JSON.parse(city);
+          if (parsedCity && parsedCity.value) {
+            cityId = parsedCity.value;
+          }
+        } catch (err) {
+          console.error("Error parsing city JSON:", err.message);
+        }
+      } else if (!isNaN(Number(city))) {
+        cityId = Number(city);
+      } else {
+        const cityRecord = await TblCity.findOne({
+          where: { title: city },
+          attributes: ["id","title"],
+        });
+        if (cityRecord) {
+          cityId = cityRecord.id;
+        }
+      }
+    }
+    if (!cityId && !isDraft) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Valid city ID is required!",
+      });
+    }
+  
+    // --- End Determine City ID ---
+
+    // Create new property. Listing_date is stored as provided (assumed YYYY-MM-DD).
+    const newProperty = await Property.create({
+      title,
+      image: mainImageUrl || null,
+      extra_images: finalExtraImages,
+      video: JSON.stringify(videoUrls), // Save the video URLs as a JSON string
+      video_url: videoUrlS3,
+      price,
+      status:0,
+      address,
+      facility: facilityIds, // store as an array (if your model supports JSON)
+      description,
+      beds,
+      bathroom,
+      sqrft,
+      rate,
+      rules: parsedRules, // store as JSON array
+      standard_rules: parsedStandardRules, // store as JSON object
+      ptype,
+      latitude,
+      longtitude,
+      mobile,
+      city: cityId,
+      listing_date, // store as date (e.g., "2025-03-08")
+      add_user_id,
+      country_id: (!country_id || country_id === 'null') ? null : country_id,
+      is_sell,
+      adults,
+      children,
+      infants,
+      pets,
+      setting_id,
+      extra_guest_charges,
+      video_url,
+      is_draft:isDraft,
+    });
+
+    res.status(201).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: isDraft ? "Draft property saved successfully!" : "Property added successfully!",
+      newProperty,
+    });
+  } catch (error) {
+    console.error("Error adding property:", error);
+    res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+    });
+  }
+};
+
+
+const editProperty = async (req, res) => {
+  try {
+    // Destructure fields from req.body
+    const {
+      
+      title,
+      address,
+      description,
+      city, // Expected as an object { value, label } or JSON string
+      facility,
+      ptype,
+      beds,
+      bathroom,
+      sqrft,
+      rate,
+      rules,
+      standard_rules,
+      latitude,
+      longtitude,
+      mobile,
+      listing_date,
+      price,
+      prop_id,
+      country_id,
+      is_sell,
+      adults,
+      children,
+      infants,
+      pets,
+      setting_id,
+      extra_guest_charges,
+      video_url, // Optional fallback video URL from the body
+      is_draft=false,
+    } = req.body;
+
+    console.log("Request Body:", req.body);
+    const isDraft = is_draft === "true" || is_draft === true;
+
+
+    // Check if the user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        ResponseCode: "401",
+        Result: "false",
+        ResponseMsg: "Authorization failed: User ID missing",
+      });
+    }
+    const user_id = req.user.id;
+
+    if (country_id && !isDraft) {
+      const countryRecord = await TblCountry.findByPk(country_id);
+      if (!countryRecord) {
+        return res.status(404).json({
+          ResponseCode: "404",
+          Result: "false",
+          ResponseMsg: "Country not found!",
+        });
+      }
+    }
+
+    // Fetch the property instance that the user wants to edit
+    const property = await Property.findOne({
+      where: { id: prop_id, add_user_id: user_id },
+    });
+    if (!property) {
+      return res.status(404).json({
+        ResponseCode: "404",
+        Result: "false",
+        ResponseMsg:
+          "Property not found or you are not authorized to edit this property",
+      });
+    }
+
+    const files = req.files; // Uploaded files from multipart/form-data
+
+    // Parse standard_rules ensuring it's a JSON object
+    let parsedStandardRules;
+    try {
+      parsedStandardRules =
+        typeof standard_rules === "object"
+          ? standard_rules
+          : JSON.parse(standard_rules);
+    } catch (err) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid JSON format in standard_rules",
+      });
+    }
+    if (typeof parsedStandardRules !== "object") {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "standard_rules must be a valid JSON object",
+      });
+    }
+
+    // Parse rules as a JSON array
+    let parsedRules;
+    try {
+      if (typeof rules === "object") {
+        parsedRules = rules;
+      } else if (typeof rules === "string") {
+        const trimmed = rules.trim();
+        if (trimmed.startsWith("[")) {
+          parsedRules = JSON.parse(trimmed);
+        } else {
+          // Assume it's a comma-separated list.
+          parsedRules = trimmed.split(",").map((item) => item.trim());
+        }
+      }
+    } catch (err) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Invalid JSON format in rules",
+      });
+    }
+
+    // Convert facility to an array of numeric IDs.
+    const facilityIds = Array.isArray(facility)
+      ? facility.map(Number)
+      : facility.split(",").map((id) => Number(id.trim()));
+
+    // File validations
+    const allowedImageTypes = ["jpeg", "png", "jpg"];
+    const allowedVideoTypes = ["mp4"];
+    const maxSize = 102400; // 100KB in bytes
+    const getFileExtension = (filename) =>
+      filename.split(".").pop().toLowerCase();
+
+    // Validate main image: main_image is required during update.
+    if (!files || !files.main_image || files.main_image.length === 0) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg: "Main image is required.",
+      });
+    }
+    const mainImage = files.main_image[0];
+    const mainImageExt = getFileExtension(mainImage.originalname);
+    if (!allowedImageTypes.includes(mainImageExt)) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg:
+          "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
+      });
+    }
+    if (mainImage.size > maxSize) {
+      return res.status(400).json({
+        ResponseCode: "400",
+        Result: "false",
+        ResponseMsg:
+          "Main image file is too large! Please upload a file of 100KB or below.",
+      });
+    }
+
+    // Process extra images and videos from extra_files
+    const extraImages = [];
+    const videos = [];
+    if (files.extra_files) {
+      for (const file of files.extra_files) {
+        const ext = getFileExtension(file.originalname);
+        if (allowedImageTypes.includes(ext)) {
+          if (file.size > maxSize) {
+            return res.status(400).json({
+              ResponseCode: "400",
+              Result: "false",
+              ResponseMsg: `Extra image ${file.originalname} is too large! Each image must be 100KB or below.`,
+            });
+          }
+          extraImages.push(file);
+        } else if (allowedVideoTypes.includes(ext)) {
+          videos.push(file);
+        } else {
+          return res.status(400).json({
+            ResponseCode: "400",
+            Result: "false",
+            ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
+          });
+        }
+      }
+    }
+
+    // Process video_url file if provided (separate from extra_files)
+    let videoUrlS3 = null;
+    if (files.video_url && files.video_url.length > 0) {
+      const videoFile = files.video_url[0];
+      const ext = getFileExtension(videoFile.originalname);
+      if (!allowedVideoTypes.includes(ext)) {
+        return res.status(400).json({
+          ResponseCode: "400",
+          Result: "false",
+          ResponseMsg:
+            "Invalid video file format for video_url! Only mp4 is allowed.",
+        });
+      }
+      videoUrlS3 = await uploadToS3([videoFile], "property-videos");
+      if (Array.isArray(videoUrlS3)) {
+        videoUrlS3 = videoUrlS3[0];
+      }
+    }
+
+    // Determine City ID using the "city" field from the request.
+    let cityId;
+    if (typeof city === "object" && city !== null && city.value) {
+      cityId = city.value;
+    } else if (typeof city === "string") {
+      if (city.trim().startsWith("{")) {
+        try {
+          const parsedCity = JSON.parse(city);
+          if (parsedCity && parsedCity.value) {
+            cityId = parsedCity.value;
+          }
+        } catch (err) {
+          console.error("Error parsing city JSON:", err.message);
+        }
+      } else if (!isNaN(Number(city))) {
+        cityId = Number(city);
+      } else {
+        // Try to look up the city by title
+        const cityRecord = await TblCity.findOne({
+          where: { title: city },
+          attributes: ["title"],
+        });
+        if (cityRecord) {
+          cityId = cityRecord.id;
+        }
+      }
+    }
+    // if (!cityId && !isDraft) {
+    //   return res.status(400).json({
+    //     ResponseCode: "400",
+    //     Result: "false",
+    //     ResponseMsg: "Valid city ID is required!",
+    //   });
+    // }
+
+    // Upload main image and extra files to S3
+    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
+    const extraImageUrls = extraImages.length
+      ? await uploadToS3(extraImages, "property-extra-images")
+      : [];
+    const finalExtraImages = Array.isArray(extraImageUrls)
+      ? extraImageUrls
+      : [extraImageUrls];
+    const videoUrls = videos.length
+      ? await uploadToS3(videos, "property-videos")
+      : [];
+
+    // Update the property with the new details
+    await property.update({
+      status:property.status,
+      title,
+      address,
+      description,
+      facility: facilityIds, // store as an array of IDs
+      ptype,
+      beds,
+      bathroom,
+      sqrft,
+      rate,
+      rules: parsedRules,
+      standard_rules: parsedStandardRules,
+      latitude,
+      longtitude,
+      mobile,
+      listing_date,
+      price,
+      country_id: (!country_id || country_id === 'null') ? null : country_id,
+      is_sell,
+      adults,
+      children,
+      infants,
+      pets,
+      setting_id,
+      extra_guest_charges,
+      // Use video_url from req.body if provided; otherwise, use the newly uploaded video URL.
+      video_url: video_url || videoUrlS3,
+      image: mainImageUrl,
+      extra_images: finalExtraImages,
+      video: JSON.stringify(videoUrls),
+      city: cityId,
+      status:property.status,
+      is_draft:isDraft,
+    });
+
+    return res.status(200).json({
+      ResponseCode: "200",
+      Result: "true",
+      ResponseMsg: isDraft ? "Draft Property Updated Successfully" : "Property Updated Successfully",
+      property,
+    });
+  } catch (error) {
+    console.error("Error occurred:", error.message, error.stack);
+    return res.status(500).json({
+      ResponseCode: "500",
+      Result: "false",
+      ResponseMsg: "Internal Server Error",
+    });
+  }
+};
+
+
 // const addProperty = async (req, res) => {
 //   const {
 //     title,
@@ -50,6 +706,7 @@ const TblCity = require("../models/TblCity");
 //     standard_rules,
 //     extra_guest_charges,
 //     video_url,
+//     prop_id,
 //     is_draft=false
 //   } = req.body;
 
@@ -104,7 +761,6 @@ const TblCity = require("../models/TblCity");
 //       });
 //     }
 //   }
-
 
 //   // Required field check
 //   if (!add_user_id) {
@@ -174,10 +830,6 @@ const TblCity = require("../models/TblCity");
 //     }
 
 //     // Convert facility to an array of numeric IDs.
-//     // const facilityIds = Array.isArray(facility)
-//     //   ? facility.map(Number)
-//     //   : facility.split(",").map((id) => Number(id.trim()));
-
 //     let facilityIds = [];
 //     if (facility) {
 //       facilityIds = Array.isArray(facility)
@@ -319,6 +971,62 @@ const TblCity = require("../models/TblCity");
   
 //     // --- End Determine City ID ---
 
+//     // Check for existing draft property if prop_id is provided
+//     let property;
+//     if (isDraft && prop_id) {
+//       property = await Property.findOne({
+//         where: { id: prop_id, add_user_id, is_draft: true },
+//       });
+//       if (!property) {
+//         return res.status(404).json({
+//           ResponseCode: "404",
+//           Result: "false",
+//           ResponseMsg: "Draft property not found!",
+//         });
+//       }
+//       // Update existing draft
+//       await property.update({
+//         title,
+//         image: mainImageUrl || null,
+//         extra_images: finalExtraImages,
+//         video: JSON.stringify(videoUrls),
+//         video_url: videoUrlS3,
+//         price,
+//         status: 0,
+//         address,
+//         facility: facilityIds,
+//         description,
+//         beds,
+//         bathroom,
+//         sqrft,
+//         rate,
+//         rules: parsedRules,
+//         standard_rules: parsedStandardRules,
+//         ptype,
+//         latitude,
+//         longtitude,
+//         mobile,
+//         city: cityId,
+//         listing_date,
+//         add_user_id,
+//         country_id: (!country_id || country_id === 'null') ? null : country_id,
+//         is_sell,
+//         adults,
+//         children,
+//         infants,
+//         pets,
+//         setting_id,
+//         extra_guest_charges,
+//         is_draft: isDraft,
+//       });
+//       return res.status(200).json({
+//         ResponseCode: "200",
+//         Result: "true",
+//         ResponseMsg: "Draft property updated successfully!",
+//         newProperty: property,
+//       });
+//     }
+
 //     // Create new property. Listing_date is stored as provided (assumed YYYY-MM-DD).
 //     const newProperty = await Property.create({
 //       title,
@@ -372,7 +1080,6 @@ const TblCity = require("../models/TblCity");
 //   }
 // };
 
-
 // const editProperty = async (req, res) => {
 //   try {
 //     // Destructure fields from req.body
@@ -410,7 +1117,6 @@ const TblCity = require("../models/TblCity");
 
 //     console.log("Request Body:", req.body);
 //     const isDraft = is_draft === "true" || is_draft === true;
-
 
 //     // Check if the user is authenticated
 //     if (!req.user || !req.user.id) {
@@ -604,13 +1310,13 @@ const TblCity = require("../models/TblCity");
 //         }
 //       }
 //     }
-//     // if (!cityId && !isDraft) {
-//     //   return res.status(400).json({
-//     //     ResponseCode: "400",
-//     //     Result: "false",
-//     //     ResponseMsg: "Valid city ID is required!",
-//     //   });
-//     // }
+//     if (!cityId && !is_draft) {
+//       return res.status(400).json({
+//         ResponseCode: "400",
+//         Result: "false",
+//         ResponseMsg: "Valid city ID is required!",
+//       });
+//     }
 
 //     // Upload main image and extra files to S3
 //     const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
@@ -643,7 +1349,7 @@ const TblCity = require("../models/TblCity");
 //       mobile,
 //       listing_date,
 //       price,
-//       country_id: (!country_id || country_id === 'null') ? null : country_id,
+//       country_id,
 //       is_sell,
 //       adults,
 //       children,
@@ -676,711 +1382,6 @@ const TblCity = require("../models/TblCity");
 //     });
 //   }
 // };
-
-
-const addProperty = async (req, res) => {
-  const {
-    title,
-    price,   
-    address,
-    facility,
-    description,
-    beds,
-    bathroom,
-    sqrft,
-    rate,
-    ptype,
-    latitude,
-    longtitude,
-    mobile,
-    city,
-    listing_date,
-    rules,
-    country_id,
-    is_sell,
-    adults,
-    children,
-    infants,
-    pets,
-    setting_id,
-    standard_rules,
-    extra_guest_charges,
-    video_url,
-    prop_id,
-    is_draft=false
-  } = req.body;
-
-  console.log(country_id,"jkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
-
-  const isDraft = is_draft === "true" || is_draft === true;
-  const files = req.files || {};
-  const add_user_id = req.user.id;
-
-  if (!add_user_id) {
-    return res.status(401).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "User ID not provided",
-    });
-  }
-
-  if (!files.main_image || !files.main_image.length) {
-    return res.status(400).json({
-      ResponseCode: "400",
-      Result: "false",
-      ResponseMsg: "Main image is required!",
-    });
-  }
-
-  if (isDraft === false ) {
-    if (
-      !is_sell ||
-      !country_id ||
-      !title ||
-      !listing_date ||
-      !rules ||
-      !standard_rules ||
-      !address ||
-      !description ||
-      !city ||
-      !facility ||
-      !ptype ||
-      !beds ||
-      !bathroom ||
-      !sqrft ||
-      !latitude ||
-      !mobile ||
-      !price ||
-      !files 
-      // !files.main_image
-    ) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "All fields and at least the main image are required!",
-      });
-    }
-  }
-
-  // Required field check
-  if (!add_user_id) {
-    return res.status(401).json({
-      ResponseCode: "401",
-      Result: "false",
-      ResponseMsg: "User ID not provided",
-    });
-  }
-
-  try {
-    // Validate country exists
-    if (country_id && !isDraft) {
-      const countryRecord = await TblCountry.findByPk(country_id);
-      if (!countryRecord) {
-        return res.status(404).json({
-          ResponseCode: "404",
-          Result: "false",
-          ResponseMsg: "Country not found!",
-        });
-      }
-    }
-
-    // Parse standard_rules (ensure it's a JSON object)
-    let parsedStandardRules;
-    if(standard_rules){
-      try {
-        parsedStandardRules =
-          typeof standard_rules === "object"
-            ? standard_rules
-            : JSON.parse(standard_rules);
-      } catch (err) {
-        return res.status(400).json({
-          ResponseCode: "400",
-          Result: "false",
-          ResponseMsg: "Invalid JSON format in standard_rules",
-        });
-      }
-
-      if (typeof parsedStandardRules !== "object") {
-        return res.status(400).json({
-          ResponseCode: "400",
-          Result: "false",
-          ResponseMsg: "standard_rules must be a valid JSON object",
-        });
-      }
-    }
-    
-    // Parse rules as a JSON array
-    let parsedRules;
-    try {
-      if (typeof rules === "object") {
-        parsedRules = rules;
-      } else if (typeof rules === "string") {
-        const trimmed = rules.trim();
-        if (trimmed.startsWith("[")) {
-          parsedRules = JSON.parse(trimmed);
-        } else {
-          // Assume it's a comma-separated list.
-          parsedRules = trimmed.split(",").map((item) => item.trim());
-        }
-      }
-    } catch (err) {
-      return res.status(400).json({
-        error: "Invalid JSON format in rules",
-      });
-    }
-
-    // Convert facility to an array of numeric IDs.
-    let facilityIds = [];
-    if (facility) {
-      facilityIds = Array.isArray(facility)
-        ? facility.map(Number)
-        : facility.split(",").map((id) => Number(id.trim()));
-    }
-
-    // File validations
-    const allowedImageTypes = ["jpeg", "png", "jpg"];
-    const allowedVideoTypes = ["mp4"];
-    const maxSize = 102400; // 100KB in bytes
-    const getFileExtension = (filename) =>
-      filename.split(".").pop().toLowerCase();
-
-    // Validate main image
-    const mainImage = files.main_image[0];
-    const mainImageExt = getFileExtension(mainImage.originalname);
-    if (!allowedImageTypes.includes(mainImageExt)) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg:
-          "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
-      });
-    }
-    if (mainImage.size > maxSize) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg:
-          "Main image file is too large! Please upload a file of 100KB or below.",
-      });
-    }
-
-    if(isDraft === true){
-      if (!files || !files.main_image || files.main_image.length === 0) {
-        return res.status(400).json({
-          ResponseCode: "400",
-          Result: "false",
-          ResponseMsg: "Main image is required.",
-        });
-      }
-    }
-
-    // Process extra images and videos
-    const extraImages = [];
-    const videos = [];
-    if (files.extra_files) {
-      for (const file of files.extra_files) {
-        const ext = getFileExtension(file.originalname);
-        if (allowedImageTypes.includes(ext)) {
-          if (file.size > maxSize) {
-            return res.status(400).json({
-              ResponseCode: "400",
-              Result: "false",
-              ResponseMsg: `Extra image ${file.originalname} is too large! Each image must be 100KB or below.`,
-            });
-          }
-          extraImages.push(file);
-        } else if (allowedVideoTypes.includes(ext)) {
-          videos.push(file);
-        } else {
-          return res.status(400).json({
-            ResponseCode: "400",
-            Result: "false",
-            ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
-          });
-        }
-      }
-    }
-
-    // Upload files to S3
-    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
-    const extraImageUrls = extraImages.length
-      ? await uploadToS3(extraImages, "property-extra-images")
-      : [];
-    const finalExtraImages = Array.isArray(extraImageUrls)
-      ? extraImageUrls
-      : [extraImageUrls];
-    // For videos, store as JSON string (since the column expects a string)
-    const videoUrls = videos.length
-      ? await uploadToS3(videos, "property-videos")
-      : [];
-
-    let videoUrlS3 = null;
-    if (files.video_url && files.video_url.length > 0) {
-      const videoFile = files.video_url[0];
-      const ext = getFileExtension(videoFile.originalname);
-      if (!allowedVideoTypes.includes(ext)) {
-        return res.status(400).json({
-          ResponseCode: "400",
-          Result: "false",
-          ResponseMsg:
-            "Invalid video file format for video_url! Only mp4 is allowed.",
-        });
-      }
-      // Optionally set a different size limit for video_url files.
-      videoUrlS3 = await uploadToS3([videoFile], "property-videos");
-      if (Array.isArray(videoUrlS3)) {
-        videoUrlS3 = videoUrlS3[0];
-      }
-    }
-
-    console.log("Extra Images", extraImageUrls);
-
-    // --- Determine City ID ---
-    let cityId;
-    if (typeof city === "object" && city !== null && city.value) {
-      cityId = city.value;
-    } else if (typeof city === "string") {
-      if (city.trim().startsWith("{")) {
-        try {
-          const parsedCity = JSON.parse(city);
-          if (parsedCity && parsedCity.value) {
-            cityId = parsedCity.value;
-          }
-        } catch (err) {
-          console.error("Error parsing city JSON:", err.message);
-        }
-      } else if (!isNaN(Number(city))) {
-        cityId = Number(city);
-      } else {
-        const cityRecord = await TblCity.findOne({
-          where: { title: city },
-          attributes: ["id","title"],
-        });
-        if (cityRecord) {
-          cityId = cityRecord.id;
-        }
-      }
-    }
-    if (!cityId && !isDraft) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Valid city ID is required!",
-      });
-    }
-  
-    // --- End Determine City ID ---
-
-    // Check for existing draft property if prop_id is provided
-    let property;
-    if (isDraft && prop_id) {
-      property = await Property.findOne({
-        where: { id: prop_id, add_user_id, is_draft: true },
-      });
-      if (!property) {
-        return res.status(404).json({
-          ResponseCode: "404",
-          Result: "false",
-          ResponseMsg: "Draft property not found!",
-        });
-      }
-      // Update existing draft
-      await property.update({
-        title,
-        image: mainImageUrl || null,
-        extra_images: finalExtraImages,
-        video: JSON.stringify(videoUrls),
-        video_url: videoUrlS3,
-        price,
-        status: 0,
-        address,
-        facility: facilityIds,
-        description,
-        beds,
-        bathroom,
-        sqrft,
-        rate,
-        rules: parsedRules,
-        standard_rules: parsedStandardRules,
-        ptype,
-        latitude,
-        longtitude,
-        mobile,
-        city: cityId,
-        listing_date,
-        add_user_id,
-        country_id: (!country_id || country_id === 'null') ? null : country_id,
-        is_sell,
-        adults,
-        children,
-        infants,
-        pets,
-        setting_id,
-        extra_guest_charges,
-        is_draft: isDraft,
-      });
-      return res.status(200).json({
-        ResponseCode: "200",
-        Result: "true",
-        ResponseMsg: "Draft property updated successfully!",
-        newProperty: property,
-      });
-    }
-
-    // Create new property. Listing_date is stored as provided (assumed YYYY-MM-DD).
-    const newProperty = await Property.create({
-      title,
-      image: mainImageUrl || null,
-      extra_images: finalExtraImages,
-      video: JSON.stringify(videoUrls), // Save the video URLs as a JSON string
-      video_url: videoUrlS3,
-      price,
-      status:0,
-      address,
-      facility: facilityIds, // store as an array (if your model supports JSON)
-      description,
-      beds,
-      bathroom,
-      sqrft,
-      rate,
-      rules: parsedRules, // store as JSON array
-      standard_rules: parsedStandardRules, // store as JSON object
-      ptype,
-      latitude,
-      longtitude,
-      mobile,
-      city: cityId,
-      listing_date, // store as date (e.g., "2025-03-08")
-      add_user_id,
-      country_id: (!country_id || country_id === 'null') ? null : country_id,
-      is_sell,
-      adults,
-      children,
-      infants,
-      pets,
-      setting_id,
-      extra_guest_charges,
-      video_url,
-      is_draft:isDraft,
-    });
-
-    res.status(201).json({
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: isDraft ? "Draft property saved successfully!" : "Property added successfully!",
-      newProperty,
-    });
-  } catch (error) {
-    console.error("Error adding property:", error);
-    res.status(500).json({
-      ResponseCode: "500",
-      Result: "false",
-      ResponseMsg: "Internal Server Error",
-    });
-  }
-};
-
-const editProperty = async (req, res) => {
-  try {
-    // Destructure fields from req.body
-    const {
-      
-      title,
-      address,
-      description,
-      city, // Expected as an object { value, label } or JSON string
-      facility,
-      ptype,
-      beds,
-      bathroom,
-      sqrft,
-      rate,
-      rules,
-      standard_rules,
-      latitude,
-      longtitude,
-      mobile,
-      listing_date,
-      price,
-      prop_id,
-      country_id,
-      is_sell,
-      adults,
-      children,
-      infants,
-      pets,
-      setting_id,
-      extra_guest_charges,
-      video_url, // Optional fallback video URL from the body
-      is_draft=false,
-    } = req.body;
-
-    console.log("Request Body:", req.body);
-
-    // Check if the user is authenticated
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        ResponseCode: "401",
-        Result: "false",
-        ResponseMsg: "Authorization failed: User ID missing",
-      });
-    }
-    const user_id = req.user.id;
-
-    if (country_id && !is_draft) {
-      const countryRecord = await TblCountry.findByPk(country_id);
-      if (!countryRecord) {
-        return res.status(404).json({
-          ResponseCode: "404",
-          Result: "false",
-          ResponseMsg: "Country not found!",
-        });
-      }
-    }
-
-    // Fetch the property instance that the user wants to edit
-    const property = await Property.findOne({
-      where: { id: prop_id, add_user_id: user_id },
-    });
-    if (!property) {
-      return res.status(404).json({
-        ResponseCode: "404",
-        Result: "false",
-        ResponseMsg:
-          "Property not found or you are not authorized to edit this property",
-      });
-    }
-
-    const files = req.files; // Uploaded files from multipart/form-data
-
-    // Parse standard_rules ensuring it's a JSON object
-    let parsedStandardRules;
-    try {
-      parsedStandardRules =
-        typeof standard_rules === "object"
-          ? standard_rules
-          : JSON.parse(standard_rules);
-    } catch (err) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Invalid JSON format in standard_rules",
-      });
-    }
-    if (typeof parsedStandardRules !== "object") {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "standard_rules must be a valid JSON object",
-      });
-    }
-
-    // Parse rules as a JSON array
-    let parsedRules;
-    try {
-      if (typeof rules === "object") {
-        parsedRules = rules;
-      } else if (typeof rules === "string") {
-        const trimmed = rules.trim();
-        if (trimmed.startsWith("[")) {
-          parsedRules = JSON.parse(trimmed);
-        } else {
-          // Assume it's a comma-separated list.
-          parsedRules = trimmed.split(",").map((item) => item.trim());
-        }
-      }
-    } catch (err) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Invalid JSON format in rules",
-      });
-    }
-
-    // Convert facility to an array of numeric IDs.
-    const facilityIds = Array.isArray(facility)
-      ? facility.map(Number)
-      : facility.split(",").map((id) => Number(id.trim()));
-
-    // File validations
-    const allowedImageTypes = ["jpeg", "png", "jpg"];
-    const allowedVideoTypes = ["mp4"];
-    const maxSize = 102400; // 100KB in bytes
-    const getFileExtension = (filename) =>
-      filename.split(".").pop().toLowerCase();
-
-    // Validate main image: main_image is required during update.
-    if (!files || !files.main_image || files.main_image.length === 0) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Main image is required.",
-      });
-    }
-    const mainImage = files.main_image[0];
-    const mainImageExt = getFileExtension(mainImage.originalname);
-    if (!allowedImageTypes.includes(mainImageExt)) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg:
-          "Invalid main image format! Only .jpg, .png, and .jpeg are allowed.",
-      });
-    }
-    if (mainImage.size > maxSize) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg:
-          "Main image file is too large! Please upload a file of 100KB or below.",
-      });
-    }
-
-    // Process extra images and videos from extra_files
-    const extraImages = [];
-    const videos = [];
-    if (files.extra_files) {
-      for (const file of files.extra_files) {
-        const ext = getFileExtension(file.originalname);
-        if (allowedImageTypes.includes(ext)) {
-          if (file.size > maxSize) {
-            return res.status(400).json({
-              ResponseCode: "400",
-              Result: "false",
-              ResponseMsg: `Extra image ${file.originalname} is too large! Each image must be 100KB or below.`,
-            });
-          }
-          extraImages.push(file);
-        } else if (allowedVideoTypes.includes(ext)) {
-          videos.push(file);
-        } else {
-          return res.status(400).json({
-            ResponseCode: "400",
-            Result: "false",
-            ResponseMsg: `Invalid file format for ${file.originalname}. Allowed formats: .jpg, .png for images and .mp4 for videos.`,
-          });
-        }
-      }
-    }
-
-    // Process video_url file if provided (separate from extra_files)
-    let videoUrlS3 = null;
-    if (files.video_url && files.video_url.length > 0) {
-      const videoFile = files.video_url[0];
-      const ext = getFileExtension(videoFile.originalname);
-      if (!allowedVideoTypes.includes(ext)) {
-        return res.status(400).json({
-          ResponseCode: "400",
-          Result: "false",
-          ResponseMsg:
-            "Invalid video file format for video_url! Only mp4 is allowed.",
-        });
-      }
-      videoUrlS3 = await uploadToS3([videoFile], "property-videos");
-      if (Array.isArray(videoUrlS3)) {
-        videoUrlS3 = videoUrlS3[0];
-      }
-    }
-
-    // Determine City ID using the "city" field from the request.
-    let cityId;
-    if (typeof city === "object" && city !== null && city.value) {
-      cityId = city.value;
-    } else if (typeof city === "string") {
-      if (city.trim().startsWith("{")) {
-        try {
-          const parsedCity = JSON.parse(city);
-          if (parsedCity && parsedCity.value) {
-            cityId = parsedCity.value;
-          }
-        } catch (err) {
-          console.error("Error parsing city JSON:", err.message);
-        }
-      } else if (!isNaN(Number(city))) {
-        cityId = Number(city);
-      } else {
-        // Try to look up the city by title
-        const cityRecord = await TblCity.findOne({
-          where: { title: city },
-          attributes: ["title"],
-        });
-        if (cityRecord) {
-          cityId = cityRecord.id;
-        }
-      }
-    }
-    if (!cityId && !is_draft) {
-      return res.status(400).json({
-        ResponseCode: "400",
-        Result: "false",
-        ResponseMsg: "Valid city ID is required!",
-      });
-    }
-
-    // Upload main image and extra files to S3
-    const mainImageUrl = await uploadToS3([mainImage], "property-main-image");
-    const extraImageUrls = extraImages.length
-      ? await uploadToS3(extraImages, "property-extra-images")
-      : [];
-    const finalExtraImages = Array.isArray(extraImageUrls)
-      ? extraImageUrls
-      : [extraImageUrls];
-    const videoUrls = videos.length
-      ? await uploadToS3(videos, "property-videos")
-      : [];
-
-    // Update the property with the new details
-    await property.update({
-      status:property.status,
-      title,
-      address,
-      description,
-      facility: facilityIds, // store as an array of IDs
-      ptype,
-      beds,
-      bathroom,
-      sqrft,
-      rate,
-      rules: parsedRules,
-      standard_rules: parsedStandardRules,
-      latitude,
-      longtitude,
-      mobile,
-      listing_date,
-      price,
-      country_id,
-      is_sell,
-      adults,
-      children,
-      infants,
-      pets,
-      setting_id,
-      extra_guest_charges,
-      // Use video_url from req.body if provided; otherwise, use the newly uploaded video URL.
-      video_url: video_url || videoUrlS3,
-      image: mainImageUrl,
-      extra_images: finalExtraImages,
-      video: JSON.stringify(videoUrls),
-      city: cityId,
-      status:property.status,
-      is_draft:is_draft,
-    });
-
-    return res.status(200).json({
-      ResponseCode: "200",
-      Result: "true",
-      ResponseMsg: is_draft ? "Draft Property Updated Successfully" : "Property Updated Successfully",
-      property,
-    });
-  } catch (error) {
-    console.error("Error occurred:", error.message, error.stack);
-    return res.status(500).json({
-      ResponseCode: "500",
-      Result: "false",
-      ResponseMsg: "Internal Server Error",
-    });
-  }
-};
 
 const getPropertyList = async (req, res) => {
   try {
