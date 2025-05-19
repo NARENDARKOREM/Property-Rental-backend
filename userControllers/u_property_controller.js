@@ -1385,7 +1385,7 @@ const editProperty = async (req, res) => {
 const getPropertyList = async (req, res) => {
   try {
     console.log("Request User:", req.user);
-    const uid = req.user?.id || null;
+    const uid = req.user?.id;
     if (!uid) {
       res.status(401).json({ message: "Unauthorized: User not found!" });
     }
