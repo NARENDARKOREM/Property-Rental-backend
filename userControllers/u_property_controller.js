@@ -1394,7 +1394,6 @@ const getPropertyList = async (req, res) => {
     const properties = await Property.findAll({
       where: {
         add_user_id: uid,
-        add_user_id: { [Op.ne]: null },
         [Op.or]: [{ status: 1 }, { status: 0, is_draft: true }],
       },
       include: [
